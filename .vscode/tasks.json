@@ -1,0 +1,80 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "ArborGrid: Subir Stack Completa (Docker)",
+      "type": "shell",
+      "command": "python3 scripts/start_stack.py",
+      "windows": {
+        "command": "python scripts/start_stack.py"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "ArborGrid: Subir API Local (Sem Docker - Porta 8000)",
+      "type": "shell",
+      "command": "python3 scripts/start_stack.py --local-api",
+      "windows": {
+        "command": "python scripts/start_stack.py --local-api"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "ArborGrid: Derrubar Stack Docker",
+      "type": "shell",
+      "command": "python3 scripts/start_stack.py --down",
+      "windows": {
+        "command": "python scripts/start_stack.py --down"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "ArborGrid: Rodar Testes API (pytest)",
+      "type": "shell",
+      "command": "uv run pytest -v",
+      "options": {
+        "cwd": "${workspaceFolder}/webapp"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "ArborGrid: Build Frontend (Vite)",
+      "type": "shell",
+      "command": "npm run build",
+      "options": {
+        "cwd": "${workspaceFolder}/webapp/frontend"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

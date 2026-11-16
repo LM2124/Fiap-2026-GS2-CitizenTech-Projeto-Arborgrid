@@ -1,0 +1,37 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "ArborGrid: Subir Stack Docker (Padrao F5)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/start_stack.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "ArborGrid: API FastAPI Local (Sem Docker · Porta 8000)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/start_stack.py",
+      "args": ["--local-api"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "ArborGrid: Debug Uvicorn Direto (Breakpoints FastAPI)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["app.main:app", "--reload", "--host", "127.0.0.1", "--port", "8000"],
+      "cwd": "${workspaceFolder}/webapp",
+      "env": {
+        "ARBORGRID_REQUIRE_AUTH": "false"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "copa",
+      "score": null,
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          442.0
+        ],
+        [
+          53.0,
+          457.0
+        ],
+        [
+          50.0,
+          627.0
+        ],
+        [
+          27.0,
+          639.0
+        ],
+        [
+          494.0,
+          639.0
+        ],
+        [
+          532.0,
+          606.0
+        ],
+        [
+          542.0,
+          639.0
+        ],
+        [
+          639.0,
+          639.0
+        ],
+        [
+          639.0,
+          0.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "tree_627922_side_angle_A_h182.jpg",
+  "imageData": null,
+  "imageHeight": 640,
+  "imageWidth": 640,
+  "description": ""
+}

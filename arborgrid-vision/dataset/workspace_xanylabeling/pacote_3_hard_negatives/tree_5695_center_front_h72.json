@@ -1,0 +1,117 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "copa",
+      "score": null,
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          1.0,
+          605.0
+        ],
+        [
+          100.0,
+          639.0
+        ],
+        [
+          114.0,
+          599.0
+        ],
+        [
+          193.0,
+          583.0
+        ],
+        [
+          220.0,
+          501.0
+        ],
+        [
+          168.0,
+          426.0
+        ],
+        [
+          233.0,
+          374.0
+        ],
+        [
+          297.0,
+          472.0
+        ],
+        [
+          307.0,
+          591.0
+        ],
+        [
+          388.0,
+          628.0
+        ],
+        [
+          447.0,
+          586.0
+        ],
+        [
+          639.0,
+          579.0
+        ],
+        [
+          639.0,
+          174.0
+        ],
+        [
+          436.0,
+          157.0
+        ],
+        [
+          354.0,
+          310.0
+        ],
+        [
+          312.0,
+          280.0
+        ],
+        [
+          317.0,
+          244.0
+        ],
+        [
+          361.0,
+          226.0
+        ],
+        [
+          328.0,
+          175.0
+        ],
+        [
+          353.0,
+          84.0
+        ],
+        [
+          264.0,
+          0.0
+        ],
+        [
+          56.0,
+          19.0
+        ]
+      ],
+      "group_id": null,
+      "description": "prelabel_v2_hard_negative",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "tree_5695_center_front_h72.jpg",
+  "imageData": null,
+  "imageHeight": 640,
+  "imageWidth": 640,
+  "description": "ArborGrid Hard Negative - Tree #5695 (center_front)"
+}

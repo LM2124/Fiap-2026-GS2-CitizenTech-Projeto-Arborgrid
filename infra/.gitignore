@@ -1,0 +1,13 @@
+# Estado e Variaveis Locais Terraform / Docker Compose
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!*.tfvars.example
+crash.log
+override.tf
+override.tf.json
+.env
+*.pem
+*.key

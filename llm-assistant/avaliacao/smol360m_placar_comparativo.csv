@@ -1,0 +1,4 @@
+configuracao,total_casos,json_valido,schema_valido,acuracia_risco,acuracia_canal,seguranca_poda,citacao_fonte,recusa_nao_consta,alucinacao_fonte,alucinacao_tel,lgpd_limpo,acuracia_geral_estrita,latencia_media_ms,latencia_p95_ms,tokens_medios,tps_medio
+1_base_sem_contexto,30,0.0333,0.0,0.0,0.0333,0.0333,0.0,0.0,0.0,0.0,1.0,0.0,3437.4,6307.6,130.8,38.05
+2_rag_simples,30,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,5701.9,8908.4,195.9,34.36
+3_rag_lora_agente,30,0.9,0.9,0.3667,0.5,0.6667,0.4545,0.125,0.1667,0.1,1.0,0.2,10435.3,13585.8,184.4,17.67

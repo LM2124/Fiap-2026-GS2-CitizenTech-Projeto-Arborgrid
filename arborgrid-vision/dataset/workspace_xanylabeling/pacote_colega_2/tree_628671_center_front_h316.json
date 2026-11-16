@@ -1,0 +1,81 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "copa",
+      "score": 0.988,
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          613.0
+        ],
+        [
+          106.0,
+          525.0
+        ],
+        [
+          206.0,
+          545.0
+        ],
+        [
+          222.0,
+          507.0
+        ],
+        [
+          256.0,
+          495.0
+        ],
+        [
+          295.0,
+          455.0
+        ],
+        [
+          360.0,
+          464.0
+        ],
+        [
+          373.0,
+          501.0
+        ],
+        [
+          409.0,
+          487.0
+        ],
+        [
+          446.0,
+          431.0
+        ],
+        [
+          488.0,
+          459.0
+        ],
+        [
+          639.0,
+          449.0
+        ],
+        [
+          639.0,
+          0.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "tree_628671_center_front_h316.jpg",
+  "imageData": null,
+  "imageHeight": 640,
+  "imageWidth": 640,
+  "description": ""
+}

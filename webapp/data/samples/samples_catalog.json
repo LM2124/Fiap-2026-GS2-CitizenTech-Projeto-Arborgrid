@@ -1,0 +1,82 @@
+[
+  {
+    "id": "pinheiros_635210",
+    "geosampa_id": "635210",
+    "region_key": "pinheiros",
+    "region_label": "Pinheiros (Zona Oeste)",
+    "distrito": "PINHEIROS",
+    "subprefeitura": "PINHEIROS",
+    "perspective": "center_front",
+    "capture_date": "2022-03",
+    "filename": "tree_635210_center_front_h290.jpg",
+    "consolidated_status": "CRITICO_CONFIRMADO",
+    "reference_v3": {
+      "triage": "CRITICO",
+      "copa_px": 354555,
+      "wire_px": 65228,
+      "pole_px": 0,
+      "contact_direct_px": 113331,
+      "wind_buffer_px": 85074
+    }
+  },
+  {
+    "id": "alto_da_mooca_30254",
+    "geosampa_id": "30254",
+    "region_key": "alto_da_mooca",
+    "region_label": "Alto da Mooca (Zona Leste)",
+    "distrito": "MOOCA",
+    "subprefeitura": "MOOCA",
+    "perspective": "center_front",
+    "capture_date": "2023-03",
+    "filename": "tree_30254_center_front_h85.jpg",
+    "consolidated_status": "DIVERGENCIA_PARALAXE",
+    "reference_v3": {
+      "triage": "PROXIMIDADE",
+      "copa_px": 9638,
+      "wire_px": 68952,
+      "pole_px": 1169,
+      "contact_direct_px": 752,
+      "wind_buffer_px": 2421
+    }
+  },
+  {
+    "id": "vila_mariana_218654",
+    "geosampa_id": "218654",
+    "region_key": "vila_mariana",
+    "region_label": "Vila Mariana / Chácara Klabin (Centro-Sul)",
+    "distrito": "VILA MARIANA",
+    "subprefeitura": "VILA MARIANA",
+    "perspective": "center_front",
+    "capture_date": "2024-12",
+    "filename": "tree_218654_center_front_h155.jpg",
+    "consolidated_status": "CRITICO_CONFIRMADO",
+    "reference_v3": {
+      "triage": "CRITICO",
+      "copa_px": 325476,
+      "wire_px": 6689,
+      "pole_px": 251,
+      "contact_direct_px": 8726,
+      "wind_buffer_px": 14967
+    }
+  },
+  {
+    "id": "avenida_paulista_2137",
+    "geosampa_id": "2137",
+    "region_key": "avenida_paulista",
+    "region_label": "Avenida Paulista (Controle Negativo - Fiação Subterrânea)",
+    "distrito": "CONSOLACAO",
+    "subprefeitura": "SE",
+    "perspective": "center_front",
+    "capture_date": "2024-11",
+    "filename": "tree_2137_center_front_h316.jpg",
+    "consolidated_status": "SEGURO",
+    "reference_v3": {
+      "triage": "SEGURO",
+      "copa_px": 126749,
+      "wire_px": 0,
+      "pole_px": 0,
+      "contact_direct_px": 0,
+      "wind_buffer_px": 0
+    }
+  }
+]

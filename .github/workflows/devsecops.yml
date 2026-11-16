@@ -1,0 +1,139 @@
+name: ArborGrid DevSecOps Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  test-and-secrets-scan:
+    name: Pytest, Gitleaks e Semgrep SAST
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks Secret Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: webapp/requirements*.txt
+
+      - name: Install webapp test and SAST dependencies
+        run: |
+          pip install -r webapp/requirements-dev.txt
+          pip install --quiet semgrep
+
+      - name: Run unit and contract tests
+        working-directory: webapp
+        run: pytest -v
+
+      - name: Semgrep SAST Scan
+        run: >-
+          semgrep scan
+          --config p/python
+          --config p/dockerfile
+          --config p/terraform
+          --config p/secrets
+          --exclude .venv
+          --exclude node_modules
+          --exclude webapp/app/static
+          --error
+
+  container-and-iac-security:
+    name: Docker Build & Trivy Scan
+    needs: test-and-secrets-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Trivy IaC & Filesystem Scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "config"
+          scan-ref: "infra/"
+          exit-code: "1"
+          severity: "CRITICAL,HIGH"
+
+      - name: Build slim non-root container image
+        run: docker build -t arborgrid-webapp:${{ github.sha }} webapp
+
+      - name: Trivy Container Image Scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "image"
+          image-ref: "arborgrid-webapp:${{ github.sha }}"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+
+  deploy-to-vm:
+    name: Deploy Automatico EC2 (Docker Compose)
+    needs: container-and-iac-security
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate required deploy secrets
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          if [ -z "${EC2_HOST:-}" ] || [ -z "${EC2_USER:-}" ] || [ -z "${EC2_SSH_KEY:-}" ]; then
+            echo "::warning::Secrets EC2_HOST/EC2_USER/EC2_SSH_KEY nao configurados; pulando etapa de deploy remoto."
+            exit 0
+          fi
+          echo "DEPLOY_READY=true" >> "$GITHUB_ENV"
+
+      - name: Configure SSH and sync codebase + .env
+        if: env.DEPLOY_READY == 'true'
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          ARBORGRID_API_TOKEN: ${{ secrets.ARBORGRID_API_TOKEN }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+
+          rsync -az --delete \
+            --exclude '.git' \
+            --exclude '.venv' \
+            --exclude 'webapp/frontend/node_modules' \
+            --exclude 'arborgrid-vision/models/*.pt' \
+            --exclude 'arborgrid-vision/dataset/sp_geosampa_api/images' \
+            --exclude 'arborgrid-vision/dataset/sp_geosampa_api/*overlays*' \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            ./ "${EC2_USER}@${EC2_HOST}:/opt/arborgrid/app/"
+
+          printf 'ARBORGRID_API_TOKEN=%s\nARBORGRID_EXPOSE_MEDIA_URLS=false\nARBORGRID_MEDIA_HOST_DIR=/opt/arborgrid/media\nGRAFANA_ADMIN_USER=admin\nGRAFANA_ADMIN_PASSWORD=%s\n' \
+            "$ARBORGRID_API_TOKEN" "$GRAFANA_ADMIN_PASSWORD" | \
+            ssh -i ~/.ssh/deploy_key "${EC2_USER}@${EC2_HOST}" 'cat > /opt/arborgrid/app/infra/.env && chmod 600 /opt/arborgrid/app/infra/.env'
+
+          ssh -i ~/.ssh/deploy_key "${EC2_USER}@${EC2_HOST}" 'bash -s' <<'EOF'
+            set -euo pipefail
+            cd /opt/arborgrid/app/infra
+            docker compose --env-file .env up -d --build
+            docker image prune -f
+          EOF

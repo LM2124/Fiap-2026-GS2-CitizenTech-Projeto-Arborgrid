@@ -1,0 +1,43 @@
+[project]
+name = "arborgrid-llm-assistant"
+version = "0.1.0"
+description = "ArborGrid Copiloto Técnico: Assistente LLM local (Qwen3-1.7B + RAG + LoRA + Agente) para triagem e legislação de arborização urbana e rede elétrica em São Paulo."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "accelerate>=1.10.0",
+    "datasets>=4.0.0",
+    "gguf>=0.19.0",
+    "httpx>=0.28.1",
+    "ipykernel>=6.29.5",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.0",
+    "nbconvert>=7.16.6",
+    "numpy>=2.2.0",
+    "pandas>=2.2.3",
+    "peft>=0.18.0",
+    "psutil>=7.2.2",
+    "pydantic>=2.10.0",
+    "scikit-learn>=1.6.0",
+    "sentence-transformers>=3.3.1",
+    "sentencepiece>=0.2.3",
+    "torch>=2.10.0",
+    "transformers>=5.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu130" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

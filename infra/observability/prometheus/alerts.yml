@@ -1,0 +1,32 @@
+groups:
+  - name: arborgrid_golden_signals_alerts
+    rules:
+      - alert: ArborGridHighClientErrorRate
+        expr: sum(rate(arborgrid_http_errors_total{error_class=~"4xx|5xx"}[1m])) > 0.2
+        for: 15s
+        labels:
+          severity: warning
+          service: arborgrid-webapp
+        annotations:
+          summary: "Taxa elevada de erros HTTP na API ArborGrid"
+          description: "Erros HTTP (4xx/5xx) acima de 0.2 req/s nos ultimos 60 segundos."
+
+      - alert: ArborGridHighLatencyP95
+        expr: histogram_quantile(0.95, sum(rate(arborgrid_http_request_duration_seconds_bucket[5m])) by (le)) > 0.5
+        for: 1m
+        labels:
+          severity: critical
+          service: arborgrid-webapp
+        annotations:
+          summary: "Latencia P95 acima de 500ms no ArborGrid"
+          description: "O percentil 95 de latencia HTTP excedeu 0.5s por mais de 1 minuto."
+
+      - alert: ArborGridServiceDown
+        expr: up{job="arborgrid-webapp"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: arborgrid-webapp
+        annotations:
+          summary: "Servico ArborGrid Web App indisponivel"
+          description: "Alvo Prometheus arborgrid-webapp parou de responder ao /metrics."

@@ -1,0 +1,69 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "copa",
+      "score": null,
+      "points": [
+        [
+          58.0,
+          5.0
+        ],
+        [
+          71.0,
+          7.0
+        ],
+        [
+          80.0,
+          17.0
+        ],
+        [
+          92.0,
+          17.0
+        ],
+        [
+          110.0,
+          38.0
+        ],
+        [
+          126.0,
+          42.0
+        ],
+        [
+          163.0,
+          44.0
+        ],
+        [
+          180.0,
+          42.0
+        ],
+        [
+          192.0,
+          36.0
+        ],
+        [
+          215.0,
+          0.0
+        ],
+        [
+          61.0,
+          0.0
+        ]
+      ],
+      "group_id": null,
+      "description": "prelabel_v2_hard_negative",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "tree_4565_center_front_h140.jpg",
+  "imageData": null,
+  "imageHeight": 640,
+  "imageWidth": 640,
+  "description": "ArborGrid Hard Negative - Tree #4565 (center_front)"
+}

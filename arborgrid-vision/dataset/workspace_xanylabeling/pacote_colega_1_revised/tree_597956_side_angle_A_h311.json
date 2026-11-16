@@ -1,0 +1,347 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "copa",
+      "score": null,
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          639.0
+        ],
+        [
+          349.0,
+          639.0
+        ],
+        [
+          352.0,
+          601.0
+        ],
+        [
+          456.0,
+          550.0
+        ],
+        [
+          467.0,
+          526.0
+        ],
+        [
+          588.0,
+          523.0
+        ],
+        [
+          639.0,
+          491.0
+        ],
+        [
+          639.0,
+          0.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          3.4748393514569216,
+          204.70401876449813
+        ],
+        [
+          33.23005426902034,
+          203.82886538456984
+        ],
+        [
+          57.29677221704961,
+          231.3961968523124
+        ],
+        [
+          318.09247943569386,
+          362.6692038415629
+        ],
+        [
+          313.71671253605217,
+          374.04619778063125
+        ],
+        [
+          262.0826631202803,
+          347.79159638278117
+        ],
+        [
+          0.0,
+          229.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          1.9219710628659215,
+          169.9807430814043
+        ],
+        [
+          78.94997395141596,
+          212.3461446701068
+        ],
+        [
+          70.60527363848968,
+          224.54224512746055
+        ],
+        [
+          0.0,
+          183.19681461843504
+        ],
+        [
+          0.0,
+          179.59059839573393
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          192.94554610594173,
+          258.963528320055
+        ],
+        [
+          331.657356824583,
+          349.10432645267366
+        ],
+        [
+          329.031896684798,
+          355.6679768021362
+        ],
+        [
+          189.00735589626424,
+          267.71506211933837
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          172.81701836758998,
+          244.52349755123743
+        ],
+        [
+          126.43388923138818,
+          214.768282633674
+        ],
+        [
+          112.86901184249896,
+          226.14527657274238
+        ],
+        [
+          166.2533680181275,
+          265.96475535948167
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          102.40695098244655,
+          235.17526826563932
+        ],
+        [
+          163.26989058655357,
+          273.76157638066144
+        ],
+        [
+          160.88310864129448,
+          278.93293726205616
+        ],
+        [
+          98.82677806455789,
+          245.1201930375522
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          208.62711919788143,
+          287.27445113278645
+        ],
+        [
+          285.5942318750757,
+          346.8505297980694
+        ],
+        [
+          274.18280258963506,
+          341.4165158526215
+        ],
+        [
+          199.38929549061993,
+          296.7839755373203
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          3.649053018253369,
+          127.70196064638787
+        ],
+        [
+          100.37450124722658,
+          194.81203287266985
+        ],
+        [
+          90.86497684269268,
+          210.29897261719645
+        ],
+        [
+          1.4754474400741913,
+          149.98141782272438
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          281.0824692501575,
+          285.5394969626238
+        ],
+        [
+          277.7948908131615,
+          292.1146538366158
+        ],
+        [
+          204.1531338244513,
+          241.1571880631779
+        ],
+        [
+          208.0982279488465,
+          236.22582040768395
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          190.48951001171838,
+          221.0723905608157
+        ],
+        [
+          186.54441588732317,
+          226.9900317474085
+        ],
+        [
+          157.46952001910824,
+          204.993825256222
+        ],
+        [
+          162.0721298309026,
+          200.06245760072804
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "tree_597956_side_angle_A_h311.jpg",
+  "imageData": null,
+  "imageHeight": 640,
+  "imageWidth": 640,
+  "description": ""
+}

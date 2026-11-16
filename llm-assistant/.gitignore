@@ -1,0 +1,21 @@
+# Ambientes e Caches Python
+.venv/
+__pycache__/
+*.pyc
+.cache/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Modelos Pesados GGUF/Safetensors e Logs de Treino
+checkpoints*/
+models/
+models/*.gguf
+models/*.bin
+models/*.safetensors
+outputs/
+wandb/
+runs/
+scripts/vendor/
+
+# Tokenizers duplicados do modelo base dentro de adaptadores LoRA
+adapters/*/tokenizer.json

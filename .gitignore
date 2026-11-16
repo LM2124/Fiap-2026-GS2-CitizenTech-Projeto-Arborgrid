@@ -1,0 +1,38 @@
+# ==============================================================================
+# FIAP Global Solution 2026.2 — CitizenTech (ArborGrid SP)
+# Regras Globais do Monorepo (especificas residem em cada subpasta)
+# ==============================================================================
+
+# Credenciais, Variaveis de Ambiente e Workspace Privado
+.env
+*.env
+*.env.local
+*.pem
+*.key
+.local/
+
+# Sistema Operacional e IDEs
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+.idea/
+
+# Ambientes e Caches Globais Python / Node
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ipynb_checkpoints/
+.ruff_cache/
+node_modules/
+
+# Pacotes Compactados Pesados
+*.zip
+*.tar.gz
+*.rar

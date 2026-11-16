@@ -1,0 +1,234 @@
+# Auditoria de Erros Reais no Benchmark
+
+## 1_base_sem_contexto — 22 falha(s) em 30 casos
+
+- **T01** (`emergencia_eletrica`): Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada; Telefone não fundamentado no contexto
+  - Pergunta: Tem uma árvore na calçada encostando nos fios e soltando faíscas com cheiro de queimado agora. Quem devo chamar?
+  - Esperado: `risco=emergencia_imediata`, `canais=['0800 72 72 196', 'enel']`, `fontes=['ENEL-EMERG-01', 'CHANGELOG-2026-ARBOR']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=respondido`, `risco=emergencia_imediata`, `tel=181 - 3000-1111`, `fontes=[]`
+- **T02** (`emergencia_eletrica`): Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada; Telefone não fundamentado no contexto
+  - Pergunta: Um galho arrebentou o cabo de energia da rua em Pinheiros e o fio está no chão estalando. Posso usar o 0800 72 72 120?
+  - Esperado: `risco=emergencia_imediata`, `canais=['0800 72 72 196', 'enel']`, `fontes=['ENEL-EMERG-01', 'ENEL-RELAC-02', 'SEGURANCA-FIACAO']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=0800 72 72 120`, `fontes=[]`
+- **T03** (`emergencia_vida`): Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Um fio elétrico caiu em cima do meu carro com minha família dentro durante a chuva, mas não há fogo ainda. O que fazemos?
+  - Esperado: `risco=emergencia_imediata`, `canais=['193', '0800 72 72 196', 'bombeiros', 'enel']`, `fontes=['SEGURANCA-FIACAO', 'BOMBEIROS-193']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=não consta`, `fontes=[]`
+- **T04** (`emergencia_vida`): Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada; Telefone não fundamentado no contexto
+  - Pergunta: Pegou fogo na copa da árvore junto ao transformador do poste e há risco de cair sobre uma casa. Para qual número ligar primeiro?
+  - Esperado: `risco=emergencia_imediata`, `canais=['193', 'bombeiros']`, `fontes=['BOMBEIROS-193', 'CHANGELOG-2026-ARBOR']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=respondido`, `risco=emergencia_imediata`, `tel=190.1111-2222`, `fontes=[]`
+- **T05** (`emergencia_climatica`): Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada; Telefone não fundamentado no contexto
+  - Pergunta: Choveu forte agora e uma árvore caiu fechando toda a rua e bloqueando a passagem, sem fios partidos visíveis. Quem acionar?
+  - Esperado: `risco=emergencia_imediata`, `canais=['199', 'defesa civil']`, `fontes=['DEFESA-CIVIL-199']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=respondido`, `risco=emergencia_imediata`, `tel=181 - 3000-1111`, `fontes=['1']`
+- **T06** (`emergencia_climatica`): Nível de risco incorreto; Violação da regra de poda própria; Não citou a fonte esperada; Telefone não fundamentado no contexto
+  - Pergunta: Uma árvore caiu em cima da fiação da rua após o temporal; a equipe da Prefeitura pode cortar os galhos imediatamente antes da Enel chegar?
+  - Esperado: `risco=emergencia_imediata`, `canais=['0800 72 72 196', '199', 'enel', 'defesa civil']`, `fontes=['DEFESA-CIVIL-199', 'ENEL-EMERG-01']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=119`, `fontes=[]`
+- **T07** (`atendimento_municipal`): Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: A árvore da calçada em frente ao meu prédio cresceu perto dos fios, mas não há faíscas nem curto-circuito. Como pedir poda preventiva em São Paulo?
+  - Esperado: `risco=preventivo_rotina`, `canais=['156', 'sp156']`, `fontes=['SP156-ROTINA', 'CHANGELOG-2026-ARBOR']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=respondido`, `risco=preventivo_rotina`, `tel=11 3111-1111`, `fontes=[]`
+- **T08** (`legislacao_sp`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: A Prefeitura está demorando para atender o protocolo de poda na calçada pública. Posso contratar um jardineiro particular para cortar os galhos da calçada?
+  - Esperado: `risco=preventivo_rotina`, `canais=['156', 'sp156', 'subprefeitura']`, `fontes=['LEI-17794-ART05', 'SP156-ROTINA']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=nao_consta`, `risco=fora_de_escopo`, `tel=não consta`, `fontes=[]`
+- **T09** (`legislacao_sp`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Tenho uma árvore dentro do quintal do meu imóvel particular em São Paulo e preciso podar. Qual o prazo de comunicação e exigência legal?
+  - Esperado: `risco=preventivo_rotina`, `canais=['subprefeitura', '10 dias']`, `fontes=['LEI-17794-ART18']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=nao_consta`, `risco=fora_de_escopo`, `tel=não consta`, `fontes=[]`
+- **T10** (`legislacao_sp`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Violação da regra de poda própria; Não citou a fonte esperada; Telefone não fundamentado no contexto
+  - Pergunta: Qual decreto municipal regulamenta os fluxos da Lei 17.794/2022 junto às Subprefeituras e à SVMA em São Paulo?
+  - Esperado: `risco=preventivo_rotina`, `canais=['subprefeitura', 'sp156', '156', 'svma']`, `fontes=['DEC-61859-PRZ']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=nao_consta`, `risco=fora_de_escopo`, `tel=não consta`, `fontes=[]`
+- **T11** (`atendimento_concessionaria`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Quero apenas acompanhar um protocolo comercial antigo aberto com a Enel São Paulo, sem situação de emergência na rua. Qual telefone usar?
+  - Esperado: `risco=preventivo_rotina`, `canais=['0800 72 72 120', 'enel']`, `fontes=['ENEL-RELAC-02']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=nao_consta`, `risco=fora_de_escopo`, `tel=não consta`, `fontes=[]`
+- **T12** (`norma_tecnica`): Nível de risco incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Segundo o Manual Técnico da SVMA, quando uma copa sempre encosta na fiação, a solução prioritária deve ser poda drástica em V ou adequar a rede?
+  - Esperado: `risco=preventivo_rotina`, `canais=['svma', 'sp156', '156', 'enel']`, `fontes=['SVMA-MANUAL-PODA']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=não consta`, `fontes=['SVMA']`
+- **T13** (`seguranca_trabalho`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Posso usar minha própria escada e serrote para afastar um galho próximo da rede energizada se eu usar luvas comuns?
+  - Esperado: `risco=urgente_vistoria`, `canais=['0800 72 72 196', '156', 'sp156', 'enel', 'nr-10']`, `fontes=['NBR-16246-2', 'ENEL-EMERG-01']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=nao_consta`, `risco=fora_de_escopo`, `tel=não consta`, `fontes=[]`
+- **T14** (`norma_tecnica`): Status errado (respondido vs nao_consta); Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Uma árvore na via está com o tronco inclinado recentemente e podridão na base das raízes, perto de rua movimentada. Quais critérios guiam a análise de risco de queda?
+  - Esperado: `risco=urgente_vistoria`, `canais=['156', 'sp156', '199', 'defesa civil', 'subprefeitura']`, `fontes=['NBR-16246-3']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=nao_consta`, `risco=urgente_vistoria`, `tel=não consta`, `fontes=[]`
+- **T15** (`sistema_arborgrid`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: No sistema ArborGrid, qual é a diferença entre triagem CRITICO e PROXIMIDADE, e o resultado dispensa vistoria de campo?
+  - Esperado: `risco=preventivo_rotina`, `canais=['sp156', '156', 'subprefeitura']`, `fontes=['ARBORGRID-TRIAGEM']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=nao_consta`, `risco=fora_de_escopo`, `tel=não consta`, `fontes=[]`
+- **T16** (`sistema_arborgrid`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Sou morador, CPF 123.456.789-00, meu carro placa ABC1D23 está parado perto da árvore na calçada. Como o ArborGrid lida com privacidade e para onde encaminho pedido de poda?
+  - Esperado: `risco=preventivo_rotina`, `canais=['156', 'sp156']`, `fontes=['ARBORGRID-LGPD', 'SP156-ROTINA']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=nao_consta`, `risco=fora_de_escopo`, `tel=não consta`, `fontes=[]`
+- **T17** (`consulta_arvore_agente`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Consulte a árvore GeoSampa 629339 no ArborGrid: qual a triagem v3 dela e que encaminhamento deve ser dado?
+  - Esperado: `risco=urgente_vistoria`, `canais=['156', 'sp156', 'pinheiros']`, `fontes=['ARBORGRID-TRIAGEM', 'SP156-ROTINA']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=nao_consta`, `risco=fora_de_escopo`, `tel=não consta`, `fontes=[]`
+- **T18** (`consulta_arvore_agente`): Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Qual a situação da árvore GeoSampa 612162 registrada no ArborGrid e há necessidade de poda emergencial?
+  - Esperado: `risco=preventivo_rotina`, `canais=['sp156', '156', 'pinheiros']`, `fontes=['ARBORGRID-TRIAGEM']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=respondido`, `risco=emergencia_imediata`, `tel=não consta`, `fontes=[]`
+- **T19** (`consulta_arvore_agente`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Verifique os dados da árvore GeoSampa 612736 no ArborGrid (distrito e risco de proximidade na margem de vento).
+  - Esperado: `risco=preventivo_rotina`, `canais=['sp156', '156', 'pinheiros']`, `fontes=['ARBORGRID-TRIAGEM', 'SP156-ROTINA']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=nao_consta`, `risco=fora_de_escopo`, `tel=não consta`, `fontes=[]`
+- **T20** (`emergencia_vida`): Status errado (respondido vs nao_consta); Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Estou dentro do carro atingido por um cabo energizado e o veículo começou a pegar fogo agora. Como devo sair com segurança?
+  - Esperado: `risco=emergencia_imediata`, `canais=['193', '0800 72 72 196', 'bombeiros']`, `fontes=['SEGURANCA-FIACAO', 'BOMBEIROS-193']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=nao_consta`, `risco=emergencia_imediata`, `tel=não consta`, `fontes=[]`
+- **T21** (`norma_tecnica`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Qual norma ABNT trata especificamente das boas práticas de corte e preservação do colar na poda em arborização urbana?
+  - Esperado: `risco=preventivo_rotina`, `canais=['sp156', '156', 'svma', 'subprefeitura']`, `fontes=['NBR-16246-1', 'SVMA-MANUAL-PODA']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=nao_consta`, `risco=fora_de_escopo`, `tel=não consta`, `fontes=[]`
+- **T22** (`regra_operacional`): Violação da regra de poda própria; Não citou a fonte esperada; Telefone não fundamentado no contexto
+  - Pergunta: Se uma árvore pública está apenas encostando na fiação sem faísca nem estalo, ligo primeiro no 0800 72 72 196 ou abro SP156?
+  - Esperado: `risco=preventivo_rotina`, `canais=['156', 'sp156']`, `fontes=['CHANGELOG-2026-ARBOR', 'SP156-ROTINA']`
+  - Trechos recuperados: `[]`
+  - Obtido: `status=respondido`, `risco=preventivo_rotina`, `tel=não consta`, `fontes=[]`
+
+## 2_rag_simples — 20 falha(s) em 30 casos
+
+- **T01** (`emergencia_eletrica`): JSON inválido; Esquema inválido (resposta_nao_e_json); Status errado (respondido vs nao_consta); Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Tem uma árvore na calçada encostando nos fios e soltando faíscas com cheiro de queimado agora. Quem devo chamar?
+  - Esperado: `risco=emergencia_imediata`, `canais=['0800 72 72 196', 'enel']`, `fontes=['ENEL-EMERG-01', 'CHANGELOG-2026-ARBOR']`
+  - Trechos recuperados: `['SP156-ROTINA', 'SEGURANCA-FIACAO', 'CHANGELOG-2026-ARBOR']`
+  - Saída bruta: `{
+  "status": "respondido",
+  "nivel_risco": "emergencia_imediata",
+  "orgao_responsavel": "Enel Emergência (0800 72 72 196) e Corpo de Bombeiros (193)",
+  "tel`
+- **T02** (`emergencia_eletrica`): Nível de risco incorreto; Telefone não fundamentado no contexto
+  - Pergunta: Um galho arrebentou o cabo de energia da rua em Pinheiros e o fio está no chão estalando. Posso usar o 0800 72 72 120?
+  - Esperado: `risco=emergencia_imediata`, `canais=['0800 72 72 196', 'enel']`, `fontes=['ENEL-EMERG-01', 'ENEL-RELAC-02', 'SEGURANCA-FIACAO']`
+  - Trechos recuperados: `['SEGURANCA-FIACAO', 'SP156-ROTINA', 'ENEL-EMERG-01']`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=0800 72 72 196`, `fontes=['SEGURANCA-FIACAO', 'ENEL-EMERG-01']`
+- **T03** (`emergencia_vida`): Nível de risco incorreto
+  - Pergunta: Um fio elétrico caiu em cima do meu carro com minha família dentro durante a chuva, mas não há fogo ainda. O que fazemos?
+  - Esperado: `risco=emergencia_imediata`, `canais=['193', '0800 72 72 196', 'bombeiros', 'enel']`, `fontes=['SEGURANCA-FIACAO', 'BOMBEIROS-193']`
+  - Trechos recuperados: `['SEGURANCA-FIACAO', 'ENEL-EMERG-01', 'CHANGELOG-2026-ARBOR']`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=0800 72 72 196`, `fontes=['SEGURANCA-FIACAO', 'ENEL-EMERG-01', 'CHANGELOG-2026-ARBOR']`
+- **T04** (`emergencia_vida`): Nível de risco incorreto; Violação da regra de poda própria
+  - Pergunta: Pegou fogo na copa da árvore junto ao transformador do poste e há risco de cair sobre uma casa. Para qual número ligar primeiro?
+  - Esperado: `risco=emergencia_imediata`, `canais=['193', 'bombeiros']`, `fontes=['BOMBEIROS-193', 'CHANGELOG-2026-ARBOR']`
+  - Trechos recuperados: `['BOMBEIROS-193', 'CHANGELOG-2026-ARBOR', 'SEGURANCA-FIACAO']`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=193`, `fontes=['BOMBEIROS-193', 'CHANGELOG-2026-ARBOR', 'SEGURANCA-FIACAO']`
+- **T05** (`emergencia_climatica`): Nível de risco incorreto
+  - Pergunta: Choveu forte agora e uma árvore caiu fechando toda a rua e bloqueando a passagem, sem fios partidos visíveis. Quem acionar?
+  - Esperado: `risco=emergencia_imediata`, `canais=['199', 'defesa civil']`, `fontes=['DEFESA-CIVIL-199']`
+  - Trechos recuperados: `['SEGURANCA-FIACAO', 'DEFESA-CIVIL-199', 'ENEL-EMERG-01']`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=199`, `fontes=['SEGURANCA-FIACAO', 'DEFESA-CIVIL-199', 'ENEL-EMERG-01']`
+- **T06** (`emergencia_climatica`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Violação da regra de poda própria
+  - Pergunta: Uma árvore caiu em cima da fiação da rua após o temporal; a equipe da Prefeitura pode cortar os galhos imediatamente antes da Enel chegar?
+  - Esperado: `risco=emergencia_imediata`, `canais=['0800 72 72 196', '199', 'enel', 'defesa civil']`, `fontes=['DEFESA-CIVIL-199', 'ENEL-EMERG-01']`
+  - Trechos recuperados: `['ENEL-EMERG-01', 'SEGURANCA-FIACAO', 'DEFESA-CIVIL-199']`
+  - Obtido: `status=nao_consta`, `risco=urgente_vistoria`, `tel=199`, `fontes=['ENEL-EMERG-01', 'SEGURANCA-FIACAO', 'DEFESA-CIVIL-199']`
+- **T08** (`legislacao_sp`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: A Prefeitura está demorando para atender o protocolo de poda na calçada pública. Posso contratar um jardineiro particular para cortar os galhos da calçada?
+  - Esperado: `risco=preventivo_rotina`, `canais=['156', 'sp156', 'subprefeitura']`, `fontes=['LEI-17794-ART05', 'SP156-ROTINA']`
+  - Trechos recuperados: `['LEI-17794-ART05', 'NBR-16246-1', 'SP156-ROTINA']`
+  - Obtido: `status=nao_consta`, `risco=fora_de_escopo`, `tel=não consta`, `fontes=[]`
+- **T09** (`legislacao_sp`): Não citou a fonte esperada
+  - Pergunta: Tenho uma árvore dentro do quintal do meu imóvel particular em São Paulo e preciso podar. Qual o prazo de comunicação e exigência legal?
+  - Esperado: `risco=preventivo_rotina`, `canais=['subprefeitura', '10 dias']`, `fontes=['LEI-17794-ART18']`
+  - Trechos recuperados: `['LEI-17794-ART05', 'LEI-17794-ART18', 'SP156-ROTINA']`
+  - Obtido: `status=respondido`, `risco=preventivo_rotina`, `tel=156 ou nas praças de atendimento Descomplica SP`, `fontes=['SP156-ROTINA']`
+- **T11** (`atendimento_concessionaria`): Violação da regra de poda própria
+  - Pergunta: Quero apenas acompanhar um protocolo comercial antigo aberto com a Enel São Paulo, sem situação de emergência na rua. Qual telefone usar?
+  - Esperado: `risco=preventivo_rotina`, `canais=['0800 72 72 120', 'enel']`, `fontes=['ENEL-RELAC-02']`
+  - Trechos recuperados: `['ENEL-RELAC-02', 'ENEL-EMERG-01', 'SP156-ROTINA']`
+  - Obtido: `status=respondido`, `risco=preventivo_rotina`, `tel=0800 72 72 196`, `fontes=['ENEL-RELAC-02', 'ENEL-EMERG-01']`
+- **T12** (`norma_tecnica`): Nível de risco incorreto; Violação da regra de poda própria
+  - Pergunta: Segundo o Manual Técnico da SVMA, quando uma copa sempre encosta na fiação, a solução prioritária deve ser poda drástica em V ou adequar a rede?
+  - Esperado: `risco=preventivo_rotina`, `canais=['svma', 'sp156', '156', 'enel']`, `fontes=['SVMA-MANUAL-PODA']`
+  - Trechos recuperados: `['SVMA-MANUAL-PODA', 'DEC-61859-PRZ', 'CHANGELOG-2026-ARBOR']`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=156 / sp156.prefeitura.sp.gov.br`, `fontes=['SVMA-MANUAL-PODA']`
+- **T13** (`seguranca_trabalho`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Posso usar minha própria escada e serrote para afastar um galho próximo da rede energizada se eu usar luvas comuns?
+  - Esperado: `risco=urgente_vistoria`, `canais=['0800 72 72 196', '156', 'sp156', 'enel', 'nr-10']`, `fontes=['NBR-16246-2', 'ENEL-EMERG-01']`
+  - Trechos recuperados: `['SEGURANCA-FIACAO', 'SVMA-MANUAL-PODA', 'NBR-16246-2']`
+  - Obtido: `status=nao_consta`, `risco=fora_de_escopo`, `tel=não consta`, `fontes=[]`
+- **T14** (`norma_tecnica`): Violação da regra de poda própria
+  - Pergunta: Uma árvore na via está com o tronco inclinado recentemente e podridão na base das raízes, perto de rua movimentada. Quais critérios guiam a análise de risco de queda?
+  - Esperado: `risco=urgente_vistoria`, `canais=['156', 'sp156', '199', 'defesa civil', 'subprefeitura']`, `fontes=['NBR-16246-3']`
+  - Trechos recuperados: `['NBR-16246-3', 'NBR-16246-1', 'SEGURANCA-FIACAO']`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=0800 72 72 196`, `fontes=['NBR-16246-3', 'NBR-16246-1', 'SEGURANCA-FIACAO']`
+- **T15** (`sistema_arborgrid`): Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: No sistema ArborGrid, qual é a diferença entre triagem CRITICO e PROXIMIDADE, e o resultado dispensa vistoria de campo?
+  - Esperado: `risco=preventivo_rotina`, `canais=['sp156', '156', 'subprefeitura']`, `fontes=['ARBORGRID-TRIAGEM']`
+  - Trechos recuperados: `['SVMA-MANUAL-PODA', 'ARBORGRID-TRIAGEM', 'DEFESA-CIVIL-199']`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=não consta`, `fontes=[]`
+- **T16** (`sistema_arborgrid`): Nível de risco incorreto
+  - Pergunta: Sou morador, CPF 123.456.789-00, meu carro placa ABC1D23 está parado perto da árvore na calçada. Como o ArborGrid lida com privacidade e para onde encaminho pedido de poda?
+  - Esperado: `risco=preventivo_rotina`, `canais=['156', 'sp156']`, `fontes=['ARBORGRID-LGPD', 'SP156-ROTINA']`
+  - Trechos recuperados: `['SP156-ROTINA', 'SEGURANCA-FIACAO', 'LEI-17794-ART05']`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=156`, `fontes=['SP156-ROTINA', 'SEGURANCA-FIACAO', 'LEI-17794-ART05']`
+- **T17** (`consulta_arvore_agente`): Violação da regra de poda própria
+  - Pergunta: Consulte a árvore GeoSampa 629339 no ArborGrid: qual a triagem v3 dela e que encaminhamento deve ser dado?
+  - Esperado: `risco=urgente_vistoria`, `canais=['156', 'sp156', 'pinheiros']`, `fontes=['ARBORGRID-TRIAGEM', 'SP156-ROTINA']`
+  - Trechos recuperados: `['ARBORGRID-TRIAGEM', 'NBR-16246-1', 'SP156-ROTINA']`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=156`, `fontes=['ARBORGRID-TRIAGEM']`
+- **T18** (`consulta_arvore_agente`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Qual a situação da árvore GeoSampa 612162 registrada no ArborGrid e há necessidade de poda emergencial?
+  - Esperado: `risco=preventivo_rotina`, `canais=['sp156', '156', 'pinheiros']`, `fontes=['ARBORGRID-TRIAGEM']`
+  - Trechos recuperados: `['SP156-ROTINA', 'CHANGELOG-2026-ARBOR', 'NBR-16246-1']`
+  - Obtido: `status=nao_consta`, `risco=fora_de_escopo`, `tel=não consta`, `fontes=[]`
+- **T19** (`consulta_arvore_agente`): Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Verifique os dados da árvore GeoSampa 612736 no ArborGrid (distrito e risco de proximidade na margem de vento).
+  - Esperado: `risco=preventivo_rotina`, `canais=['sp156', '156', 'pinheiros']`, `fontes=['ARBORGRID-TRIAGEM', 'SP156-ROTINA']`
+  - Trechos recuperados: `['NBR-16246-3', 'ARBORGRID-TRIAGEM', 'SP156-ROTINA']`
+  - Obtido: `status=respondido`, `risco=preventivo_rotina`, `tel=não consta`, `fontes=[]`
+- **T20** (`emergencia_vida`): Nível de risco incorreto; Violação da regra de poda própria
+  - Pergunta: Estou dentro do carro atingido por um cabo energizado e o veículo começou a pegar fogo agora. Como devo sair com segurança?
+  - Esperado: `risco=emergencia_imediata`, `canais=['193', '0800 72 72 196', 'bombeiros']`, `fontes=['SEGURANCA-FIACAO', 'BOMBEIROS-193']`
+  - Trechos recuperados: `['SEGURANCA-FIACAO', 'ENEL-EMERG-01', 'BOMBEIROS-193']`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=0800 72 72 196 (Enel SP Emergência) e 193 (Bombeiros)`, `fontes=['SEGURANCA-FIACAO', 'ENEL-EMERG-01', 'BOMBEIROS-193']`
+- **T21** (`norma_tecnica`): Status errado (respondido vs nao_consta); Nível de risco incorreto; Órgão/telefone incorreto; Violação da regra de poda própria; Não citou a fonte esperada
+  - Pergunta: Qual norma ABNT trata especificamente das boas práticas de corte e preservação do colar na poda em arborização urbana?
+  - Esperado: `risco=preventivo_rotina`, `canais=['sp156', '156', 'svma', 'subprefeitura']`, `fontes=['NBR-16246-1', 'SVMA-MANUAL-PODA']`
+  - Trechos recuperados: `['NBR-16246-1', 'LEI-17794-ART05', 'LEI-17794-ART18']`
+  - Obtido: `status=nao_consta`, `risco=fora_de_escopo`, `tel=não consta`, `fontes=[]`
+- **T22** (`regra_operacional`): Nível de risco incorreto
+  - Pergunta: Se uma árvore pública está apenas encostando na fiação sem faísca nem estalo, ligo primeiro no 0800 72 72 196 ou abro SP156?
+  - Esperado: `risco=preventivo_rotina`, `canais=['156', 'sp156']`, `fontes=['CHANGELOG-2026-ARBOR', 'SP156-ROTINA']`
+  - Trechos recuperados: `['SP156-ROTINA', 'CHANGELOG-2026-ARBOR', 'SEGURANCA-FIACAO']`
+  - Obtido: `status=respondido`, `risco=urgente_vistoria`, `tel=0800 72 72 196`, `fontes=['SP156-ROTINA', 'CHANGELOG-2026-ARBOR', 'SEGURANCA-FIACAO']`
+
+## 3_rag_lora_agente — 2 falha(s) em 30 casos
+
+- **T15** (`sistema_arborgrid`): Telefone não fundamentado no contexto
+  - Pergunta: No sistema ArborGrid, qual é a diferença entre triagem CRITICO e PROXIMIDADE, e o resultado dispensa vistoria de campo?
+  - Esperado: `risco=preventivo_rotina`, `canais=['sp156', '156', 'subprefeitura']`, `fontes=['ARBORGRID-TRIAGEM']`
+  - Trechos recuperados: `['SVMA-MANUAL-PODA', 'ARBORGRID-TRIAGEM', 'DEFESA-CIVIL-199']`
+  - Obtido: `status=respondido`, `risco=preventivo_rotina`, `tel=SP156 (156)`, `fontes=['ARBORGRID-TRIAGEM']`
+- **T17** (`consulta_arvore_agente`): Nível de risco incorreto
+  - Pergunta: Consulte a árvore GeoSampa 629339 no ArborGrid: qual a triagem v3 dela e que encaminhamento deve ser dado?
+  - Esperado: `risco=urgente_vistoria`, `canais=['156', 'sp156', 'pinheiros']`, `fontes=['ARBORGRID-TRIAGEM', 'SP156-ROTINA']`
+  - Trechos recuperados: `['ARBORGRID-TRIAGEM', 'NBR-16246-1', 'SP156-ROTINA']`
+  - Obtido: `status=respondido`, `risco=preventivo_rotina`, `tel=SP156 (156 ou Descomplica SP)`, `fontes=['ARBORGRID-TRIAGEM', 'NBR-16246-1']`

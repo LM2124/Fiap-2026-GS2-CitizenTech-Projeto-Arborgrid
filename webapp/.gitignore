@@ -1,0 +1,17 @@
+# Ambientes Python / Node
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+frontend/node_modules/
+frontend/public/ort/
+*.tsbuildinfo
+
+# Estado e Midias Locais em Execucao
+data/gold_risk_scores_runtime.json
+data/*.db
+media/images/
+media/v3_overlays/
+models/

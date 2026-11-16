@@ -1,0 +1,97 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "copa",
+      "score": null,
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          226.0
+        ],
+        [
+          117.0,
+          258.0
+        ],
+        [
+          134.0,
+          275.0
+        ],
+        [
+          180.0,
+          465.0
+        ],
+        [
+          186.0,
+          639.0
+        ],
+        [
+          235.0,
+          639.0
+        ],
+        [
+          225.0,
+          403.0
+        ],
+        [
+          249.0,
+          302.0
+        ],
+        [
+          245.0,
+          230.0
+        ],
+        [
+          268.0,
+          197.0
+        ],
+        [
+          257.0,
+          165.0
+        ],
+        [
+          273.0,
+          133.0
+        ],
+        [
+          255.0,
+          84.0
+        ],
+        [
+          281.0,
+          51.0
+        ],
+        [
+          285.0,
+          10.0
+        ],
+        [
+          309.0,
+          22.0
+        ],
+        [
+          328.0,
+          0.0
+        ]
+      ],
+      "group_id": null,
+      "description": "prelabel_v2_hard_negative",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "tree_651875_center_front_h276.jpg",
+  "imageData": null,
+  "imageHeight": 640,
+  "imageWidth": 640,
+  "description": "ArborGrid Hard Negative - Tree #651875 (center_front)"
+}

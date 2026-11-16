@@ -1,0 +1,40 @@
+# Credenciais e Variaveis de Ambiente
+.env
+*.env.local
+
+# Ambientes Virtuais Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Pesos de Redes Neurais e Modelos Treinados
+# Excecao explicita apenas para o modelo quantizado web vencedor (51,8 MiB)
+models/*.pt
+models/*.pt.gz
+models/*.pth
+models/*.ts
+models/*.onnx
+!models/segformer_v3_int8_dyn_matmul.onnx
+runs/
+
+# Caches e Arquivos Temporarios
+*.cache
+.ipynb_checkpoints/
+*.zip
+
+# Protecao de Termos de Uso (Google Street View) e Reducao de Volume:
+# As imagens brutas, overlays e mosaicos ficam apenas no pacote privado local.
+dataset/sp_geosampa_api/*.jpg
+dataset/sp_geosampa_api/mapa_auditoria_pinheiros.html
+dataset/sp_geosampa_api/images/
+dataset/sp_geosampa_api/*overlays*/
+dataset/sp_geosampa_api/prelabels_yolo_seg/
+dataset/sp_geosampa_api/quarantine_subway_indoor/
+dataset/workspace_xanylabeling/*.json
+dataset/workspace_xanylabeling/comparativo_*
+dataset/workspace_xanylabeling/*backup*/
+dataset/workspace_xanylabeling/_delete_/
+dataset/workspace_xanylabeling/**/images/
+dataset/workspace_xanylabeling/**/*.jpg
+dataset/workspace_xanylabeling/**/*.png

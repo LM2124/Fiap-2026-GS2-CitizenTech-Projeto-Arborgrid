@@ -1,0 +1,192 @@
+{
+  "batch_id": "gold-2026-11-15-demo-sp",
+  "records": [
+    {
+      "geosampa_id": "635210",
+      "distrito": "PINHEIROS",
+      "composite_risk_score": 95.6,
+      "priority_tier": "URGENTE",
+      "wind_gust_kmh": 74.5,
+      "precipitation_mm": 42.8,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Despacho prioritário Enel (0800 72 72 196) + Subprefeitura para poda de condução sob NR-10 / NBR 16246-2",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "597846",
+      "distrito": "PINHEIROS",
+      "composite_risk_score": 82.8,
+      "priority_tier": "ALTA",
+      "wind_gust_kmh": 61.2,
+      "precipitation_mm": 24.5,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Vistoria técnica em campo em até 72h (diferença entre ângulos / contato severo) e abertura de OS preventiva",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "634921",
+      "distrito": "PINHEIROS",
+      "composite_risk_score": 81.7,
+      "priority_tier": "ALTA",
+      "wind_gust_kmh": 61.2,
+      "precipitation_mm": 24.5,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Vistoria técnica em campo em até 72h (diferença entre ângulos / contato severo) e abertura de OS preventiva",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "632216",
+      "distrito": "PINHEIROS",
+      "composite_risk_score": 48.8,
+      "priority_tier": "MEDIA",
+      "wind_gust_kmh": 46.0,
+      "precipitation_mm": 12.0,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Programar poda de adequação via SP156 conforme Manual SVMA antes da temporada de vendavais",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "629181",
+      "distrito": "PINHEIROS",
+      "composite_risk_score": 14.5,
+      "priority_tier": "BAIXA",
+      "wind_gust_kmh": 28.4,
+      "precipitation_mm": 2.1,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Manter monitoramento cíclico de rotina (rede sem interferência aparente)",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "28403",
+      "distrito": "MOOCA",
+      "composite_risk_score": 91.9,
+      "priority_tier": "URGENTE",
+      "wind_gust_kmh": 74.5,
+      "precipitation_mm": 42.8,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Despacho prioritário Enel (0800 72 72 196) + Subprefeitura para poda de condução sob NR-10 / NBR 16246-2",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "28784",
+      "distrito": "MOOCA",
+      "composite_risk_score": 75.8,
+      "priority_tier": "ALTA",
+      "wind_gust_kmh": 61.2,
+      "precipitation_mm": 24.5,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Vistoria técnica em campo em até 72h (diferença entre ângulos / contato severo) e abertura de OS preventiva",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "28951",
+      "distrito": "MOOCA",
+      "composite_risk_score": 75.2,
+      "priority_tier": "ALTA",
+      "wind_gust_kmh": 61.2,
+      "precipitation_mm": 24.5,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Vistoria técnica em campo em até 72h (diferença entre ângulos / contato severo) e abertura de OS preventiva",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "29030",
+      "distrito": "MOOCA",
+      "composite_risk_score": 48.9,
+      "priority_tier": "MEDIA",
+      "wind_gust_kmh": 46.0,
+      "precipitation_mm": 12.0,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Programar poda de adequação via SP156 conforme Manual SVMA antes da temporada de vendavais",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "238790",
+      "distrito": "VILA MARIANA",
+      "composite_risk_score": 93.8,
+      "priority_tier": "URGENTE",
+      "wind_gust_kmh": 74.5,
+      "precipitation_mm": 42.8,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Despacho prioritário Enel (0800 72 72 196) + Subprefeitura para poda de condução sob NR-10 / NBR 16246-2",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "240683",
+      "distrito": "VILA MARIANA",
+      "composite_risk_score": 79.1,
+      "priority_tier": "ALTA",
+      "wind_gust_kmh": 61.2,
+      "precipitation_mm": 24.5,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Vistoria técnica em campo em até 72h (diferença entre ângulos / contato severo) e abertura de OS preventiva",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "222606",
+      "distrito": "VILA MARIANA",
+      "composite_risk_score": 77.5,
+      "priority_tier": "ALTA",
+      "wind_gust_kmh": 61.2,
+      "precipitation_mm": 24.5,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Vistoria técnica em campo em até 72h (diferença entre ângulos / contato severo) e abertura de OS preventiva",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "229993",
+      "distrito": "VILA MARIANA",
+      "composite_risk_score": 50.0,
+      "priority_tier": "MEDIA",
+      "wind_gust_kmh": 46.0,
+      "precipitation_mm": 12.0,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Programar poda de adequação via SP156 conforme Manual SVMA antes da temporada de vendavais",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "7163",
+      "distrito": "BELA VISTA",
+      "composite_risk_score": 78.9,
+      "priority_tier": "ALTA",
+      "wind_gust_kmh": 61.2,
+      "precipitation_mm": 24.5,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Vistoria técnica em campo em até 72h (diferença entre ângulos / contato severo) e abertura de OS preventiva",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "7162",
+      "distrito": "BELA VISTA",
+      "composite_risk_score": 14.5,
+      "priority_tier": "BAIXA",
+      "wind_gust_kmh": 28.4,
+      "precipitation_mm": 2.1,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Manter monitoramento cíclico de rotina (rede sem interferência aparente)",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "7159",
+      "distrito": "BELA VISTA",
+      "composite_risk_score": 18.7,
+      "priority_tier": "BAIXA",
+      "wind_gust_kmh": 28.4,
+      "precipitation_mm": 2.1,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Manter monitoramento cíclico de rotina (rede sem interferência aparente)",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    },
+    {
+      "geosampa_id": "612162",
+      "distrito": "PINHEIROS",
+      "composite_risk_score": 24.5,
+      "priority_tier": "BAIXA",
+      "wind_gust_kmh": 38.2,
+      "precipitation_mm": 2.4,
+      "weather_observed_at": "2026-11-15T15:00:00-03:00",
+      "recommended_action": "Manter monitoramento cíclico de rotina",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    }
+  ]
+}

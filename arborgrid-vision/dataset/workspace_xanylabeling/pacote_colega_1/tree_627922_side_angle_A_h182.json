@@ -1,0 +1,114 @@
+{
+  "version": "2.5.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "copa",
+      "score": null,
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          442.0
+        ],
+        [
+          53.0,
+          457.0
+        ],
+        [
+          50.0,
+          627.0
+        ],
+        [
+          27.0,
+          639.0
+        ],
+        [
+          494.0,
+          639.0
+        ],
+        [
+          532.0,
+          606.0
+        ],
+        [
+          542.0,
+          639.0
+        ],
+        [
+          639.0,
+          639.0
+        ],
+        [
+          639.0,
+          0.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "label": "poste",
+      "score": null,
+      "points": [
+        [
+          238.0,
+          491.0
+        ],
+        [
+          234.0,
+          497.0
+        ],
+        [
+          234.0,
+          517.0
+        ],
+        [
+          228.0,
+          536.0
+        ],
+        [
+          225.0,
+          576.0
+        ],
+        [
+          227.0,
+          592.0
+        ],
+        [
+          237.0,
+          546.0
+        ],
+        [
+          242.0,
+          537.0
+        ],
+        [
+          245.0,
+          507.0
+        ],
+        [
+          243.0,
+          497.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {}
+    }
+  ],
+  "imagePath": "tree_627922_side_angle_A_h182.jpg",
+  "imageData": null,
+  "imageHeight": 640,
+  "imageWidth": 640
+}

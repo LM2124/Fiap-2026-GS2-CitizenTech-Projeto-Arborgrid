@@ -1,0 +1,15 @@
+modelo_base,formato_execucao,etapa_chave,configuracao,total_casos,tamanho_gguf_mib,memoria_execucao_mib,json_valido,schema_valido,acuracia_risco,acuracia_canal,seguranca_poda,citacao_fonte,recusa_nao_consta,alucinacao_fonte,alucinacao_tel,lgpd_limpo,acuracia_geral_estrita,latencia_media_ms,latencia_p95_ms,tokens_medios,tps_medio,tps_decode_medio
+Qwen 1.7B,Original 16 bits (GPU CUDA),1_base_sem_contexto,1. Base sem contexto,30,,,1.0,1.0,0.5,0.4,0.2667,0.0,1.0,0.0,0.2333,1.0,0.2667,4549.1,5692.1,143.8,31.61,
+Qwen 1.7B,Original 16 bits (GPU CUDA),2_rag_simples,2. RAG simples,30,,,0.9667,0.9667,0.5,0.8667,0.5333,0.6364,1.0,0.0,0.0333,1.0,0.3333,5552.5,7251.3,173.6,31.27,
+Qwen 1.7B,Original 16 bits (GPU CUDA),3_rag_lora_agente,"3. LoRA + RAG + Agente (Original 16 bits, GPU)",30,,4172.0,1.0,1.0,0.9667,1.0,1.0,1.0,1.0,0.0,0.0333,1.0,0.9333,9203.8,12642.3,158.0,17.17,
+Qwen 0.6B,Original 16 bits (GPU CUDA),1_base_sem_contexto,1. Base sem contexto,30,,,1.0,0.9667,0.4333,0.4333,0.2667,0.0,1.0,0.0,0.1,1.0,0.2667,3663.0,4489.9,119.7,32.69,
+Qwen 0.6B,Original 16 bits (GPU CUDA),2_rag_simples,2. RAG simples,30,,,0.9667,0.9333,0.3667,0.7667,0.3667,0.7273,0.875,0.1333,0.0,1.0,0.2,4680.2,5820.7,152.4,32.57,
+Qwen 0.6B,Original 16 bits (GPU CUDA),3_rag_lora_agente,"3. LoRA + RAG + Agente (Original 16 bits, GPU)",30,,1590.6,1.0,1.0,0.9333,0.9333,0.9333,0.9091,1.0,0.0,0.0667,1.0,0.8667,8466.0,12126.2,148.1,17.49,
+Qwen 1.7B,GGUF 16b (GPU Vulkan),gguf_gpu_f16,4g. LoRA + RAG + Agente (16b GPU),30,3287.6,5793.1,1.0,1.0,0.9667,1.0,1.0,1.0,1.0,0.0,0.0667,1.0,0.9,1976.1,2705.1,160.2,81.05,86.62
+Qwen 1.7B,GGUF 4b (GPU Vulkan),gguf_gpu_q4km,4g. LoRA + RAG + Agente (4b GPU),30,1056.1,3465.9,1.0,1.0,0.9,0.9667,0.9667,1.0,0.875,0.0333,0.0333,1.0,0.9,1039.3,1372.8,161.6,155.52,185.82
+Qwen 1.7B,GGUF 16b (CPU 2t),gguf_cpu_f16,4c. LoRA + RAG + Agente (16b CPU 2t),30,3287.6,3600.9,1.0,1.0,0.9667,1.0,1.0,1.0,1.0,0.0,0.0333,1.0,0.9333,25197.7,34630.4,160.0,6.35,12.94
+Qwen 1.7B,GGUF 4b (CPU 2t),4_gguf_q4km_cpu2t,"4. LoRA + RAG + Agente (Quantizado 4 bits, CPU 2t)",30,1056.1,2015.0,1.0,1.0,0.9333,1.0,1.0,1.0,1.0,0.0,0.0,1.0,0.9333,9298.6,12903.8,160.5,17.26,28.6
+Qwen 0.6B,GGUF 16b (GPU Vulkan),gguf_gpu_f16,4g. LoRA + RAG + Agente (16b GPU),30,1142.7,4015.4,1.0,0.9667,0.9,0.9667,0.9667,0.9091,1.0,0.0,0.0667,1.0,0.8333,1414.1,4746.8,149.0,105.34,186.89
+Qwen 0.6B,GGUF 4b (GPU Vulkan),gguf_gpu_q4km,4g. LoRA + RAG + Agente (4b GPU),30,378.3,2630.3,1.0,0.9667,0.7667,0.7333,0.8333,0.7273,1.0,0.0,0.0,1.0,0.5667,624.5,815.4,134.9,216.02,290.65
+Qwen 0.6B,GGUF 16b (CPU 2t),gguf_cpu_f16,4c. LoRA + RAG + Agente (16b CPU 2t),30,1142.7,1455.2,1.0,0.9667,0.9,0.9667,0.9667,0.9091,1.0,0.0,0.0667,1.0,0.8333,9956.2,12305.5,146.9,14.75,27.99
+Qwen 0.6B,GGUF 4b (CPU 2t),4_gguf_q4km_cpu2t,"4. LoRA + RAG + Agente (Quantizado 4 bits, CPU 2t)",30,378.3,896.8,1.0,1.0,0.7667,0.9,0.8667,0.8182,1.0,0.0,0.0333,1.0,0.6667,4968.5,6402.3,145.6,29.31,45.51

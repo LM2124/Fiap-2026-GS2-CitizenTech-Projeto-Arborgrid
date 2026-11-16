@@ -1,0 +1,984 @@
+{
+  "chosen_threshold": 0.3,
+  "chosen_metrics": {
+    "threshold": 0.3,
+    "recall_at_1": 0.6818,
+    "recall_at_3": 0.9545,
+    "mrr_at_3": 0.803,
+    "false_refusal_rate": 0.0,
+    "oos_refusal_accuracy": 0.125,
+    "balanced_score": 0.5398
+  },
+  "sweep": [
+    {
+      "threshold": 0.2,
+      "recall_at_1": 0.6818,
+      "recall_at_3": 0.9545,
+      "mrr_at_3": 0.803,
+      "false_refusal_rate": 0.0,
+      "oos_refusal_accuracy": 0.0,
+      "balanced_score": 0.4773
+    },
+    {
+      "threshold": 0.25,
+      "recall_at_1": 0.6818,
+      "recall_at_3": 0.9545,
+      "mrr_at_3": 0.803,
+      "false_refusal_rate": 0.0,
+      "oos_refusal_accuracy": 0.125,
+      "balanced_score": 0.5398
+    },
+    {
+      "threshold": 0.3,
+      "recall_at_1": 0.6818,
+      "recall_at_3": 0.9545,
+      "mrr_at_3": 0.803,
+      "false_refusal_rate": 0.0,
+      "oos_refusal_accuracy": 0.125,
+      "balanced_score": 0.5398
+    },
+    {
+      "threshold": 0.35,
+      "recall_at_1": 0.6818,
+      "recall_at_3": 0.9091,
+      "mrr_at_3": 0.7803,
+      "false_refusal_rate": 0.0,
+      "oos_refusal_accuracy": 0.25,
+      "balanced_score": 0.5795
+    },
+    {
+      "threshold": 0.4,
+      "recall_at_1": 0.6818,
+      "recall_at_3": 0.8636,
+      "mrr_at_3": 0.7652,
+      "false_refusal_rate": 0.0,
+      "oos_refusal_accuracy": 0.25,
+      "balanced_score": 0.5568
+    },
+    {
+      "threshold": 0.45,
+      "recall_at_1": 0.6818,
+      "recall_at_3": 0.8182,
+      "mrr_at_3": 0.75,
+      "false_refusal_rate": 0.0455,
+      "oos_refusal_accuracy": 0.5,
+      "balanced_score": 0.6591
+    },
+    {
+      "threshold": 0.5,
+      "recall_at_1": 0.6818,
+      "recall_at_3": 0.8182,
+      "mrr_at_3": 0.75,
+      "false_refusal_rate": 0.1364,
+      "oos_refusal_accuracy": 0.5,
+      "balanced_score": 0.6591
+    },
+    {
+      "threshold": 0.55,
+      "recall_at_1": 0.6818,
+      "recall_at_3": 0.7273,
+      "mrr_at_3": 0.7045,
+      "false_refusal_rate": 0.2273,
+      "oos_refusal_accuracy": 0.625,
+      "balanced_score": 0.6761
+    },
+    {
+      "threshold": 0.6,
+      "recall_at_1": 0.5909,
+      "recall_at_3": 0.6364,
+      "mrr_at_3": 0.6136,
+      "false_refusal_rate": 0.3636,
+      "oos_refusal_accuracy": 0.875,
+      "balanced_score": 0.7557
+    },
+    {
+      "threshold": 0.65,
+      "recall_at_1": 0.3636,
+      "recall_at_3": 0.4091,
+      "mrr_at_3": 0.3864,
+      "false_refusal_rate": 0.5909,
+      "oos_refusal_accuracy": 0.875,
+      "balanced_score": 0.642
+    },
+    {
+      "threshold": 0.7,
+      "recall_at_1": 0.3636,
+      "recall_at_3": 0.3636,
+      "mrr_at_3": 0.3636,
+      "false_refusal_rate": 0.6364,
+      "oos_refusal_accuracy": 1.0,
+      "balanced_score": 0.6818
+    }
+  ],
+  "per_case": [
+    {
+      "id": "T01",
+      "categoria": "emergencia_eletrica",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "ENEL-EMERG-01",
+        "CHANGELOG-2026-ARBOR"
+      ],
+      "top3": [
+        {
+          "chunk_id": "SP156-ROTINA",
+          "score": 0.4755,
+          "dense": 0.4378,
+          "lexical": 0.1078
+        },
+        {
+          "chunk_id": "SEGURANCA-FIACAO",
+          "score": 0.4653,
+          "dense": 0.454,
+          "lexical": 0.0322
+        },
+        {
+          "chunk_id": "CHANGELOG-2026-ARBOR",
+          "score": 0.4427,
+          "dense": 0.4222,
+          "lexical": 0.0587
+        }
+      ],
+      "max_score": 0.4755
+    },
+    {
+      "id": "T02",
+      "categoria": "emergencia_eletrica",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "ENEL-EMERG-01",
+        "ENEL-RELAC-02",
+        "SEGURANCA-FIACAO"
+      ],
+      "top3": [
+        {
+          "chunk_id": "SEGURANCA-FIACAO",
+          "score": 0.728,
+          "dense": 0.6714,
+          "lexical": 0.1618
+        },
+        {
+          "chunk_id": "SP156-ROTINA",
+          "score": 0.6724,
+          "dense": 0.638,
+          "lexical": 0.0985
+        },
+        {
+          "chunk_id": "ENEL-EMERG-01",
+          "score": 0.6432,
+          "dense": 0.5946,
+          "lexical": 0.1387
+        }
+      ],
+      "max_score": 0.728
+    },
+    {
+      "id": "T03",
+      "categoria": "emergencia_vida",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "SEGURANCA-FIACAO",
+        "BOMBEIROS-193"
+      ],
+      "top3": [
+        {
+          "chunk_id": "SEGURANCA-FIACAO",
+          "score": 0.6328,
+          "dense": 0.5608,
+          "lexical": 0.2056
+        },
+        {
+          "chunk_id": "ENEL-EMERG-01",
+          "score": 0.5123,
+          "dense": 0.4914,
+          "lexical": 0.0597
+        },
+        {
+          "chunk_id": "CHANGELOG-2026-ARBOR",
+          "score": 0.4632,
+          "dense": 0.4443,
+          "lexical": 0.0539
+        }
+      ],
+      "max_score": 0.6328
+    },
+    {
+      "id": "T04",
+      "categoria": "emergencia_vida",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "BOMBEIROS-193",
+        "CHANGELOG-2026-ARBOR"
+      ],
+      "top3": [
+        {
+          "chunk_id": "BOMBEIROS-193",
+          "score": 0.5504,
+          "dense": 0.4884,
+          "lexical": 0.1772
+        },
+        {
+          "chunk_id": "CHANGELOG-2026-ARBOR",
+          "score": 0.4538,
+          "dense": 0.4337,
+          "lexical": 0.0575
+        },
+        {
+          "chunk_id": "SEGURANCA-FIACAO",
+          "score": 0.4526,
+          "dense": 0.4328,
+          "lexical": 0.0565
+        }
+      ],
+      "max_score": 0.5504
+    },
+    {
+      "id": "T05",
+      "categoria": "emergencia_climatica",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "DEFESA-CIVIL-199"
+      ],
+      "top3": [
+        {
+          "chunk_id": "SEGURANCA-FIACAO",
+          "score": 0.5497,
+          "dense": 0.5384,
+          "lexical": 0.0323
+        },
+        {
+          "chunk_id": "DEFESA-CIVIL-199",
+          "score": 0.5178,
+          "dense": 0.4766,
+          "lexical": 0.1176
+        },
+        {
+          "chunk_id": "ENEL-EMERG-01",
+          "score": 0.4485,
+          "dense": 0.4442,
+          "lexical": 0.0123
+        }
+      ],
+      "max_score": 0.5497
+    },
+    {
+      "id": "T06",
+      "categoria": "emergencia_climatica",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "DEFESA-CIVIL-199",
+        "ENEL-EMERG-01"
+      ],
+      "top3": [
+        {
+          "chunk_id": "ENEL-EMERG-01",
+          "score": 0.6331,
+          "dense": 0.5692,
+          "lexical": 0.1826
+        },
+        {
+          "chunk_id": "SEGURANCA-FIACAO",
+          "score": 0.6057,
+          "dense": 0.591,
+          "lexical": 0.0421
+        },
+        {
+          "chunk_id": "DEFESA-CIVIL-199",
+          "score": 0.5735,
+          "dense": 0.5382,
+          "lexical": 0.1007
+        }
+      ],
+      "max_score": 0.6331
+    },
+    {
+      "id": "T07",
+      "categoria": "atendimento_municipal",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "SP156-ROTINA",
+        "CHANGELOG-2026-ARBOR"
+      ],
+      "top3": [
+        {
+          "chunk_id": "SP156-ROTINA",
+          "score": 0.717,
+          "dense": 0.6446,
+          "lexical": 0.2067
+        },
+        {
+          "chunk_id": "LEI-17794-ART05",
+          "score": 0.6862,
+          "dense": 0.6562,
+          "lexical": 0.0856
+        },
+        {
+          "chunk_id": "CHANGELOG-2026-ARBOR",
+          "score": 0.6548,
+          "dense": 0.6287,
+          "lexical": 0.0747
+        }
+      ],
+      "max_score": 0.717
+    },
+    {
+      "id": "T08",
+      "categoria": "legislacao_sp",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "LEI-17794-ART05",
+        "SP156-ROTINA"
+      ],
+      "top3": [
+        {
+          "chunk_id": "LEI-17794-ART05",
+          "score": 0.615,
+          "dense": 0.5975,
+          "lexical": 0.05
+        },
+        {
+          "chunk_id": "NBR-16246-1",
+          "score": 0.5399,
+          "dense": 0.5174,
+          "lexical": 0.0644
+        },
+        {
+          "chunk_id": "SP156-ROTINA",
+          "score": 0.5267,
+          "dense": 0.4737,
+          "lexical": 0.1516
+        }
+      ],
+      "max_score": 0.615
+    },
+    {
+      "id": "T09",
+      "categoria": "legislacao_sp",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "LEI-17794-ART18"
+      ],
+      "top3": [
+        {
+          "chunk_id": "LEI-17794-ART05",
+          "score": 0.6921,
+          "dense": 0.6716,
+          "lexical": 0.0585
+        },
+        {
+          "chunk_id": "LEI-17794-ART18",
+          "score": 0.6799,
+          "dense": 0.6137,
+          "lexical": 0.1891
+        },
+        {
+          "chunk_id": "SP156-ROTINA",
+          "score": 0.6339,
+          "dense": 0.6186,
+          "lexical": 0.0437
+        }
+      ],
+      "max_score": 0.6921
+    },
+    {
+      "id": "T10",
+      "categoria": "legislacao_sp",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "DEC-61859-PRZ"
+      ],
+      "top3": [
+        {
+          "chunk_id": "DEC-61859-PRZ",
+          "score": 1.0439,
+          "dense": 0.8889,
+          "lexical": 0.4428
+        },
+        {
+          "chunk_id": "LEI-17794-ART05",
+          "score": 0.7455,
+          "dense": 0.6626,
+          "lexical": 0.2369
+        },
+        {
+          "chunk_id": "CHANGELOG-2026-ARBOR",
+          "score": 0.6052,
+          "dense": 0.5934,
+          "lexical": 0.0336
+        }
+      ],
+      "max_score": 1.0439
+    },
+    {
+      "id": "T11",
+      "categoria": "atendimento_concessionaria",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "ENEL-RELAC-02"
+      ],
+      "top3": [
+        {
+          "chunk_id": "ENEL-RELAC-02",
+          "score": 0.8512,
+          "dense": 0.7896,
+          "lexical": 0.1762
+        },
+        {
+          "chunk_id": "ENEL-EMERG-01",
+          "score": 0.764,
+          "dense": 0.6909,
+          "lexical": 0.2087
+        },
+        {
+          "chunk_id": "SP156-ROTINA",
+          "score": 0.6599,
+          "dense": 0.629,
+          "lexical": 0.0883
+        }
+      ],
+      "max_score": 0.8512
+    },
+    {
+      "id": "T12",
+      "categoria": "norma_tecnica",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "SVMA-MANUAL-PODA"
+      ],
+      "top3": [
+        {
+          "chunk_id": "SVMA-MANUAL-PODA",
+          "score": 0.815,
+          "dense": 0.7152,
+          "lexical": 0.2853
+        },
+        {
+          "chunk_id": "DEC-61859-PRZ",
+          "score": 0.412,
+          "dense": 0.3983,
+          "lexical": 0.0392
+        },
+        {
+          "chunk_id": "CHANGELOG-2026-ARBOR",
+          "score": 0.3928,
+          "dense": 0.3758,
+          "lexical": 0.0485
+        }
+      ],
+      "max_score": 0.815
+    },
+    {
+      "id": "T13",
+      "categoria": "seguranca_trabalho",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "NBR-16246-2",
+        "ENEL-EMERG-01"
+      ],
+      "top3": [
+        {
+          "chunk_id": "SEGURANCA-FIACAO",
+          "score": 0.4689,
+          "dense": 0.4379,
+          "lexical": 0.0886
+        },
+        {
+          "chunk_id": "SVMA-MANUAL-PODA",
+          "score": 0.4004,
+          "dense": 0.3805,
+          "lexical": 0.0566
+        },
+        {
+          "chunk_id": "NBR-16246-2",
+          "score": 0.3926,
+          "dense": 0.3863,
+          "lexical": 0.0182
+        }
+      ],
+      "max_score": 0.4689
+    },
+    {
+      "id": "T14",
+      "categoria": "norma_tecnica",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "NBR-16246-3"
+      ],
+      "top3": [
+        {
+          "chunk_id": "NBR-16246-3",
+          "score": 0.7971,
+          "dense": 0.6701,
+          "lexical": 0.3631
+        },
+        {
+          "chunk_id": "NBR-16246-1",
+          "score": 0.5962,
+          "dense": 0.5857,
+          "lexical": 0.0301
+        },
+        {
+          "chunk_id": "SEGURANCA-FIACAO",
+          "score": 0.528,
+          "dense": 0.5195,
+          "lexical": 0.0243
+        }
+      ],
+      "max_score": 0.7971
+    },
+    {
+      "id": "T15",
+      "categoria": "sistema_arborgrid",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "ARBORGRID-TRIAGEM"
+      ],
+      "top3": [
+        {
+          "chunk_id": "SVMA-MANUAL-PODA",
+          "score": 0.4276,
+          "dense": 0.4161,
+          "lexical": 0.0331
+        },
+        {
+          "chunk_id": "ARBORGRID-TRIAGEM",
+          "score": 0.3493,
+          "dense": 0.2751,
+          "lexical": 0.212
+        },
+        {
+          "chunk_id": "DEFESA-CIVIL-199",
+          "score": 0.3131,
+          "dense": 0.3096,
+          "lexical": 0.0099
+        }
+      ],
+      "max_score": 0.4276
+    },
+    {
+      "id": "T16",
+      "categoria": "sistema_arborgrid",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "ARBORGRID-LGPD",
+        "SP156-ROTINA"
+      ],
+      "top3": [
+        {
+          "chunk_id": "SP156-ROTINA",
+          "score": 0.617,
+          "dense": 0.5646,
+          "lexical": 0.1495
+        },
+        {
+          "chunk_id": "SEGURANCA-FIACAO",
+          "score": 0.4823,
+          "dense": 0.4715,
+          "lexical": 0.0306
+        },
+        {
+          "chunk_id": "LEI-17794-ART05",
+          "score": 0.4761,
+          "dense": 0.4562,
+          "lexical": 0.0568
+        }
+      ],
+      "max_score": 0.617
+    },
+    {
+      "id": "T17",
+      "categoria": "consulta_arvore_agente",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "ARBORGRID-TRIAGEM",
+        "SP156-ROTINA"
+      ],
+      "top3": [
+        {
+          "chunk_id": "ARBORGRID-TRIAGEM",
+          "score": 0.5795,
+          "dense": 0.5353,
+          "lexical": 0.1263
+        },
+        {
+          "chunk_id": "NBR-16246-1",
+          "score": 0.4922,
+          "dense": 0.4849,
+          "lexical": 0.0209
+        },
+        {
+          "chunk_id": "SP156-ROTINA",
+          "score": 0.4818,
+          "dense": 0.4579,
+          "lexical": 0.0682
+        }
+      ],
+      "max_score": 0.5795
+    },
+    {
+      "id": "T18",
+      "categoria": "consulta_arvore_agente",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "ARBORGRID-TRIAGEM"
+      ],
+      "top3": [
+        {
+          "chunk_id": "SP156-ROTINA",
+          "score": 0.5919,
+          "dense": 0.5403,
+          "lexical": 0.1475
+        },
+        {
+          "chunk_id": "CHANGELOG-2026-ARBOR",
+          "score": 0.5711,
+          "dense": 0.5578,
+          "lexical": 0.0379
+        },
+        {
+          "chunk_id": "NBR-16246-1",
+          "score": 0.5382,
+          "dense": 0.5075,
+          "lexical": 0.0877
+        }
+      ],
+      "max_score": 0.5919
+    },
+    {
+      "id": "T19",
+      "categoria": "consulta_arvore_agente",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "ARBORGRID-TRIAGEM",
+        "SP156-ROTINA"
+      ],
+      "top3": [
+        {
+          "chunk_id": "NBR-16246-3",
+          "score": 0.5352,
+          "dense": 0.5048,
+          "lexical": 0.0866
+        },
+        {
+          "chunk_id": "ARBORGRID-TRIAGEM",
+          "score": 0.5231,
+          "dense": 0.4616,
+          "lexical": 0.1758
+        },
+        {
+          "chunk_id": "SP156-ROTINA",
+          "score": 0.5121,
+          "dense": 0.4855,
+          "lexical": 0.0762
+        }
+      ],
+      "max_score": 0.5352
+    },
+    {
+      "id": "T20",
+      "categoria": "emergencia_vida",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "SEGURANCA-FIACAO",
+        "BOMBEIROS-193"
+      ],
+      "top3": [
+        {
+          "chunk_id": "SEGURANCA-FIACAO",
+          "score": 0.7033,
+          "dense": 0.6045,
+          "lexical": 0.2822
+        },
+        {
+          "chunk_id": "ENEL-EMERG-01",
+          "score": 0.5089,
+          "dense": 0.4872,
+          "lexical": 0.0623
+        },
+        {
+          "chunk_id": "BOMBEIROS-193",
+          "score": 0.4306,
+          "dense": 0.4175,
+          "lexical": 0.0374
+        }
+      ],
+      "max_score": 0.7033
+    },
+    {
+      "id": "T21",
+      "categoria": "norma_tecnica",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "NBR-16246-1",
+        "SVMA-MANUAL-PODA"
+      ],
+      "top3": [
+        {
+          "chunk_id": "NBR-16246-1",
+          "score": 0.8023,
+          "dense": 0.7075,
+          "lexical": 0.2709
+        },
+        {
+          "chunk_id": "LEI-17794-ART05",
+          "score": 0.6381,
+          "dense": 0.5886,
+          "lexical": 0.1415
+        },
+        {
+          "chunk_id": "LEI-17794-ART18",
+          "score": 0.5404,
+          "dense": 0.5274,
+          "lexical": 0.0371
+        }
+      ],
+      "max_score": 0.8023
+    },
+    {
+      "id": "T22",
+      "categoria": "regra_operacional",
+      "expected_status": "respondido",
+      "expected_sources": [
+        "CHANGELOG-2026-ARBOR",
+        "SP156-ROTINA"
+      ],
+      "top3": [
+        {
+          "chunk_id": "SP156-ROTINA",
+          "score": 0.6254,
+          "dense": 0.5801,
+          "lexical": 0.1294
+        },
+        {
+          "chunk_id": "CHANGELOG-2026-ARBOR",
+          "score": 0.6098,
+          "dense": 0.5273,
+          "lexical": 0.2359
+        },
+        {
+          "chunk_id": "SEGURANCA-FIACAO",
+          "score": 0.5222,
+          "dense": 0.4815,
+          "lexical": 0.116
+        }
+      ],
+      "max_score": 0.6254
+    },
+    {
+      "id": "T23",
+      "categoria": "nao_consta",
+      "expected_status": "nao_consta",
+      "expected_sources": [],
+      "top3": [
+        {
+          "chunk_id": "DEC-61859-PRZ",
+          "score": 0.4211,
+          "dense": 0.397,
+          "lexical": 0.0686
+        },
+        {
+          "chunk_id": "LEI-17794-ART18",
+          "score": 0.3953,
+          "dense": 0.377,
+          "lexical": 0.0522
+        },
+        {
+          "chunk_id": "ENEL-RELAC-02",
+          "score": 0.362,
+          "dense": 0.3506,
+          "lexical": 0.0328
+        }
+      ],
+      "max_score": 0.4211
+    },
+    {
+      "id": "T24",
+      "categoria": "nao_consta",
+      "expected_status": "nao_consta",
+      "expected_sources": [],
+      "top3": [
+        {
+          "chunk_id": "SP156-ROTINA",
+          "score": 0.4134,
+          "dense": 0.3882,
+          "lexical": 0.072
+        },
+        {
+          "chunk_id": "BOMBEIROS-193",
+          "score": 0.4102,
+          "dense": 0.3778,
+          "lexical": 0.0925
+        },
+        {
+          "chunk_id": "CHANGELOG-2026-ARBOR",
+          "score": 0.4007,
+          "dense": 0.4007,
+          "lexical": 0.0
+        }
+      ],
+      "max_score": 0.4134
+    },
+    {
+      "id": "T25",
+      "categoria": "nao_consta",
+      "expected_status": "nao_consta",
+      "expected_sources": [],
+      "top3": [
+        {
+          "chunk_id": "LEI-17794-ART05",
+          "score": 0.5755,
+          "dense": 0.5331,
+          "lexical": 0.1212
+        },
+        {
+          "chunk_id": "DEC-61859-PRZ",
+          "score": 0.5288,
+          "dense": 0.5018,
+          "lexical": 0.0773
+        },
+        {
+          "chunk_id": "ENEL-RELAC-02",
+          "score": 0.5141,
+          "dense": 0.4755,
+          "lexical": 0.1103
+        }
+      ],
+      "max_score": 0.5755
+    },
+    {
+      "id": "T26",
+      "categoria": "nao_consta",
+      "expected_status": "nao_consta",
+      "expected_sources": [],
+      "top3": [
+        {
+          "chunk_id": "ENEL-RELAC-02",
+          "score": 0.6775,
+          "dense": 0.6147,
+          "lexical": 0.1796
+        },
+        {
+          "chunk_id": "ENEL-EMERG-01",
+          "score": 0.591,
+          "dense": 0.5154,
+          "lexical": 0.2162
+        },
+        {
+          "chunk_id": "LEI-17794-ART05",
+          "score": 0.5767,
+          "dense": 0.5402,
+          "lexical": 0.1043
+        }
+      ],
+      "max_score": 0.6775
+    },
+    {
+      "id": "T27",
+      "categoria": "nao_consta",
+      "expected_status": "nao_consta",
+      "expected_sources": [],
+      "top3": [
+        {
+          "chunk_id": "NBR-16246-3",
+          "score": 0.3285,
+          "dense": 0.3052,
+          "lexical": 0.0668
+        },
+        {
+          "chunk_id": "NBR-16246-1",
+          "score": 0.3172,
+          "dense": 0.3122,
+          "lexical": 0.0144
+        },
+        {
+          "chunk_id": "LEI-17794-ART18",
+          "score": 0.2644,
+          "dense": 0.2535,
+          "lexical": 0.0311
+        }
+      ],
+      "max_score": 0.3285
+    },
+    {
+      "id": "T28",
+      "categoria": "nao_consta",
+      "expected_status": "nao_consta",
+      "expected_sources": [],
+      "top3": [
+        {
+          "chunk_id": "ENEL-RELAC-02",
+          "score": 0.5182,
+          "dense": 0.4877,
+          "lexical": 0.0872
+        },
+        {
+          "chunk_id": "ENEL-EMERG-01",
+          "score": 0.3613,
+          "dense": 0.3431,
+          "lexical": 0.0522
+        },
+        {
+          "chunk_id": "SP156-ROTINA",
+          "score": 0.3241,
+          "dense": 0.3044,
+          "lexical": 0.0562
+        }
+      ],
+      "max_score": 0.5182
+    },
+    {
+      "id": "T29",
+      "categoria": "nao_consta",
+      "expected_status": "nao_consta",
+      "expected_sources": [],
+      "top3": [
+        {
+          "chunk_id": "BOMBEIROS-193",
+          "score": 0.2417,
+          "dense": 0.2087,
+          "lexical": 0.0944
+        },
+        {
+          "chunk_id": "NBR-16246-3",
+          "score": 0.2325,
+          "dense": 0.2251,
+          "lexical": 0.0211
+        },
+        {
+          "chunk_id": "CHANGELOG-2026-ARBOR",
+          "score": 0.2273,
+          "dense": 0.2255,
+          "lexical": 0.0052
+        }
+      ],
+      "max_score": 0.2417
+    },
+    {
+      "id": "T30",
+      "categoria": "nao_consta",
+      "expected_status": "nao_consta",
+      "expected_sources": [],
+      "top3": [
+        {
+          "chunk_id": "LEI-17794-ART18",
+          "score": 0.5507,
+          "dense": 0.4863,
+          "lexical": 0.1841
+        },
+        {
+          "chunk_id": "LEI-17794-ART05",
+          "score": 0.4541,
+          "dense": 0.4209,
+          "lexical": 0.0949
+        },
+        {
+          "chunk_id": "CHANGELOG-2026-ARBOR",
+          "score": 0.4487,
+          "dense": 0.4267,
+          "lexical": 0.0628
+        }
+      ],
+      "max_score": 0.5507
+    }
+  ]
+}

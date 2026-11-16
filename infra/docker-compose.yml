@@ -1,0 +1,126 @@
+services:
+  llama-server:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: arborgrid-llama
+    profiles:
+      - llm
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp
+    volumes:
+      - ../llm-assistant/models:/models:ro
+    command:
+      - "-m"
+      - "/models/arborgrid-qwen3-1.7b-q4_k_m.gguf"
+      - "--alias"
+      - "qwen3-1.7b-arborgrid"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8080"
+      - "-c"
+      - "2048"
+      - "-np"
+      - "1"
+      - "-t"
+      - "6"
+      - "--reasoning"
+      - "off"
+      - "--reasoning-budget"
+      - "0"
+      - "--no-webui"
+    networks:
+      - arborgrid-net
+
+  webapp:
+    build:
+      context: ../webapp
+      dockerfile: Dockerfile
+    image: arborgrid-webapp:latest
+    container_name: arborgrid-webapp
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp
+    environment:
+      ARBORGRID_API_TOKEN: ${ARBORGRID_API_TOKEN:?Defina ARBORGRID_API_TOKEN no .env}
+      ARBORGRID_REQUIRE_AUTH: "true"
+      ARBORGRID_EXPOSE_MEDIA_URLS: ${ARBORGRID_EXPOSE_MEDIA_URLS:-false}
+      ARBORGRID_LLM_API_URL: ${ARBORGRID_LLM_API_URL:-http://llama-server:8080/v1/chat/completions}
+    volumes:
+      - ${ARBORGRID_MEDIA_HOST_DIR:-../arborgrid-vision/dataset/sp_geosampa_api}:/app/media:ro
+      - ../arborgrid-vision/models:/app/models:ro
+      - arborgrid_state:/app/state
+    networks:
+      - arborgrid-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: arborgrid-nginx
+    restart: unless-stopped
+    depends_on:
+      webapp:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - arborgrid-net
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: arborgrid-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=7d"
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    depends_on:
+      - webapp
+    networks:
+      - arborgrid-net
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: arborgrid-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Defina GRAFANA_ADMIN_PASSWORD no .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - arborgrid-net
+
+volumes:
+  arborgrid_state:
+  grafana_data:
+
+networks:
+  arborgrid-net:
+    driver: bridge

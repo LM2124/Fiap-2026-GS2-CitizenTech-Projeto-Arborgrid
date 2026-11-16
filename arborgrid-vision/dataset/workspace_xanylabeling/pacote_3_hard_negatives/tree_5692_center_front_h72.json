@@ -1,0 +1,101 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "copa",
+      "score": null,
+      "points": [
+        [
+          0.0,
+          184.0
+        ],
+        [
+          0.0,
+          592.0
+        ],
+        [
+          71.0,
+          614.0
+        ],
+        [
+          167.0,
+          578.0
+        ],
+        [
+          249.0,
+          605.0
+        ],
+        [
+          366.0,
+          586.0
+        ],
+        [
+          434.0,
+          522.0
+        ],
+        [
+          543.0,
+          516.0
+        ],
+        [
+          598.0,
+          532.0
+        ],
+        [
+          619.0,
+          584.0
+        ],
+        [
+          639.0,
+          590.0
+        ],
+        [
+          639.0,
+          269.0
+        ],
+        [
+          483.0,
+          288.0
+        ],
+        [
+          428.0,
+          235.0
+        ],
+        [
+          383.0,
+          221.0
+        ],
+        [
+          269.0,
+          234.0
+        ],
+        [
+          186.0,
+          179.0
+        ],
+        [
+          121.0,
+          216.0
+        ],
+        [
+          53.0,
+          214.0
+        ]
+      ],
+      "group_id": null,
+      "description": "prelabel_v2_hard_negative",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "tree_5692_center_front_h72.jpg",
+  "imageData": null,
+  "imageHeight": 640,
+  "imageWidth": 640,
+  "description": "ArborGrid Hard Negative - Tree #5692 (center_front)"
+}

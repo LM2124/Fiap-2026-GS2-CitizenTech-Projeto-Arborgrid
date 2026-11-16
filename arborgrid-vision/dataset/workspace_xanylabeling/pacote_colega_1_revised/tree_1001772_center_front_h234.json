@@ -1,0 +1,299 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "copa",
+      "score": null,
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          574.0
+        ],
+        [
+          50.0,
+          639.0
+        ],
+        [
+          639.0,
+          639.0
+        ],
+        [
+          639.0,
+          362.0
+        ],
+        [
+          549.0,
+          391.0
+        ],
+        [
+          529.0,
+          353.0
+        ],
+        [
+          476.0,
+          347.0
+        ],
+        [
+          505.0,
+          237.0
+        ],
+        [
+          477.0,
+          226.0
+        ],
+        [
+          639.0,
+          196.0
+        ],
+        [
+          610.0,
+          87.0
+        ],
+        [
+          639.0,
+          29.0
+        ],
+        [
+          606.0,
+          0.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          639.0,
+          286.0
+        ],
+        [
+          562.3452997308239,
+          313.1572560213324
+        ],
+        [
+          470.85199182922514,
+          341.3646790107581
+        ],
+        [
+          471.5752590853642,
+          348.9589852002189
+        ],
+        [
+          564.1534678711718,
+          321.8364630950018
+        ],
+        [
+          639.0,
+          298.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          640.0,
+          312.92714563881566
+        ],
+        [
+          525.8203032957983,
+          345.7042825475928
+        ],
+        [
+          528.7133723203549,
+          352.9369551089841
+        ],
+        [
+          640.0,
+          320.88352513005714
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          640.0,
+          335.45380685321743
+        ],
+        [
+          545.7101528396241,
+          362.70106306686216
+        ],
+        [
+          547.8799546080415,
+          370.6570028843925
+        ],
+        [
+          640.0,
+          344.9899673362514
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          640.0,
+          245.84763892213104
+        ],
+        [
+          477.26165090170576,
+          251.0335347204075
+        ],
+        [
+          476.76764963393776,
+          244.1175169716556
+        ],
+        [
+          640.0,
+          238.68467021211947
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          640.0,
+          224.36462324229024
+        ],
+        [
+          474.79164456286577,
+          228.55647703696377
+        ],
+        [
+          474.54464392898177,
+          222.38146118986384
+        ],
+        [
+          640.0,
+          216.9647679851579
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          640.0,
+          195.7241973480684
+        ],
+        [
+          503.1967174595254,
+          204.84441618410006
+        ],
+        [
+          503.6907187272934,
+          197.18739653369616
+        ],
+        [
+          640.0,
+          187.82075514425156
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          550.9272492170287,
+          166.58744398284523
+        ],
+        [
+          639.0754844498599,
+          158.0509833076658
+        ],
+        [
+          639.6322101460672,
+          163.80381550180846
+        ],
+        [
+          551.6695501453052,
+          170.85567432043496
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "tree_1001772_center_front_h234.jpg",
+  "imageData": null,
+  "imageHeight": 640,
+  "imageWidth": 640,
+  "description": ""
+}

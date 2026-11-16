@@ -1,0 +1,38 @@
+{
+  "total": 1,
+  "limit": 200,
+  "offset": 0,
+  "date_filter": "2026-11-10",
+  "model_version": "segformer-b2-1024-arborgrid-v3-gold",
+  "items": [
+    {
+      "detection_id": "arb-9c4f1d2a8b7e3104",
+      "image_id": "tree_612162_center_front_h34",
+      "geosampa_id": "612162",
+      "region_key": "pinheiros",
+      "region_label": "Pinheiros (Zona Oeste)",
+      "distrito": "PINHEIROS",
+      "subprefeitura": "PINHEIROS",
+      "sisgau_last_inspection": "2013-06-12Z",
+      "perspective": "center_front",
+      "streetview_capture_month": "2024-04",
+      "captured_at": "2026-11-10T11:24:09-03:00",
+      "latitude": -23.56809,
+      "longitude": -46.68432,
+      "triage_class": "SEGURO",
+      "tree_consolidated_triage": "SEGURO",
+      "conflict_category": "no_conflict",
+      "confidence": 0.96,
+      "model_version": "segformer-b2-1024-arborgrid-v3-gold",
+      "copa_px": 311421,
+      "wire_px": 0,
+      "pole_px": 0,
+      "contact_direct_px": 0,
+      "wind_buffer_px": 0,
+      "pano_id_hash": "a19d0f28b4c7",
+      "overlay_file": "ov_v3_tree_612162_center_front_h34.jpg",
+      "overlay_url": null,
+      "google_maps_url": "https://www.google.com/maps/@?api=1&map_action=pano&pano=x6nEs8hO5Rs_ljVWZI7-Zw&heading=34.59&pitch=22.0&fov=62"
+    }
+  ]
+}

@@ -1,0 +1,238 @@
+{
+  "version": "2.5.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "copa",
+      "score": null,
+      "points": [
+        [
+          639.0,
+          169.0
+        ],
+        [
+          533.0,
+          156.0
+        ],
+        [
+          452.0,
+          193.0
+        ],
+        [
+          342.0,
+          184.0
+        ],
+        [
+          167.0,
+          306.0
+        ],
+        [
+          127.0,
+          287.0
+        ],
+        [
+          49.0,
+          301.0
+        ],
+        [
+          37.0,
+          324.0
+        ],
+        [
+          0.0,
+          315.0
+        ],
+        [
+          0.0,
+          639.0
+        ],
+        [
+          61.0,
+          639.0
+        ],
+        [
+          89.0,
+          612.0
+        ],
+        [
+          185.0,
+          583.0
+        ],
+        [
+          333.0,
+          589.0
+        ],
+        [
+          380.0,
+          639.0
+        ],
+        [
+          441.0,
+          519.0
+        ],
+        [
+          639.0,
+          449.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          0.0,
+          197.0
+        ],
+        [
+          1.0,
+          204.0
+        ],
+        [
+          190.0,
+          280.0
+        ],
+        [
+          197.0,
+          278.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          146.0,
+          193.0
+        ],
+        [
+          257.0,
+          249.0
+        ],
+        [
+          261.0,
+          246.0
+        ],
+        [
+          150.0,
+          190.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          348.0,
+          109.0
+        ],
+        [
+          350.0,
+          116.0
+        ],
+        [
+          413.0,
+          187.0
+        ],
+        [
+          417.0,
+          187.0
+        ],
+        [
+          415.0,
+          180.0
+        ],
+        [
+          352.0,
+          109.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          0.0,
+          96.0
+        ],
+        [
+          1.0,
+          108.0
+        ],
+        [
+          132.0,
+          184.0
+        ],
+        [
+          127.0,
+          171.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "label": "fiacao",
+      "score": null,
+      "points": [
+        [
+          208.0,
+          0.0
+        ],
+        [
+          342.0,
+          126.0
+        ],
+        [
+          342.0,
+          117.0
+        ],
+        [
+          224.0,
+          0.0
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {}
+    }
+  ],
+  "imagePath": "tree_612598_side_angle_A_h22.jpg",
+  "imageData": null,
+  "imageHeight": 640,
+  "imageWidth": 640
+}

@@ -1,0 +1,16 @@
+{
+  "1.7B": {
+    "original_bf16_vram_mib": 4172.0,
+    "cpu_rss_mib": 2015.0,
+    "disk_mib": 1056.1,
+    "f16_cpu_rss_mib": 3600.9,
+    "f16_disk_mib": 3287.6
+  },
+  "0.6B": {
+    "original_bf16_vram_mib": 1590.6,
+    "cpu_rss_mib": 896.8,
+    "disk_mib": 378.3,
+    "f16_cpu_rss_mib": 1455.2,
+    "f16_disk_mib": 1142.7
+  }
+}

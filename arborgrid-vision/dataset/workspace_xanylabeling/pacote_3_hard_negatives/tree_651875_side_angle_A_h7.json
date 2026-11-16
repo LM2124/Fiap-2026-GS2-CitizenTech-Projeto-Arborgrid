@@ -1,0 +1,101 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "copa",
+      "score": null,
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          72.0
+        ],
+        [
+          148.0,
+          171.0
+        ],
+        [
+          191.0,
+          306.0
+        ],
+        [
+          159.0,
+          639.0
+        ],
+        [
+          224.0,
+          636.0
+        ],
+        [
+          286.0,
+          317.0
+        ],
+        [
+          281.0,
+          175.0
+        ],
+        [
+          305.0,
+          156.0
+        ],
+        [
+          336.0,
+          237.0
+        ],
+        [
+          384.0,
+          250.0
+        ],
+        [
+          423.0,
+          317.0
+        ],
+        [
+          476.0,
+          336.0
+        ],
+        [
+          470.0,
+          446.0
+        ],
+        [
+          519.0,
+          596.0
+        ],
+        [
+          575.0,
+          445.0
+        ],
+        [
+          563.0,
+          395.0
+        ],
+        [
+          639.0,
+          295.0
+        ],
+        [
+          639.0,
+          0.0
+        ]
+      ],
+      "group_id": null,
+      "description": "prelabel_v2_hard_negative",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "tree_651875_side_angle_A_h7.jpg",
+  "imageData": null,
+  "imageHeight": 640,
+  "imageWidth": 640,
+  "description": "ArborGrid Hard Negative - Tree #651875 (side_angle_A)"
+}

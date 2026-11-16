@@ -1,0 +1,16 @@
+{
+  "batch_id": "gold-2026-11-14-batch-01",
+  "records": [
+    {
+      "geosampa_id": "612162",
+      "distrito": "PINHEIROS",
+      "composite_risk_score": 24.5,
+      "priority_tier": "BAIXA",
+      "wind_gust_kmh": 38.2,
+      "precipitation_mm": 2.4,
+      "weather_observed_at": "2026-11-14T00:00:00-03:00",
+      "recommended_action": "Manter monitoramento cíclico de rotina",
+      "audit_actor_hash": "8b7d4c19e0f5a312"
+    }
+  ]
+}
