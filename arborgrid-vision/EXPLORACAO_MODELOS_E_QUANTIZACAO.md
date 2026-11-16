@@ -1,6 +1,6 @@
 # Estudo Experimental, Curadoria, Quantização e Decisão de Deploy (`arborgrid-vision/`)
 
-> Documento complementar ao [`README.md`](README.md) e à [`ARQUITETURA_PIPELINE.md`](ARQUITETURA_PIPELINE.md). Registra a trajetória experimental em **4 etapas de fluxo decisório** — da ablação inicial de qualidade de rótulos até o estudo A/B/C final (`V3 Ouro`) e à quantização ONNX para hospedagem na Web sem disputar memória com o copiloto LLM.
+> Documento complementar ao [`README.md`](README.md) e à [`ARQUITETURA_PIPELINE.md`](ARQUITETURA_PIPELINE.md). Registra a trajetória experimental em **fluxo decisório com provas visuais** — da pré-segmentação inicial genérica e divisão em duas metades até a migração para `1024×1024` pós-Pacote 1, o pré-labeling da 2ª metade com o modelo intermediário, o estudo A/B/C final (`V3 Ouro`) e a quantização ONNX para a Web.
 >
 > **Ambiente de execução local (inferência e quantização):**
 > - **GPU:** RTX 3060 Ti (8 GB)
@@ -11,47 +11,62 @@
 
 ---
 
-## 1. Formulação Inicial, Curadoria Ouro e Gargalo de Resolução (`V1`)
+## 1. Pré-Segmentação Genérica Inicial, Curadoria da 1ª Metade e Salto para `1024×1024`
 
-Antes de escalar dados ou buscar otimizações de inferência, investigamos duas variáveis fundamentais sobre o **Pacote 1 (`68` fotos de `35` árvores)**: se rótulos automáticos ou pouco revisados bastariam para fiação aérea e qual resolução espacial preservava cabos finos.
+### 1.1. Como Funcionava o Modelo Genérico Inicial na GPU ([`scripts/auto_prelabel_and_audit.py`](scripts/auto_prelabel_and_audit.py))
 
-### 1.1. Gargalo de VRAM Local (`800×800`) e *Sub-Pixel Aliasing* (`640 → 1024 px`)
+Para não anotar centenas de polígonos do zero no `X-AnyLabeling`, montamos um pipeline híbrido **zero-shot + visão computacional clássica** sobre as fotos Street View (`640×640`), antes de dividir o dataset residencial em **duas metades (`pacote_1/` e `pacote_2/`)**:
 
-1. **Limite físico na GPU local (`RTX 3060 Ti 8 GB`):**
-   - Em teste piloto rápido (`3` épocas @ `640×640`, [`runs/pilot_ablation/ablation_metrics.json`](runs/pilot_ablation/ablation_metrics.json)), o `Modelo C` já superava largamente `A` e `B` em fiação (`43,09%` vs. `28,43%` e `11,03%`).
-   - Porém, ao tentar subir a resolução para **`800×800`** localmente (`25` épocas), os tensores de gradiente excederam a VRAM disponível após desconto do desktop, disparando paginação contínua via barramento PCIe: pela telemetria de [`train_status.json`](runs/pilot_ablation/train_status.json), a época `3/25` levou **`7,96 min`** com previsão de **`191 min`** apenas para o `Modelo A` (`4%` do ciclo completo).
-2. **Por que não permanecer em `640×640`?**
-   - Como o decodificador `All-MLP` do SegFormer opera em **$1/4$ da resolução de entrada**, fotos de `640×640` geram mapa latente de apenas **`160×160 px`**: cabos de ~`2 px` encolhem para **`0,5 px`** (*sub-pixel aliasing*), quebrando linhas diagonais em fragmentos pontilhados.
-3. **Decisão:** Migrar o treino para GPUs de Data Center (`A100 40 GB` / `L4 24 GB`) na resolução nativa do *backbone* Cityscapes (**`1024×1024`**, mapa latente `256×256 px`).
+- **Ramo Semântico Genérico (`nvidia/segformer-b2-finetuned-cityscapes-1024-1024`, sem fine-tuning):**
+  - **`copa`:** extraímos a classe `vegetation` (`ID = 8`) do Cityscapes, aplicamos abertura morfológica (`5×5`) e filtramos componentes conexos (`área < 900 px` ou centróide rente ao chão `cy > 0,78·H`) para descartar arbustos baixos e canteiros.
+  - **`poste`:** extraímos a classe `pole` (`ID = 5`) do Cityscapes.
+- **Heurística Clássica OpenCV para `fiacao` (`detect_overhead_wires_contextual`):** como o Cityscapes **não possui classe de fiação elétrica**, combinamos **`Black-Hat` morfológico (`9×9`)** + **`Line Segment Detector (LSD)`** filtrando segmentos por comprimento (`>= 52 px`), ângulo (`<= 68°`), cota superior (`y <= 0,78·H`), **vale escuro transversal (`valley_contrast >= 6,5` a `±5 px`)** e exclusão de regiões de pista/veículos/pedestres do Cityscapes (`IDs [0,1,3,4,11..15]`).
 
-### 1.2. Ablação Controlada de Qualidade de Rótulos (`1024×1024`, `30` épocas)
+![Etapa 0 — Pré-Segmentação Inicial com Modelo Genérico vs. Curadoria do Pacote 1](assets/etapa0_prelabel_generico_pipeline.png)
 
-Mantendo a arquitetura (`SegFormer-B2`), hiperparâmetros e partição de validação rigorosamente congelados (`8` imagens de `4` árvores isoladas por `geosampa_id`: `597616`, `597652`, `597668`, `597842`), variamos apenas a origem dos rótulos das **`60` imagens de treino** ([`runs/pilot_ablation_1024/ablation_metrics_1024px.json`](runs/pilot_ablation_1024/ablation_metrics_1024px.json)):
-
-![Etapa 1 — Impacto da Curadoria Humana na Validação Isolada V1](assets/etapa1_ablation_v1_qualidade_resolucao.png)
-
-| Experimento (`V1 @ 1024px`) | Origem dos Rótulos de Treino (`60` imgs) | IoU Fiação | Recall Fiação | Precisão Poste | IoU Poste | IoU Copa | mIoU Geral |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **`Modelo A`** | Pré-label GPU bruto (`SegFormer` + `Black-Hat`/`LSD`) | `3,97%` | `3,99%` | `27,67%` | `12,79%` | `91,25%` | `36,00%` |
-| **`Modelo B`** | Rotulagem inicial da equipe sem padrão rígido | `22,08%` | `23,10%` | **`96,12%`** | `21,29%` | **`91,50%`** | `44,96%` |
-| **`Modelo C (Ouro V1)`** | **Curadoria integral (fitas contínuas e junções em Y)** | **`39,60%`** | **`45,11%`** | `68,07%` | **`32,42%`** | `91,43%` | **`54,48%`** |
-
-### Conclusão da Etapa 1: Curadoria Manual em Fita + `1024×1024` São Obrigatórias
-- O pré-label automático (`Modelo A`) quase ignora fiação (`3,97% IoU`), e a rotulagem preliminar (`Modelo B`) estaciona em `22,08% IoU` por omitir condutores sobre fundos complexos. A curadoria padrão Ouro (`Modelo C V1`) multiplicou o **`IoU Fiação` por `10×` sobre o pré-label (`+79,3%` relativo sobre `B`)**, estabelecendo o protocolo usado na expansão do dataset.
+- **Resultado medido contra o gabarito curado do Pacote 1:** o pipeline genérico entregou **`97,5%` de IoU direto em `copa`** (`98,2%` precisão) e **`41,1%` em `poste`**, poupando quase todo o contorno manual de árvores; em contrapartida, o `LSD` acertou apenas **`8,3%` de IoU direto em `fiacao`**, exigindo curadoria humana integral das fitas contínuas e junções no **Pacote 1 (`68` imagens: `60` treino + `8` validação fixa por `geosampa_id`)**.
 
 ---
 
-## 2. Escala de Dados (`V1 → V2`) e Descoberta na Av. Paulista (`Hard Negatives`)
+### 1.2. Por que Subir de `640×640` para `1024×1024` Após Concluir o Pacote 1
 
-Com o protocolo validado, pré-rotulamos o **Pacote 2** usando o próprio `Modelo C V1`, aplicamos revisão humana e consolidamos o dataset **`V2 Full` (`132` imagens: `124` treino + `8` validação fixa)** em GPU `NVIDIA L4 24 GB` ([`runs/full_v2_132/metricas_v2_132imgs.json`](runs/full_v2_132/metricas_v2_132imgs.json)):
+1. **Testes locais na `RTX 3060 Ti (8 GB)` após terminar o Pacote 1:**
+   - Em piloto inicial em **`640×640`** (`3` épocas via [`scripts/run_pilot_ablation_segformer_vs_yolo.py`](scripts/run_pilot_ablation_segformer_vs_yolo.py)), os cabos curados já subiam para `43,09%` de IoU, mas **`poste` colapsava em `0,39%` IoU** e os fios saíam picotados em diagonais.
+   - Ao tentar elevar a resolução localmente para **`800×800`** (`25` épocas), os gradientes estouraram os `8 GB` de VRAM disponíveis, disparando swap contínuo via PCIe: a época `3/25` levou **`7,96 min`** (`~191 min` estimados para apenas um experimento).
+2. **Prova visual do *Sub-Pixel Aliasing* no decodificador $1/4$ (`All-MLP`):**
+   - O decodificador `All-MLP` do SegFormer funde *features* em **$1/4$ da resolução de entrada**. Em **`640×640`**, o mapa latente tem apenas **`160×160 px`**, fazendo cabos de ~`2 px` encolherem para **`~0,3–0,5` célula** e quebrarem em traços pontilhados. Subindo para **`1024×1024`**, o mapa latente cresce para **`256×256 px` (`+156%` de área de tokens)**, mantendo suporte $\ge 1\text{ px}$ conectado em toda a diagonal.
 
-- **`V1 Ouro (68 imgs) → V2 Full (132 imgs)`:**
+![Etapa 1B — Prova Visual de Sub-Pixel Aliasing 640 vs 1024 e Impacto Empírico](assets/etapa1b_subpixel_aliasing_640_vs_1024.png)
+
+3. **Decisão:** Migramos o treino para GPUs de Data Center (**`NVIDIA A100 40 GB` / `L4 24 GB`** no Google Colab Pro) na resolução nativa **`1024×1024`**. No Pacote 1, isso destravou a convergência de postes (`0,4% → 32,4%` IoU, `68,1%` precisão) e consolidou o **modelo intermediário `V1 Ouro`**.
+
+### 1.3. Pré-label Genérico vs. Modelo Intermediário `V1 Ouro` (`1024×1024`, `30` épocas)
+
+Mantendo arquitetura (`SegFormer-B2`), hiperparâmetros e validação rigorosamente congelados (`8` imagens de `4` árvores isoladas por `geosampa_id`: `597616`, `597652`, `597668`, `597842`), comparamos nas **`60` imagens de treino do Pacote 1** o treino sobre os rótulos genéricos iniciais vs. a 1ª metade curada manualmente:
+
+![Etapa 1 — Pré-Segmentação Genérica vs. Modelo Intermediário V1](assets/etapa1_ablation_v1_qualidade_resolucao.png)
+
+| Experimento (`V1 @ 1024px`) | Origem dos Rótulos (`Pacote 1` — `60` treino) | IoU Fiação | Recall Fiação | Precisão Poste | IoU Poste | IoU Copa | mIoU Geral |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **`V1 Base (Pré-label Genérico)`** | Segmentação inicial automática (`Cityscapes` + `Black-Hat`/`LSD`) | `3,97%` | `3,99%` | `27,67%` | `12,79%` | `91,25%` | `36,00%` |
+| **`V1 Intermediário (Ouro)`** | **Curadoria integral em fitas contínuas e junções em Y (`pacote_1`)** | **`39,60%`** | **`45,11%`** | **`68,07%`** | **`32,42%`** | **`91,43%`** | **`54,48%`** |
+
+### Conclusão da Etapa 1: Modelo Intermediário `V1 Ouro` Pronto para Acelerar a 2ª Metade
+- A segmentação inicial genérica quase ignora fiação aérea contra fundos urbanos (`3,97% IoU`). A curadoria do **Pacote 1** + salto para **`1024×1024`** multiplicaram o **`IoU Fiação` por `10×`** (`39,60%`), gerando o **modelo intermediário `V1 Ouro`** usado na etapa seguinte para pré-rotular a segunda metade do dataset.
+
+---
+
+## 2. Pré-Labeling da 2ª Metade (`V1 → V2 Full`) e Pacote 3 (`Hard Negatives`)
+
+Com o **modelo intermediário `V1 Ouro (1024×1024)`** validado na 1ª metade, executamos [`scripts/prelabel_pacote_2_with_gold_model.py`](scripts/prelabel_pacote_2_with_gold_model.py) sobre a **2ª metade (`Pacote 2`)** para substituir os pré-labels genéricos por polígonos de alta resolução. Após revisão humana desse pré-labeling e consolidação das duas metades, treinamos o **`V2 Full` (`132` imagens: `124` treino + `8` validação fixa)** em GPU `NVIDIA L4 24 GB`:
+
+- **`V1 Intermediário (68 imgs) → V2 Full (132 imgs)`:**
   - `IoU Fiação`: `39,60% → 45,03%` (**`+5,43 p.p.`**; Recall `45,11% → 50,99%`, Precisão `76,43% → 79,40%`).
   - `Poste`: IoU `32,42% → 34,95%` e **Precisão `68,07% → 94,71%`** (`+26,64 p.p.`, eliminando quase todos os falsos postes em pilares prediais).
   - `Copa`: IoU `91,43% → 92,68%` (Precisão `95,84%`) e **`mIoU Geral = 57,55%`** (`+3,07 p.p.`).
 
-### Quebra de Expectativa no Controle Negativo (Av. Paulista)
-Ao executar o `V2 Full` em campo na **Avenida Paulista** — corredor com rede elétrica **100% subterrânea** —, descobrimos um **viés de positividade**: como `100%` das fotos de Pinheiros/Mooca/Vila Mariana possuíam fios aéreos, a rede ativava falsos positivos sobre **frisos metálicos, brises e esquadrias de edifícios envidraçados**. Para neutralizar esse efeito sem perder sensibilidade em bairros reais, estruturamos o **Pacote 3 (`Hard Negative Mining`: `18` imagens curadas de `9` árvores da Av. Paulista com classe `fiacao` vazia)** e um **Teste Cego independente (`20` fotos inéditas da Paulista)**.
+### Quebra de Expectativa após Terminar o Pacote 2 (Av. Paulista → Pacote 3)
+Ao concluir o **Pacote 2** e executar o `V2 Full` em campo na **Avenida Paulista** — corredor com rede elétrica **100% subterrânea** —, descobrimos um **viés de positividade**: como `100%` das fotos de Pinheiros/Mooca/Vila Mariana possuíam fios aéreos, a rede ativava falsos positivos sobre **frisos metálicos, brises e esquadrias de edifícios envidraçados**. Para neutralizar esse efeito sem perder sensibilidade em bairros reais, montamos depois do Pacote 2 o **Pacote 3 (`Hard Negative Mining`: `18` imagens curadas de `9` árvores da Av. Paulista com classe `fiacao` vazia)** e um **Teste Cego independente (`20` fotos inéditas da Paulista)**.
 
 ---
 
@@ -70,7 +85,7 @@ No notebook autônomo [`ArborGrid_Training_Colab_1024px_Final_A_B.ipynb`](ArborG
 ### Decisão Arquitetural: Por que adotar o `Modelo C Ouro V3` em vez do `Modelo B`?
 - Embora as novas augmentations do **`Modelo B`** tenham alcançado o pico de `IoU Fiação` na validação (`45,13%`), elas elevaram os falsos alarmes no Teste Cego da Paulista para **`8.157 px` médios** e baixaram o `Zero-FP` para **`70,0%`**.
 - Ao incluir os **`18` *hard negatives* da Paulista (`Modelo C Ouro V3`)**, aceitamos um recuo controlado de `-2,69 p.p.` no `IoU Fiação` da validação (`42,44%`) para derrubar em **`-20,4%` os pixels falsos médios no teste cego (`8.157 → 6.495 px`)** preservando `96,64%` de precisão em postes e `92,86%` de IoU em copas.
-- Além disso, na auditoria completa sobre todas as **`143` imagens curadas** ([`runs/audit_anomalies_v3/audit_anomalies_v3_report.json`](runs/audit_anomalies_v3/audit_anomalies_v3_report.json)), o `Modelo C V3` obteve **`100,00%` de concordância (`iou_wire`)** nas `18` imagens de `Pacote3_HardNeg`, **`82,78%`** no treino do `Pacote 1` e **`80,09%`** no `Pacote 2`.
+- Além disso, na auditoria completa sobre todas as **`143` imagens curadas** (reproduzível via [`scripts/audit_anomalies_v3_dataset.py`](scripts/audit_anomalies_v3_dataset.py)), o `Modelo C V3` obteve **`100,00%` de concordância (`iou_wire`)** nas `18` imagens de `pacote_3_hard_negatives`, **`82,78%`** no treino do `pacote_1` e **`80,09%`** no `pacote_2`.
 
 ### Comprovação Territorial em Produção (`271` árvores · `536` vistas)
 
@@ -123,7 +138,7 @@ Implementamos [`scripts/benchmark_quantization.py`](scripts/benchmark_quantizati
 | **`PRB-003`** | Fios diagonais segmentados em linha pontilhada em `640×640`. | Mapa latente de $1/4$ (`160×160`) torna cabos de `2 px` em entidades sub-pixel (`0,5 px`). | Escalonamento para resolução nativa **`1024×1024`** (mapa latente `256×256`). |
 | **`PRB-004`** | Treino `800×800` local projetando `191 min` (`7,96 min` por época `3/25`). | Saturação dos `8 GB` VRAM da RTX 3060 Ti causando swap contínuo via PCIe. | Treino em Data Center GPU (`A100 40 GB` / `L4 24 GB`) no Colab Pro. |
 | **`PRB-005`** | Divergência de shapes na métrica vs. gabarito original (`640` vs. `1024`). | Logits comparados sem reamostragem uniforme. | Padronização de interpolação bilinear dos logits para `(IMGSZ, IMGSZ)`. |
-| **`PRB-006`** | Falsos postes em pilares e quinas de edifícios no piloto (`B` / `V1`). | Rótulos iniciais insuficientes e pilares parecidos com postes. | Curadoria integral do Pacote 2 (`V2`), elevando precisão de postes para `94,71%` (`96,64%` no `V3`). |
+| **`PRB-006`** | Falsos postes em pilares e quinas de edifícios no piloto `V1`. | Rótulos iniciais insuficientes apenas na 1ª metade (`Pacote 1`) e pilares parecidos com postes. | Pré-labeling + curadoria da 2ª metade (`Pacote 2` → `V2`), elevando precisão de postes para `94,71%` (`96,64%` no `V3`). |
 | **`PRB-007`** | Falha de tipo OpenCV em pós-processamento (`CV_64FC1` vs `CV_8UC1`). | Inicialização `np.zeros` padrão `float64` passada a `cv2.findContours`. | Coerção explícita para `dtype=np.uint8`. |
 | **`PRB-008`** | Bloqueio de tiles OSM (`file:///`) e restrição de API em CartoDB. | Política de uso de tiles barrando origens locais sem chave. | Uso consolidado de camadas Esri ArcGIS Online compatíveis sem chave em `generate_interactive_map.py`. |
 | **`PRB-009`** | Desalinhamento no polígono amostral da Av. Paulista. | Bbox ortogonal com buffer estreito omitia faces adjacentes. | Polígono orientado ao eixo viário (`420 m` totais cobrindo Rua São Carlos do Pinhal e Al. Santos). |

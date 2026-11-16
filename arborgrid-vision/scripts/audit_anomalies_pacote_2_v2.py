@@ -2,7 +2,7 @@
 ArborGrid - Auditoria e Mosaico de Anomalias no Pacote 2 (Modelo V2 Full)
 Módulo: arborgrid-vision / scripts / audit_anomalies_pacote_2_v2.py
 
-Avalia as predições do SegFormer-B2 1024px V2 Full contra os rótulos do pacote_colega_2 (64 imagens).
+Avalia as predições do SegFormer-B2 1024px V2 Full contra os rótulos do pacote_2 (2ª metade curada).
 Ranqueia e gera mosaico visual com as maiores anomalias e discrepâncias (especialmente entre
 as imagens ainda não refinadas manualmente pelo usuário).
 """
@@ -20,7 +20,7 @@ from transformers import SegformerForSemanticSegmentation
 CV_ROOT = Path(__file__).resolve().parent.parent
 MODELS_DIR = CV_ROOT / "models"
 WS_DIR = CV_ROOT / "dataset" / "workspace_xanylabeling"
-PACK2_DIR = WS_DIR / "pacote_colega_2"
+PACK2_DIR = WS_DIR / "pacote_2"
 RUNS_DIR = CV_ROOT / "runs" / "audit_anomalies_pack2"
 RUNS_DIR.mkdir(parents=True, exist_ok=True)
 

@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 
 CV_ROOT = Path(__file__).resolve().parent.parent
-NOTEBOOK_PATH = CV_ROOT / "ArborGrid_Training_Colab_1024px.ipynb"
 NOTEBOOK_AB_PATH = CV_ROOT / "ArborGrid_Training_Colab_1024px_Final_A_B.ipynb"
 
 
@@ -117,13 +116,13 @@ def build_notebook():
             "with zipfile.ZipFile(ZIP_NAME, 'r') as z:\n",
             "    z.extractall(DATA_DIR)\n",
             "\n",
-            "p1_files = list((DATA_DIR / 'pacote_colega_1_revised').glob('*.json'))\n",
-            "p2_files = list((DATA_DIR / 'pacote_colega_2').glob('*.json'))\n",
+            "p1_files = list((DATA_DIR / 'pacote_1').glob('*.json'))\n",
+            "p2_files = list((DATA_DIR / 'pacote_2').glob('*.json'))\n",
             "p3_files = list((DATA_DIR / 'pacote_3_hard_negatives').glob('*.json'))\n",
             "test_blind_files = list((DATA_DIR / 'test_paulista_blind').glob('*.jpg'))\n",
             "\n",
-            "print(f\"✅ Pacote 1 (Curado Inicial): {len(p1_files)} amostras\")\n",
-            "print(f\"✅ Pacote 2 (Curado Final):   {len(p2_files)} amostras\")\n",
+            "print(f\"✅ Pacote 1 (1ª Metade Curada — Modelo V1): {len(p1_files)} amostras\")\n",
+            "print(f\"✅ Pacote 2 (2ª Metade Pré-rotulada V1 & Curada): {len(p2_files)} amostras\")\n",
             "print(f\"✅ Pacote 3 (Hard Negatives): {len(p3_files)} amostras\")\n",
             "print(f\"✅ Teste Cego Paulista:       {len(test_blind_files)} fotografias\")\n",
             "print(f\"Total de amostras rotuladas: {len(p1_files) + len(p2_files) + len(p3_files)} imagens.\")\n"
@@ -346,12 +345,12 @@ def build_notebook():
             "# Célula 5: Montagem das Partições de Treino (A/B vs C), Validação Congelada e Teste Cego Paulista\n",
             "VAL_TREE_IDS = {\"597616\", \"597652\", \"597668\", \"597842\"}\n",
             "\n",
-            "p1_dir = DATA_DIR / \"pacote_colega_1_revised\"\n",
-            "p2_dir = DATA_DIR / \"pacote_colega_2\"\n",
+            "p1_dir = DATA_DIR / \"pacote_1\"\n",
+            "p2_dir = DATA_DIR / \"pacote_2\"\n",
             "p3_dir = DATA_DIR / \"pacote_3_hard_negatives\"\n",
             "blind_dir = DATA_DIR / \"test_paulista_blind\"\n",
             "\n",
-            "# 1. Separar Pacote 1 em Validação Congelada e Treino\n",
+            "# 1. Separar Pacote 1 (1ª metade) em Validação Congelada e Treino\n",
             "val_items = []\n",
             "p1_train = []\n",
             "for jp in sorted(p1_dir.glob(\"*.json\")):\n",
@@ -363,7 +362,7 @@ def build_notebook():
             "    else:\n",
             "        p1_train.append((ip, jp))\n",
             "\n",
-            "# 2. Pacote 2 (Treino Residencial Curado pelo Usuário)\n",
+            "# 2. Pacote 2 (2ª metade pré-rotulada pelo modelo intermediário V1 e curada)\n",
             "p2_train = []\n",
             "for jp in sorted(p2_dir.glob(\"*.json\")):\n",
             "    ip = jp.with_suffix(\".jpg\")\n",
@@ -761,11 +760,8 @@ def build_notebook():
         "nbformat_minor": 0
     }
 
-    # Salva no arquivo principal e na versão explícita A/B
     content = json.dumps(notebook, ensure_ascii=False, indent=1)
-    NOTEBOOK_PATH.write_text(content, encoding="utf-8")
     NOTEBOOK_AB_PATH.write_text(content, encoding="utf-8")
-    print(f"Notebook atualizado com sucesso em: {NOTEBOOK_PATH}")
     print(f"Notebook A/B salvo com sucesso em: {NOTEBOOK_AB_PATH}")
 
 

@@ -194,8 +194,8 @@ def prepare_eval_cache() -> dict[str, Any]:
     with zipfile.ZipFile(ZIP_DATASET, "r") as zf:
         zf.extractall(CACHE_DIR)
 
-    p1_dir = CACHE_DIR / "pacote_colega_1_revised"
-    p2_dir = CACHE_DIR / "pacote_colega_2"
+    p1_dir = CACHE_DIR / "pacote_1"
+    p2_dir = CACHE_DIR / "pacote_2"
     p3_dir = CACHE_DIR / "pacote_3_hard_negatives"
     blind_dir = CACHE_DIR / "test_paulista_blind"
 

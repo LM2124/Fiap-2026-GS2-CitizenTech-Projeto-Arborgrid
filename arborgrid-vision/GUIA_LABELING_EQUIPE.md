@@ -18,7 +18,7 @@ Usamos o **X-AnyLabeling** (gratuito, código aberto e portátil para Windows).
    * No menu superior, clique em **`File`** e certifique-se de que **`Auto Save`** está **marcado (`✔`)**. Assim você nunca perde nada ao trocar de foto!
 5. **PASSO OBRIGATÓRIO Nº 2 — Abrir a Pasta de Trabalho:**
    * Aperte **`Ctrl + U`** (ou clique em **`File` -> `Open Dir`**).
-   * Selecione a pasta que você recebeu (ex.: `pacote_colega_1_revised` ou `pacote_colega_2`).
+   * Selecione a pasta do pacote correspondente (ex.: `pacote_1`, `pacote_2` ou `pacote_3_hard_negatives`).
    * **Pronto!** Os polígonos coloridos já vão aparecer automaticamente em cima das fotos. **NÃO clique em "Import" nem em "Export"!**
 
 ---
@@ -125,7 +125,7 @@ A pré-anotação acerta alguns fios contra o céu, mas **deixa passar vários f
 Quando os pacotes revisados estiverem prontos, a consolidação final para treino do modelo na GPU roda com um único comando:
 
 ```powershell
-arborgrid-vision\.venv\Scripts\python.exe arborgrid-vision\scripts\export_xanylabeling_to_yolo.py --merge-from pacote_colega_1_revised pacote_colega_2
+arborgrid-vision\.venv\Scripts\python.exe arborgrid-vision\scripts\export_xanylabeling_to_yolo.py --merge-from pacote_1 pacote_2 pacote_3_hard_negatives
 ```
 
 O script:

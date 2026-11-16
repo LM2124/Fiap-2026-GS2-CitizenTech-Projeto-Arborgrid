@@ -17,8 +17,8 @@ from transformers import SegformerForSemanticSegmentation
 CV_ROOT = Path(__file__).resolve().parent.parent
 MODELS_DIR = CV_ROOT / "models"
 WS_DIR = CV_ROOT / "dataset" / "workspace_xanylabeling"
-PACK2_DIR = WS_DIR / "pacote_colega_2"
-BACKUP_DIR = WS_DIR / "pacote_colega_2_old_prelabels_backup"
+PACK2_DIR = WS_DIR / "pacote_2"
+BACKUP_DIR = WS_DIR / "pacote_2_old_prelabels_backup"
 
 GOLD_WEIGHTS = MODELS_DIR / "arborgrid_segformer_b2_1024_gold_local.pt"
 if not GOLD_WEIGHTS.exists():
@@ -133,7 +133,7 @@ def render_preview(img_bgr: np.ndarray, shapes: list[dict], title: str) -> np.nd
 def main():
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     print("=" * 80)
-    print("PRÉ-ROTULAGEM AUTOMATIZADA EM ALTA RESOLUÇÃO — PACOTE COLEGA 2")
+    print("PRÉ-ROTULAGEM AUTOMATIZADA EM ALTA RESOLUÇÃO — PACOTE 2 (2ª METADE)")
     print(f"Dispositivo de Execução: {device} ({torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'})")
     print(f"Diretório de Destino:   {PACK2_DIR}")
     print("=" * 80)

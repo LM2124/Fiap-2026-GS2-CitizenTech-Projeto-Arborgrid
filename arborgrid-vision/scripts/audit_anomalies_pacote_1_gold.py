@@ -3,7 +3,7 @@ ArborGrid - Scanner de Anomalias e Discrepâncias no Pacote 1 Revisado
 Módulo: arborgrid-vision / scripts / audit_anomalies_pacote_1_gold.py
 
 Compara as predições do SegFormer-B2 1024px Ouro contra os rótulos 100% revisados
-do pacote_colega_1_revised (68 imagens). Identifica e ranqueia as maiores discrepâncias:
+do pacote_1 (68 imagens). Identifica e ranqueia as maiores discrepâncias:
 1. Fios de alta confiança previstos pela IA e não anotados pelo usuário.
 2. Fios anotados pelo usuário que a IA não recuperou (baixa recall / atípicos).
 3. Divergências na infraestrutura de postes.
@@ -22,7 +22,7 @@ from transformers import SegformerForSemanticSegmentation
 CV_ROOT = Path(__file__).resolve().parent.parent
 MODELS_DIR = CV_ROOT / "models"
 WS_DIR = CV_ROOT / "dataset" / "workspace_xanylabeling"
-PACK1_REVISED = WS_DIR / "pacote_colega_1_revised"
+PACK1_REVISED = WS_DIR / "pacote_1"
 OUT_DIR = CV_ROOT / "runs" / "audit_anomalies_pack1"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 

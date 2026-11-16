@@ -6,8 +6,8 @@ Converte as imagens + pré-anotações YOLO-Seg geradas na GPU para o formato JS
 do X-AnyLabeling (com simplificação suave de vértices para facilitar edição humana),
 criando uma pasta pronta para abrir direto via `File -> Open Dir` (Ctrl + U).
 
-Suporta também `--split-packs N` para dividir o trabalho entre N colegas do grupo
-(agrupando sempre por árvore para manter contexto visual).
+Suporta também `--split-packs N` para dividir o dataset de treino em N metades/partições
+(agrupando sempre por árvore para manter contexto visual e evitar data leakage).
 """
 
 import json
@@ -124,7 +124,7 @@ def main():
         "--split-packs",
         type=int,
         default=1,
-        help="Se > 1, divide as árvores igualmente em subpastas pacote_1, pacote_2... para colegas do grupo",
+        help="Se > 1, divide as árvores igualmente em subpastas pacote_1, pacote_2... para curadoria incremental",
     )
     args = parser.parse_args()
 
@@ -152,7 +152,7 @@ def main():
             if not sub_ids:
                 continue
             sub_imgs = [im for tid in sub_ids for im in by_tree[tid]]
-            pack_dir = out_dir / f"pacote_colega_{idx + 1}"
+            pack_dir = out_dir / f"pacote_{idx + 1}"
             n = populate_folder(sub_imgs, pack_dir)
             print(f"Pacote {idx + 1}: {n} imagens ({len(sub_ids)} árvores) salvo em {pack_dir}")
 

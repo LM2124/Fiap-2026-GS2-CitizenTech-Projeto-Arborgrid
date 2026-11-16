@@ -27,34 +27,38 @@ flowchart LR
 
 ---
 
-## 3. Dados Curados, Territórios e Governança
+## 3. Estratégia de Dados (Divisão em 2 Metades + Pacote 3 Hard Negatives)
 
-O conjunto consolidado cobre **`143` fotografias curadas manualmente** no `X-AnyLabeling` + **`20` fotografias de teste cego** na Av. Paulista + **`271` árvores (`536` vistas)** auditadas em campo:
+O dataset consolidado cobre **`143` fotografias curadas manualmente** no `X-AnyLabeling` + **`20` fotografias de teste cego** na Av. Paulista + **`271` árvores (`536` vistas)** auditadas em campo, construído em **4 etapas incrementais**:
+
+1. **Pré-segmentação inicial com modelo genérico (`pacote_1_prelabel/`, [`scripts/auto_prelabel_and_audit.py`](scripts/auto_prelabel_and_audit.py)):** O backbone *zero-shot* `SegFormer-B2 Cityscapes` (`vegetation #8` com filtro morfológico → `copa`; `pole #5` → `poste`) foi combinado com `Black-Hat (9×9) + Line Segment Detector (LSD)` em OpenCV para detectar `fiacao`, entregando `97,5%` de IoU direto em copas e `41,1%` em postes (poupando desenho manual), mas apenas `8,3%` em fios.
+2. **Separação do dataset residencial em 2 metades (`pacote_1/` e `pacote_2/`):** Divisão agrupada por `geosampa_id` para escalar a curadoria em etapas sem vazamento entre ângulos da mesma árvore.
+3. **Salto para `1024×1024`, modelo intermediário (`V1 Ouro`) e pré-labeling da 2ª metade:** Após concluir a curadoria do **Pacote 1** e confirmar o gargalo do mapa latente $1/4$ (`640 → 160×160`) e da VRAM local (`800×800`), migramos o treino para `1024×1024` (`256×256` latente) no Colab `A100/L4`. Esse modelo intermediário `V1 Ouro` foi então aplicado em [`scripts/prelabel_pacote_2_with_gold_model.py`](scripts/prelabel_pacote_2_with_gold_model.py) para pré-rotular o **Pacote 2** em alta resolução antes da revisão final (`V2 Full`).
+4. **Pacote 3 (`Hard Negatives Paulista`) após concluir o Pacote 2:** Ao auditar o `V2 Full` na Av. Paulista (rede 100% subterrânea), adicionamos o **Pacote 3** com cenas urbanas negativas sem fiação para suprimir falsos positivos em fachadas metálicas e brises (`V3 Ouro`).
 
 | Recorte / Partição | Finalidade | Quantidade | Observação Técnica |
 | :--- | :--- | :---: | :--- |
-| **Pacote 1 (Ouro Inicial)** | Treino (`60`) + Validação fixa (`8`) | `68` imagens | Separação estrita por `geosampa_id` (`597616`, `597652`, `597668`, `597842`) — zero vazamento. |
-| **Pacote 2 (Expansão Curada)** | Treino multi-bairro | `57` imagens | Curadoria integral após descarte (`_delete_`) de amostras com oclusão extrema. |
-| **Pacote 3 (Hard Negatives Paulista)** | Treino contra falsos alarmes | `18` imagens | `9` árvores na Av. Paulista sem fiação aérea (frisos, esquadrias e fachadas espelhadas). |
+| **Pacote 1 (`pacote_1/`, 1ª metade)** | Treino intermediário `V1` (`60`) + Validação fixa (`8`) | `68` imagens | Separação estrita por `geosampa_id` (`597616`, `597652`, `597668`, `597842`) — zero vazamento. |
+| **Pacote 2 (`pacote_2/`, 2ª metade)** | Pré-label `V1 Ouro` + curadoria final (`V2 Full`) | `57` imagens | Curadoria integral após pré-rotulagem pelo modelo intermediário `V1` e descarte de oclusão extrema. |
+| **Pacote 3 (`pacote_3_hard_negatives/`)** | Treino contra falsos alarmes pós-`Pacote 2` | `18` imagens | `9` árvores na Av. Paulista sem fiação aérea (frisos, esquadrias e fachadas espelhadas). |
 | **Teste Cego Av. Paulista** | Validação negativa inédita | `20` imagens | Medição isolada de falsos positivos de fiação (`Zero-FP Rate` e pixels falsos médios). |
 | **Operação Territorial V3** | Inferência completa no mapa | `271` árvores (`536` vistas) | **Pinheiros** (`89`), **Alto da Mooca** (`54`), **Vila Mariana** (`54`), **Av. Paulista** (`74`); **`88,2%`** sem data de inspeção no SISGAU. |
 
-> *Governança legal, citações e atribuições em **[`FONTES_DE_DADOS.md`](FONTES_DE_DADOS.md)** | Manual de anotação utilizado pela equipe em **[`GUIA_LABELING_EQUIPE.md`](GUIA_LABELING_EQUIPE.md)**.*
+> *Governança legal, citações e atribuições em **[`FONTES_DE_DADOS.md`](FONTES_DE_DADOS.md)** | Protocolo operacional de curadoria no X-AnyLabeling em **[`GUIA_LABELING_EQUIPE.md`](GUIA_LABELING_EQUIPE.md)**.*
 
 ---
 
 ## 4. Evolução Experimental (`V1 → V2 → V3 Ouro`) e Validação na Av. Paulista
 
-> *Narrativa experimental completa em fluxo decisório (incluindo gargalo de VRAM/PCIe na `RTX 3060 Ti`, ablação `640` vs. `1024 px` e matriz A/B/C completa) em **[`EXPLORACAO_MODELOS_E_QUANTIZACAO.md`](EXPLORACAO_MODELOS_E_QUANTIZACAO.md)**.*
+> *Narrativa experimental completa em fluxo decisório (gargalo de VRAM/PCIe na `RTX 3060 Ti`, ablação `640` vs. `1024 px`, modelo intermediário `V1` para pré-labeling do Pacote 2 e matriz A/B/C completa) em **[`EXPLORACAO_MODELOS_E_QUANTIZACAO.md`](EXPLORACAO_MODELOS_E_QUANTIZACAO.md)**.*
 
 ![Etapa 2 & 3 — Evolução V1 -> V2 -> Matriz A/B/C V3](assets/etapa2_evolucao_v1_v2_v3.png)
 
 | Geração / Experimento | Dados de Treino (`1024×1024`) | IoU Fiação | IoU Copa | Precisão Poste | mIoU Geral | Paulista Zero-FP (Cego) |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **V1 Modelo A** | `60` imgs (Pré-label GPU bruto) | `3,97%` | `91,25%` | `27,67%` | `36,00%` | — |
-| **V1 Modelo B** | `60` imgs (Rotulagem equipe inicial) | `22,08%` | `91,50%` | `96,12%` | `44,96%` | — |
-| **V1 Modelo C (Ouro)** | `60` imgs (Curadoria Ouro integral) | `39,60%` | `91,43%` | `68,07%` | `54,48%` | — |
-| **V2 Full** | `124` imgs (Pacotes 1 + 2 @ L4) | `45,03%` | `92,68%` | `94,71%` | **`57,55%`** | Alucinações em fachadas |
+| **V1 Base (Pré-label Genérico)** | `60` imgs (Segmentação inicial GPU) | `3,97%` | `91,25%` | `27,67%` | `36,00%` | — |
+| **V1 Intermediário (Ouro)** | `60` imgs (Pacote 1 — 1ª metade curada) | `39,60%` | `91,43%` | `68,07%` | `54,48%` | — |
+| **V2 Full** | `124` imgs (Pacote 1 + Pacote 2 @ L4) | `45,03%` | `92,68%` | `94,71%` | **`57,55%`** | Alucinações em fachadas |
 | **V3 Modelo A (Base)** | `117` imgs (Pacotes 1 + 2 curados) | `43,11%` | `92,84%` | `82,75%` | `56,32%` | `75,0%` (`7.318 px` FP) |
 | **V3 Modelo B (+Aug Segura)** | `117` imgs (+`HSV ±5%`, `rot ±3°`) | **`45,13%`** | `92,86%` | **`96,90%`** | `56,82%` | `70,0%` (`8.157 px` FP) |
 | **V3 Modelo C (Ouro Final)** | **`135` imgs** (`+Pacote 3 Hard Neg.`) | **`42,44%`** | **`92,86%`** | **`96,64%`** | **`55,42%`** | **`75,0%` (`6.495 px` FP)** |

@@ -32,7 +32,6 @@ dataset/sp_geosampa_api/*overlays*/
 dataset/sp_geosampa_api/prelabels_yolo_seg/
 dataset/sp_geosampa_api/quarantine_subway_indoor/
 dataset/workspace_xanylabeling/*.json
-dataset/workspace_xanylabeling/comparativo_*
 dataset/workspace_xanylabeling/*backup*/
 dataset/workspace_xanylabeling/_delete_/
 dataset/workspace_xanylabeling/**/images/

@@ -4,8 +4,8 @@ Módulo: arborgrid-vision / scripts / export_xanylabeling_to_yolo.py
 
 Recursos "à prova de erro":
   - Lê apenas os arquivos consolidados na raiz de `--src` (`src_dir.glob("*.json")`), evitando duplicar
-    backups em subpastas (`pacote_colega_1`, `pacote_colega_1_labelled`, etc.).
-  - Suporta `--merge-from <pasta>` para consolidar pacotes devolvidos pela equipe na raiz do workspace
+    backups ou partições em subpastas (`pacote_1_prelabel`, `pacote_1`, `pacote_2`, etc.).
+  - Suporta `--merge-from <pasta>` para consolidar pacotes curados na raiz do workspace
     (respeitando descartes em `_delete_/`).
   - Auto-espessamento de segurança para `fiacao`: se um humano desenhou um polígono de fio fino demais
     (< 3.5 px de espessura), expande morfologicamente para ~5 px para não sumir no downsampling 1/4 (160x160) do YOLOv8-Seg.
@@ -43,7 +43,7 @@ LABEL_NORMALIZATION = {
 def merge_pack_into_workspace(pack_dir: Path, workspace_root: Path) -> dict:
     """
     Copia os .json revisados de `pack_dir` para `workspace_root` (sobrescrevendo o pré-label original).
-    Se o colega moveu alguma imagem para `pack_dir/_delete_`, move também o par na raiz para `workspace_root/_delete_`.
+    Se alguma imagem foi movida para `pack_dir/_delete_`, move também o par na raiz para `workspace_root/_delete_`.
     """
     if not pack_dir.exists():
         raise FileNotFoundError(f"Pacote não encontrado: {pack_dir}")
@@ -51,7 +51,7 @@ def merge_pack_into_workspace(pack_dir: Path, workspace_root: Path) -> dict:
     updated = 0
     deleted = 0
 
-    # 1. Propaga descartes (_delete_) se existirem no pacote do colega
+    # 1. Propaga descartes (_delete_) se existirem no pacote revisado
     del_src = pack_dir / "_delete_"
     if del_src.exists():
         del_dst = workspace_root / "_delete_"
@@ -146,7 +146,7 @@ def main():
         type=str,
         nargs="*",
         default=None,
-        help="Lista opcional de subpastas revisadas (ex: pacote_colega_1_labelled pacote_colega_2) para consolidar na raiz antes de exportar",
+        help="Lista opcional de subpastas revisadas (ex: pacote_1 pacote_2 pacote_3_hard_negatives) para consolidar na raiz antes de exportar",
     )
     parser.add_argument("--merge-only", action="store_true", help="Apenas consolida os pacotes na raiz sem exportar para YOLO ainda")
     parser.add_argument("--out", type=str, default=str(DEFAULT_OUT), help="Pasta final do dataset YOLO-Seg")

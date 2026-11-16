@@ -1,23 +1,18 @@
 """
-ArborGrid - Benchmark Piloto Controlado (Ablation de Qualidade de Rótulos)
+ArborGrid - Benchmark Piloto Controlado V1 (Pré-label Genérico vs. Curadoria Ouro — Pacote 1)
 
-Pergunta: as 24 imagens revisadas à mão (< tree_605898) melhoram o modelo em relação ao retoque do Lorenzo
-e ao pré-label automático da GPU?
+Compara, sobre a 1ª metade do dataset residencial (`pacote_1`, 68 imagens: 60 treino + 8 validação congelada),
+o ganho obtido ao substituir a pré-segmentação inicial com modelo genérico (`pacote_1_prelabel`)
+pela curadoria manual integral em fitas contínuas (`pacote_1`), originando o modelo intermediário V1
+usado em seguida para pré-rotular o Pacote 2 em alta resolução.
 
-Desenho experimental (a única variável é a origem dos rótulos das imagens REVISADAS de treino):
-  - Treino : 24 imagens revisadas (12 árvores) + 39 imagens ainda NÃO revisadas (>= tree_605898)
-             * Modelo A: rótulos = pré-label GPU (pacote_colega_1)
-             * Modelo B: rótulos = Lorenzo (pacote_colega_1_labelled)
-             * Modelo C: rótulos = SUA revisão nas 24 revisadas + Lorenzo nas 39 não revisadas
-  - Validação: 8 imagens (4 árvores isoladas por ID, sem vazamento) com SEU gabarito (pacote_colega_1_revised)
+Desenho experimental:
+  - Treino (60 imagens, 31 árvores):
+      * Modelo A: rótulos = pré-segmentação inicial genérica GPU (`pacote_1_prelabel`)
+      * Modelo C (Intermediário V1 Ouro): rótulos = curadoria manual integral (`pacote_1`)
+  - Validação fixa: 8 imagens (4 árvores isoladas por ID, sem vazamento) em `pacote_1`
   - Arquitetura: SegFormer-B2 multi-label (3 canais sigmoid independentes: copa/fiacao/poste, BCE + Dice)
-  - Sem seleção de checkpoint pela validação (usa a última época) => sem vazamento de seleção
-  - Média de várias sementes (--seeds) para estimar o ruído de um conjunto de validação minúsculo
-
-Extras:
-  - IoU direto entre as anotações (pré-label / Lorenzo vs. você) nas imagens revisadas
-  - Comparativo opcional com YOLOv8s-Seg estabilizado (freeze=10)
-  - Scanner de anomalias Out-of-Fold (2-fold por árvore) sobre TODAS as imagens do pacote, priorizando o que revisar
+  - Média de várias sementes (--seeds) e scanner de anomalias Out-of-Fold (2-fold por árvore)
 """
 
 import os
@@ -40,9 +35,8 @@ WS_DIR = CV_ROOT / "dataset" / "workspace_xanylabeling"
 MODELS_DIR = CV_ROOT / "models"
 ABLATION_DIR = CV_ROOT / "runs" / "pilot_ablation"
 
-PACK_BASE = WS_DIR / "pacote_colega_1"
-PACK_LORENZO = WS_DIR / "pacote_colega_1_labelled"
-PACK_REVISED = WS_DIR / "pacote_colega_1_revised"
+PACK_BASE = WS_DIR / "pacote_1_prelabel"
+PACK_REVISED = WS_DIR / "pacote_1"
 
 CUTOFF_NAME = "tree_605898"  # revisadas = nomes < cutoff
 CLASSES = ["copa", "fiacao", "poste"]
@@ -200,8 +194,8 @@ def write_html_dashboard(status: dict):
     badge_status = '<span class="badge bg-green">CONCLUÍDO</span>' if done else '<span class="badge bg-blue pulse">RODANDO</span>'
 
     table_rows = []
-    labels = {"A": "Modelo A (Pré-label GPU)", "B": "Modelo B (Lorenzo)", "C": "Modelo C (Sua Revisão 100%)"}
-    for k in ("A", "B", "C"):
+    labels = {"A": "Modelo A (Pré-label Genérico)", "C": "Modelo V1 Intermediário (Curadoria Ouro)"}
+    for k in ("A", "C"):
         if k in metrics:
             m = metrics[k]
             row = f"""
@@ -614,26 +608,25 @@ def main():
 
     print("=" * 80, flush=True)
     print(f"BENCHMARK COMPLETO (100% REVISADO) | device={device} | seeds={args.seeds} | épocas={args.epochs} | batch={args.batch_size} | imgsz={args.imgsz}x{args.imgsz}", flush=True)
-    print(f"  Total imagens no pacote : {len(all_stems)} (todas 100% revisadas pelo usuário!)", flush=True)
+    print(f"  Total imagens no Pacote 1: {len(all_stems)} (100% curadas)", flush=True)
     print(f"  Divisão sem vazamento   : Treino = {len(train_stems)} fotos | Validação = {len(val_stems)} fotos ({len(VAL_TREE_IDS)} árvores isoladas)", flush=True)
     print("=" * 80, flush=True)
 
     def items_for(variant):
-        rev_dir = {"A": PACK_BASE, "B": PACK_LORENZO, "C": PACK_REVISED}[variant]
+        rev_dir = {"A": PACK_BASE, "C": PACK_REVISED}[variant]
         return [(s, rev_dir) for s in train_stems]
 
-    # 1) IoU direto entre anotações nas imagens revisadas (todas as 68)
+    # 1) IoU direto entre pré-label genérico e gabarito curado nas 68 imagens
     gt_all = [json_to_class_masks(PACK_REVISED / f"{s}.json") for s in all_stems]
     direct_base = compute_iou([json_to_class_masks(PACK_BASE / f"{s}.json") for s in all_stems], gt_all)
-    direct_lor = compute_iou([json_to_class_masks(PACK_LORENZO / f"{s}.json") for s in all_stems], gt_all)
 
-    # 2) Treino A/B/C x sementes
+    # 2) Treino A vs C x sementes
     gt_val = [json_to_class_masks(PACK_REVISED / f"{s}.json") for s in val_stems]
-    per_variant = {"A": [], "B": [], "C": []}
+    per_variant = {"A": [], "C": []}
     preds_seed0 = {}
     latest_metrics = {}
 
-    total_models = len(args.seeds) * 3
+    total_models = len(args.seeds) * 2
     total_epochs_all = total_models * args.epochs
     start_global = time.time()
     steps_done = 0
@@ -652,8 +645,8 @@ def main():
     })
 
     for si, seed in enumerate(args.seeds):
-        for v_idx, (v, name) in enumerate((("A", "Base (pré-label GPU)"), ("B", "Lorenzo"), ("C", "Sua revisão"))):
-            model_num = si * 3 + v_idx + 1
+        for v_idx, (v, name) in enumerate((("A", "Pré-label Genérico"), ("C", "Curadoria Ouro V1"))):
+            model_num = si * 2 + v_idx + 1
 
             def ep_cb(ep, tot_ep, loss, ep_time):
                 nonlocal steps_done
@@ -719,10 +712,9 @@ def main():
     for i, stem in enumerate(val_stems):
         img = cv2.imread(str(PACK_REVISED / f"{stem}.jpg"))
         tiles = [
-            render_panel(img, gt_val[i], f"SEU GABARITO: {stem[:28]}"),
-            render_panel(img, preds_seed0["A"][i], "Modelo A (pre-label)"),
-            render_panel(img, preds_seed0["B"][i], "Modelo B (Lorenzo)"),
-            render_panel(img, preds_seed0["C"][i], "Modelo C (sua revisao)"),
+            render_panel(img, gt_val[i], f"GABARITO CURADO: {stem[:26]}"),
+            render_panel(img, preds_seed0["A"][i], "Pré-label Genérico (A)"),
+            render_panel(img, preds_seed0["C"][i], "Intermediário V1 Ouro (C)"),
         ]
         strip = np.hstack([cv2.resize(t, (320, 320)) for t in tiles])
         cv2.imwrite(str(vis_dir / f"val_{stem}.jpg"), strip, [int(cv2.IMWRITE_JPEG_QUALITY), 92])
@@ -805,7 +797,7 @@ def main():
         "config": {"seeds": args.seeds, "epochs": args.epochs,
                    "n_train": len(train_stems), "n_val": len(val_stems),
                    "val_tree_ids": sorted(VAL_TREE_IDS)},
-        "direct_label_iou_reviewed_imgs": {"base_vs_revised": direct_base, "lorenzo_vs_revised": direct_lor},
+        "direct_label_iou_reviewed_imgs": {"base_vs_revised": direct_base},
         "segformer_val_iou_mean_over_seeds": avg,
         "segformer_val_iou_per_seed": per_variant,
         "yolov8s_seg_val_iou": yolo_metrics,
@@ -829,11 +821,10 @@ def main():
     print("\n" + "=" * 80, flush=True)
     print("RESULTADOS", flush=True)
     print("=" * 80, flush=True)
-    print(f"[A] IoU direto entre rótulos nas {len(all_stems)} imagens revisadas (vs. seu gabarito):", flush=True)
-    print(f"    Pré-label GPU : {fmt(direct_base)}", flush=True)
-    print(f"    Lorenzo       : {fmt(direct_lor)}", flush=True)
+    print(f"[A] IoU direto entre pré-label genérico e gabarito nas {len(all_stems)} imagens:", flush=True)
+    print(f"    Pré-label Genérico : {fmt(direct_base)}", flush=True)
     print(f"\n[B] SegFormer-B2 na validação ({len(val_stems)} imgs), média de {len(args.seeds)} sementes:", flush=True)
-    for v, nm in (("A", "Treinado no pré-label"), ("B", "Treinado no Lorenzo "), ("C", "Treinado na sua rev.")):
+    for v, nm in (("A", "Pré-label Genérico   "), ("C", "Curadoria Ouro V1    ")):
         print(f"    {nm}: {fmt(avg[v])}   (mIoU por semente: {avg[v]['mean_iou_per_seed']})", flush=True)
     if yolo_metrics:
         print(f"\n[C] YOLOv8s-Seg (referência arquitetural): {fmt(yolo_metrics)}", flush=True)

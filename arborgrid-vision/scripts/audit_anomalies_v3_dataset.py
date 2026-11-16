@@ -105,8 +105,8 @@ def main():
     model = load_v3_model(device)
 
     packs = [
-        ("Pacote1", WS_DIR / "pacote_colega_1_revised"),
-        ("Pacote2", WS_DIR / "pacote_colega_2"),
+        ("Pacote1", WS_DIR / "pacote_1"),
+        ("Pacote2", WS_DIR / "pacote_2"),
         ("Pacote3_HardNeg", WS_DIR / "pacote_3_hard_negatives"),
     ]
 
