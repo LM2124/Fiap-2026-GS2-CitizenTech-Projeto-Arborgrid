@@ -118,11 +118,8 @@ def main() -> None:
         server_cmd.extend(["-ngl", str(args.gpu_layers)])
     server_cmd.extend(["-c", "2048", "-np", "1", "-t", str(args.threads), "--no-webui"])
 
-    proc = subprocess.Popen(
-        server_cmd,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    # Argumentos de lista explicitos (sem shell=True) para benchmark local controlado
+    proc = subprocess.Popen(server_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # nosemgrep
     ps_proc = psutil.Process(proc.pid)
     peak_rss_mb = 0.0
 

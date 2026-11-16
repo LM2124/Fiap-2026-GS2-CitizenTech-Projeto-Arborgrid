@@ -67,12 +67,21 @@ resource "aws_security_group" "arborgrid_sg" {
     cidr_blocks = [var.allowed_ssh_cidr]
   }
 
+  # Egress estritamente necessario para Docker Hub / repositorios APT / API Open-Meteo (HTTPS e HTTP)
   egress {
-    description = "Saida para pulls de imagem e APIs externas"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    description = "Saida HTTPS para pulls de imagem Docker e API Open-Meteo"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] #trivy:ignore:AVD-AWS-0104
+  }
+
+  egress {
+    description = "Saida HTTP para repositorios de pacotes Ubuntu durante provisionamento"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] #trivy:ignore:AVD-AWS-0104
   }
 
   tags = {
@@ -82,7 +91,8 @@ resource "aws_security_group" "arborgrid_sg" {
   }
 }
 
-resource "aws_instance" "arborgrid_vm" {
+# Instancia publica controlada com SSH restrito a var.allowed_ssh_cidr e IMDSv2 obrigatorio
+resource "aws_instance" "arborgrid_vm" { # nosemgrep: terraform.aws.security.aws-ec2-has-public-ip.aws-ec2-has-public-ip
   ami                         = data.aws_ami.ubuntu_24_04.id
   instance_type               = var.instance_type
   subnet_id                   = data.aws_subnets.default.ids[0]

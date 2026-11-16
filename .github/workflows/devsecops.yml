@@ -32,26 +32,26 @@ jobs:
           cache: "pip"
           cache-dependency-path: webapp/requirements*.txt
 
-      - name: Install webapp test and SAST dependencies
-        run: |
-          pip install -r webapp/requirements-dev.txt
-          pip install --quiet semgrep
+      - name: Install webapp test dependencies
+        run: pip install -r webapp/requirements-dev.txt
 
       - name: Run unit and contract tests
         working-directory: webapp
         run: pytest -v
 
       - name: Semgrep SAST Scan
-        run: >-
-          semgrep scan
-          --config p/python
-          --config p/dockerfile
-          --config p/terraform
-          --config p/secrets
-          --exclude .venv
-          --exclude node_modules
-          --exclude webapp/app/static
-          --error
+        run: |
+          python -m venv /tmp/semgrep-venv
+          /tmp/semgrep-venv/bin/pip install --quiet semgrep
+          /tmp/semgrep-venv/bin/semgrep scan \
+            --config p/python \
+            --config p/dockerfile \
+            --config p/terraform \
+            --config p/secrets \
+            --exclude .venv \
+            --exclude node_modules \
+            --exclude webapp/app/static \
+            --error
 
   container-and-iac-security:
     name: Docker Build & Trivy Scan

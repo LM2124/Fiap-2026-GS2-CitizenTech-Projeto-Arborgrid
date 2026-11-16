@@ -23,7 +23,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     ARBORGRID_MEDIA_DIR="/app/media" \
     ARBORGRID_GOLD_STATE_PATH="/app/state/gold_risk_scores_runtime.json"
 
-RUN groupadd --gid 10001 appgroup \
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 10001 appgroup \
     && useradd --uid 10001 --gid appgroup --shell /usr/sbin/nologin --create-home appuser \
     && mkdir -p /app/data /app/media /app/state /app/models \
     && chown -R appuser:appgroup /app

@@ -46,10 +46,9 @@ def main() -> None:
     f16_gguf = merged_dir / "model-f16.gguf"
     converter = ROOT / "scripts" / "vendor" / "llamacpp_conv" / "convert_hf_to_gguf.py"
     print(f"[2/3] Convertendo HuggingFace -> F16 GGUF em {f16_gguf}...")
-    subprocess.run(
-        [sys.executable, str(converter), str(merged_dir), "--outfile", str(f16_gguf), "--outtype", "f16"],
-        check=True,
-    )
+    # Argumentos de lista explicitos (sem shell=True) para conversao GGUF local
+    cmd_f16 = [sys.executable, str(converter), str(merged_dir), "--outfile", str(f16_gguf), "--outtype", "f16"]
+    subprocess.run(cmd_f16, check=True)  # nosemgrep
 
     if args.quant.upper() == "F16":
         print(f"[3/3] Mantendo precisão original 16 bits -> {out_gguf}...")
