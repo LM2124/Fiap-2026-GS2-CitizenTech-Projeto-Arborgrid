@@ -13,20 +13,20 @@ permissions:
 jobs:
   test-and-secrets-scan:
     name: Pytest, Gitleaks e Semgrep SAST
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Gitleaks Secret Scan
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -56,10 +56,10 @@ jobs:
   container-and-iac-security:
     name: Docker Build & Trivy Scan
     needs: test-and-secrets-scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Trivy IaC & Filesystem Scan
         uses: aquasecurity/trivy-action@v0.36.0
@@ -86,10 +86,10 @@ jobs:
     name: Deploy Automatico EC2 (Docker Compose)
     needs: container-and-iac-security
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Validate required deploy secrets
         env:

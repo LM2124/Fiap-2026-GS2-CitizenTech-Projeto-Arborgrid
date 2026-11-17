@@ -50,7 +50,7 @@ PT_V3_1024_PATH = MODELS_DIR / "arborgrid_segformer_b2_1024_v3_gold.pt"
 ONNX_V3_INT8_PATH = MODELS_DIR / "segformer_v3_int8_dyn_matmul.onnx"
 
 # ── APIs externas de coleta em campo ─────────────────────────────────────────
-GEOSAMPA_WFS_URL = "http://wfs.geosampa.prefeitura.sp.gov.br/geoserver/geoportal/wfs"
+GEOSAMPA_WFS_URL = "https://wfs.geosampa.prefeitura.sp.gov.br/geoserver/geoportal/wfs"
 SV_METADATA_URL = "https://maps.googleapis.com/maps/api/streetview/metadata"
 SV_IMAGE_URL = "https://maps.googleapis.com/maps/api/streetview"
 
