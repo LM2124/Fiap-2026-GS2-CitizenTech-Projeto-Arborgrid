@@ -1,0 +1,54 @@
+{
+  "metrics_validation": {
+    "model_A": {
+      "copa_iou": 92.83704739715729,
+      "copa_precision": 96.04307689916008,
+      "copa_recall": 96.52912865633328,
+      "fiacao_iou": 43.11229822320288,
+      "fiacao_precision": 79.33128425761369,
+      "fiacao_recall": 48.56757234092193,
+      "poste_iou": 32.99594770522764,
+      "poste_precision": 82.75085073116895,
+      "poste_recall": 35.43299334462253,
+      "miou": 56.31509777519594
+    },
+    "model_B": {
+      "copa_iou": 92.85793005174882,
+      "copa_precision": 95.98813199186608,
+      "copa_recall": 96.60729770828192,
+      "fiacao_iou": 45.13413279127756,
+      "fiacao_precision": 75.3254445209345,
+      "fiacao_recall": 52.96482762680784,
+      "poste_iou": 32.461661372980764,
+      "poste_precision": 96.89972080037226,
+      "poste_recall": 32.80234710353247,
+      "miou": 56.81790807200238
+    },
+    "model_C": {
+      "copa_iou": 92.85965570462668,
+      "copa_precision": 95.80245380663862,
+      "copa_recall": 96.79798699755935,
+      "fiacao_iou": 42.442820223823674,
+      "fiacao_precision": 76.58330993775635,
+      "fiacao_recall": 48.77231388470369,
+      "poste_iou": 30.95112877149925,
+      "poste_precision": 96.63686675180928,
+      "poste_recall": 31.28815027763557,
+      "miou": 55.41786823331653
+    }
+  },
+  "false_positive_suppression_paulista": {
+    "model_A": {
+      "mean_fp_pixels": 7318.0,
+      "zero_fp_rate": 75.0
+    },
+    "model_B": {
+      "mean_fp_pixels": 8156.95,
+      "zero_fp_rate": 70.0
+    },
+    "model_C": {
+      "mean_fp_pixels": 6495.15,
+      "zero_fp_rate": 75.0
+    }
+  }
+}

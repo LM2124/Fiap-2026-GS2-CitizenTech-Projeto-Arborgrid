@@ -1,0 +1,12 @@
+{
+  "stage": "Treinando Base (pré-label GPU) (Modelo A) @ 800x800",
+  "current_model": "A (Base (pré-label GPU))",
+  "epoch": 3,
+  "total_epochs": 25,
+  "loss": 0.4182958205540975,
+  "overall_pct": 4.0,
+  "elapsed_min": 7.9574482043584185,
+  "eta_min": 190.97875690460205,
+  "completed": false,
+  "metrics": {}
+}

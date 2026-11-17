@@ -1,0 +1,40 @@
+{
+  "metrics_v1_68imgs": {
+    "copa": {
+      "iou": 91.43,
+      "recall": 97.87,
+      "precision": 93.29
+    },
+    "fiacao": {
+      "iou": 39.6,
+      "recall": 45.11,
+      "precision": 76.43
+    },
+    "poste": {
+      "iou": 32.42,
+      "recall": 38.24,
+      "precision": 68.07
+    },
+    "mean_iou": 54.48
+  },
+  "metrics_v2_132imgs": {
+    "copa": {
+      "iou": 92.68,
+      "precision": 95.84,
+      "recall": 96.56
+    },
+    "fiacao": {
+      "iou": 45.03,
+      "precision": 79.4,
+      "recall": 50.99
+    },
+    "poste": {
+      "iou": 34.95,
+      "precision": 94.71,
+      "recall": 35.64
+    },
+    "mean_iou": 57.55
+  },
+  "gain_fiacao_iou_pp": 5.43,
+  "gain_mean_iou_pp": 3.07
+}

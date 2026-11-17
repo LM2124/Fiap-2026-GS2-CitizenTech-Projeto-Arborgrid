@@ -33,14 +33,14 @@ flowchart LR
 
 O dataset consolidado cobre `143` fotografias curadas manualmente no `X-AnyLabeling` + `20` fotografias de teste cego na Av. Paulista + `271` árvores (`536` vistas) auditadas em campo, construído em 4 etapas incrementais:
 
-1. **Pré-segmentação inicial com modelo genérico (`pacote_1_prelabel/`, [`scripts/auto_prelabel_and_audit.py`](scripts/auto_prelabel_and_audit.py)):**
+1. **Pré-segmentação inicial com modelo genérico (`pacote_1_prelabel/`, [`01_coleta_geosampa_e_prelabel_generico.ipynb`](01_coleta_geosampa_e_prelabel_generico.ipynb)):**
    - O backbone *zero-shot* `SegFormer-B2 Cityscapes` (`vegetation #8` filtrada → `copa`; `pole #5` → `poste`) foi combinado com `Black-Hat (9×9) + Line Segment Detector (LSD)` em OpenCV para detectar `fiacao`.
    - Sobre o gabarito do Pacote 1 (curado manualmente com base nessa própria segmentação), entregou `97,5%` de IoU direto em copas — **poupando quase todo o contorno manual de árvores** — mas apenas `8,3%` em fios.
 2. **Separação do dataset residencial em 2 metades (`pacote_1/` e `pacote_2/`):**
    - Divisão agrupada por `geosampa_id` para validar o protocolo na 1ª metade sem vazamento entre ângulos da mesma árvore.
 3. **Salto para `1024×1024`, modelo intermediário (`V1 Ouro`) e pré-labeling da 2ª metade:**
    - Após concluir o Pacote 1 e diagnosticar o *sub-pixel aliasing* do mapa latente $1/4$ (`640 → 160×160`) e o limite de VRAM local (`800×800`), migramos o treino para `1024×1024` (`256×256` latente) no Colab `A100/L4`.
-   - Esse modelo intermediário `V1 Ouro` foi usado em [`scripts/prelabel_pacote_2_with_gold_model.py`](scripts/prelabel_pacote_2_with_gold_model.py) para pré-rotular o Pacote 2 em alta resolução antes da revisão final (`V2 Full`).
+   - Esse modelo intermediário `V1 Ouro` foi usado em [`02_ablation_v1_resolucao_e_expansao_v2.ipynb`](02_ablation_v1_resolucao_e_expansao_v2.ipynb) para pré-rotular o Pacote 2 em alta resolução antes da revisão final (`V2 Full`).
 4. **Pacote 3 (`Hard Negatives Paulista`) após concluir o Pacote 2:**
    - Ao auditar o `V2 Full` na Av. Paulista (rede 100% subterrânea), adicionamos o Pacote 3 com cenas negativas sem fiação para suprimir falsos positivos em fachadas metálicas e brises (`V3 Ouro`).
 
@@ -81,7 +81,7 @@ O dataset consolidado cobre `143` fotografias curadas manualmente no `X-AnyLabel
 
 ## 5. Quantização ONNX e Decisão de Hospedagem na Web
 
-Avaliamos `6` variantes do `SegFormer-B2 V3 (1024×1024)` em subprocessos isolados na CPU limitada a `2 threads` ([`scripts/benchmark_quantization.py`](scripts/benchmark_quantization.py)) para decidir entre inferência no servidor compartilhado ou execução cliente na Web:
+Avaliamos `6` variantes do `SegFormer-B2 V3 (1024×1024)` em subprocessos isolados na CPU limitada a `2 threads` ([`04_quantizacao_onnx_e_benchmark_cpu.ipynb`](04_quantizacao_onnx_e_benchmark_cpu.ipynb)) para decidir entre inferência no servidor compartilhado ou execução cliente na Web:
 
 ![Quantização e Exportação SegFormer-B2 V3 (CPU 2 Threads)](assets/etapa4_quantizacao_segformer_v3.png)
 
@@ -100,32 +100,58 @@ Avaliamos `6` variantes do `SegFormer-B2 V3 (1024×1024)` em subprocessos isolad
 
 ## 6. Estrutura e Reprodução
 
+O módulo adota uma arquitetura **Dual-Track MLOps**, separando a **Trilha de Pesquisa Científica (Notebooks Numerados)** da **Trilha de Operação Contínua (CLI Declarativa Idempotente)**:
+
 ```text
 arborgrid-vision/
-├── README.md                                        # Guia principal e ficha resumida
-├── ARQUITETURA_PIPELINE.md                          # Geometria, SegFormer-B2, Loss, OpenCV V3 e contratos
-├── EXPLORACAO_MODELOS_E_QUANTIZACAO.md              # Fluxo decisório V1->V2->V3->ONNX e registro PRB-*
-├── FONTES_DE_DADOS.md                               # Licenciamento (GeoSampa, © Google, Esri)
-├── GUIA_LABELING_EQUIPE.md                          # Manual operacional de curadoria no X-AnyLabeling
-├── ArborGrid_Training_Colab_1024px_Final_A_B.ipynb  # Notebook autônomo do Estudo Final A/B/C (Colab L4/A100)
-├── assets/                                          # Gráficos reproduzíveis e exemplos visuais com overlays (© Google)
-└── scripts/                                         # Pipelines de coleta, auditoria, inferência V3, mapa e quantização
+├── README.md                                              # Guia principal e ficha resumida
+├── ARQUITETURA_PIPELINE.md                                # Geometria, SegFormer-B2, Loss, OpenCV V3 e contratos
+├── EXPLORACAO_MODELOS_E_QUANTIZACAO.md                    # Fluxo decisório V1->V2->V3->ONNX e registro PRB-*
+├── FONTES_DE_DADOS.md                                     # Licenciamento (GeoSampa, © Google, Esri)
+├── GUIA_LABELING_EQUIPE.md                                # Manual operacional de curadoria no X-AnyLabeling
+├── pyproject.toml                                         # Configuração reprodutível de ambiente (uv sync / PyTorch CU128 + ONNX)
+├── 01_coleta_geosampa_e_prelabel_generico.ipynb           # [Pesquisa 01] Coleta WFS + Street View e Auditoria do Pré-Label Genérico
+├── 02_ablation_v1_resolucao_e_expansao_v2.ipynb           # [Pesquisa 02] Ablation 640px vs 1024px (V1) e Expansão do Pacote 2 (V2)
+├── 03_avaliacao_v3_auditoria_e_inferencia_campo.ipynb     # [Pesquisa 03] Avaliação V3 (Av. Paulista), Anomalias de Fiação e Paralaxe 2D
+├── 04_quantizacao_onnx_e_benchmark_cpu.ipynb              # [Pesquisa 04] Quantização ONNX INT8 (MatMulInteger) e Benchmark CPU
+├── 05_figuras_e_mosaicos_documentacao.ipynb               # [Pesquisa 05] Geração Reprodutível dos 6 Gráficos (.png) e 5 Mosaicos (.jpg)
+├── colab/                                                 # Notebooks dedicados ao treinamento pesado em GPU Cloud (Google Colab)
+│   ├── Colab_01_Ablation_V1_e_Treino_V2_1024px.ipynb      # Treino 1024x1024 do Modelo V1 (Pacote 1) e Modelo V2 (Pacotes 1+2)
+│   └── Colab_02_Treino_Final_V3_ABC_1024px.ipynb          # Treino Final 1024x1024 do Modelo V3 (Pacotes 1+2+3) e Benchmark A/B/C
+├── scripts/                                               # Módulos compartilhados e automação operacional enxuta
+│   ├── vision_utils.py                                    # Motor SegFormer (.pt / .onnx), Morfologia r1=6/r2=24 e Tipografia UTF-8
+│   ├── run_operational_pipeline.py                        # CLI Operacional: regions.json -> GeoSampa WFS -> Street View -> V3 -> WebApp
+│   ├── prepare_xanylabeling_workspace.py                  # Preparação de lotes para curadoria humana no X-AnyLabeling
+│   └── export_xanylabeling_to_yolo.py                     # Conversor de polígonos JSON (X-AnyLabeling) para máscaras/YOLO
+├── reports/                                               # Relatórios experimentais JSON versionados (93 KB) consumidos pelos notebooks
+├── assets/                                                # Gráficos analíticos (.png) e mosaicos fotográficos acentuados em UTF-8 (.jpg)
+├── dataset/
+│   ├── arborgrid_v3_gold_dataset.zip                      # Dataset consolidado (Pacotes 1, 2 e 3) pronto para upload no Colab
+│   ├── sp_geosampa_api/
+│   │   ├── regions.json                                   # Definição declarativa de zonas amostrais (Pinheiros, Mooca, Paulista, etc.)
+│   │   ├── manifest.json                                  # Inventário auditado de 271 árvores (536 imagens Street View)
+│   │   ├── images/                                        # Imagens Street View brutas (640x640)
+│   │   └── v3_overlays/                                   # Overlays segmentados pelo Modelo V3 Final
+│   └── workspace_xanylabeling/                            # Pacotes de anotação manual (pacote_1_prelabel, pacote_1, pacote_2, pacote_3)
+└── models/
+    └── segformer_v3_int8_dyn_matmul.onnx                  # Modelo V3 Quantizado INT8 Dinâmico (51,8 MiB — versionado diretamente no Git)
 ```
 
-```powershell
-cd arborgrid-vision
+### Como Reproduzir o Ambiente e Executar
 
-# 1. Executar inferência V3 Ouro e atualizar manifesto + mapa interativo
-.venv\Scripts\python.exe scripts\run_v3_inference_and_update_map.py
+1. **Instalação Reprodutível com `uv`**:
+   ```bash
+   cd arborgrid-vision
+   uv sync
+   ```
+2. **Diagnóstico e Execução da Pipeline Operacional (`run_operational_pipeline.py`)**:
+   ```bash
+   # Exibe a tabela de status das 8 regiões, imagens em disco e triagem V3 consolidada
+   uv run python scripts/run_operational_pipeline.py --status
 
-# 2. Auditar anomalias nas 143 imagens curadas do dataset V3
-.venv\Scripts\python.exe scripts\audit_anomalies_v3_dataset.py
+   # Executa inferência V3 (.pt GPU ou fallback automático para ONNX INT8 CPU) e sincroniza com o WebApp
+   uv run python scripts/run_operational_pipeline.py --infer-v3 --sync-webapp
 
-# 3. Rodar benchmark isolado de quantização ONNX (CPU 2 threads) ou apenas re-sumarizar
-.venv\Scripts\python.exe scripts\benchmark_quantization.py
-.venv\Scripts\python.exe scripts\benchmark_quantization.py --summarize-only
-
-# 4. Regenerar gráficos e exemplos visuais da documentação em assets/
-.venv\Scripts\python.exe scripts\build_docs_charts.py
-.venv\Scripts\python.exe scripts\build_docs_visual_examples.py
-```
+   # Expande o inventário com novas árvores do GeoSampa WFS em uma região, baixa Street View e roda V3
+   uv run python scripts/run_operational_pipeline.py --region campo_belo --add-trees 15 --download-missing --infer-v3 --sync-webapp
+   ```

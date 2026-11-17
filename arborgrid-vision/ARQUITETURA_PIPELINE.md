@@ -1,6 +1,6 @@
 # Arquitetura do Pipeline de Visão Computacional (`arborgrid-vision/`)
 
-> Documento complementar ao [`README.md`](README.md) e ao [`EXPLORACAO_MODELOS_E_QUANTIZACAO.md`](EXPLORACAO_MODELOS_E_QUANTIZACAO.md). Detalha a formulação geométrica, o modelo `SegFormer-B2 (1024×1024)`, a função de perda multi-label, o motor morfológico calibrado V3 ([`scripts/run_v3_inference_and_update_map.py`](scripts/run_v3_inference_and_update_map.py)) e os contratos de integração com o ecossistema ArborGrid SP.
+> Documento complementar ao [`README.md`](README.md) e ao [`EXPLORACAO_MODELOS_E_QUANTIZACAO.md`](EXPLORACAO_MODELOS_E_QUANTIZACAO.md). Detalha a formulação geométrica, o modelo `SegFormer-B2 (1024×1024)`, a função de perda multi-label, o motor morfológico calibrado V3 ([`scripts/run_operational_pipeline.py`](scripts/run_operational_pipeline.py)) e os contratos de integração com o ecossistema ArborGrid SP.
 
 ---
 
@@ -55,7 +55,7 @@ flowchart TB
 
 ### 3.1. Ingestão GeoSampa WFS e Prevenção de Vazamento Espacial
 
-- **Fonte oficial:** camada `geoportal:arvore` do geoportal GeoSampa (PMSP/SVMA), reprojetada na consulta OGC WFS de `SIRGAS 2000 / UTM Zone 23S` para `WGS84 (EPSG:4326)` ([`scripts/fetch_geosampa_streetview.py`](scripts/fetch_geosampa_streetview.py)).
+- **Fonte oficial:** camada `geoportal:arvore` do geoportal GeoSampa (PMSP/SVMA), reprojetada na consulta OGC WFS de `SIRGAS 2000 / UTM Zone 23S` para `WGS84 (EPSG:4326)` ([`scripts/run_operational_pipeline.py`](scripts/run_operational_pipeline.py)).
 - **Filtragem anti-leakage:** árvores vizinhas compartilham postes, iluminação e feixes de fiação. Aplicamos distância de Haversine ($d \ge 32\text{ m}$ na seleção de amostragem) e divisão treino/validação estritamente no nível de `geosampa_id` (`VAL_TREE_IDS = {"597616", "597652", "597668", "597842"}` — nenhuma vista dessas 4 árvores aparece no treinamento).
 - **Auditoria SISGAU:** nas `271` árvores coletadas nos `4` recortes territoriais, `239` (`88,2%`) não possuem `sisgau_last_inspection` preenchido no cadastro público.
 
@@ -88,7 +88,7 @@ flowchart LR
     UP --> CH["3 Canais Independentes: 0=copa, 1=fiacao, 2=poste"]
 ```
 
-- **Backbone:** `nvidia/segformer-b2-finetuned-cityscapes-1024-1024` ([`scripts/build_colab_final_ab_notebook.py`](scripts/build_colab_final_ab_notebook.py)).
+- **Backbone:** `nvidia/segformer-b2-finetuned-cityscapes-1024-1024` ([`colab/Colab_02_Treino_Final_V3_ABC_1024px.ipynb`](colab/Colab_02_Treino_Final_V3_ABC_1024px.ipynb)).
 - **Mitigação de *Sub-Pixel Aliasing* (`640 → 1024 px`):** como a cabeça `All-MLP` do SegFormer funde *features* em $1/4$ da resolução de entrada, entradas de `640×640` comprimem o mapa latente para `160×160`, reduzindo cabos de ~`2 px` a `0,5 px` sub-pixel e fragmentando a segmentação. Subindo para **`1024×1024`** após o Pacote 1, o mapa latente cresce para `256×256` (`+156%` de área de tokens), garantindo suporte $\ge 1\text{ px}$ contíguo nos condutores (prova visual detalhada em [`EXPLORACAO_MODELOS_E_QUANTIZACAO.md`](EXPLORACAO_MODELOS_E_QUANTIZACAO.md)).
 - **Estabilidade com `BATCH_SIZE = 4`:** em vez de *Batch Normalization* (sensível a lotes pequenos), o *Mix Transformer* usa Layer Normalization, mantendo variância estável enquanto o ruído estocástico de batches compactos atua como regularizador implícito em direção a mínimos planos (*flat minima*, Keskar et al., 2017).
 - **Função de Perda `MultiLabelSegLoss`:** combina `Binary Cross-Entropy` ponderada para compensar o desbalanceamento extremo dos cabos com `Soft Dice Loss` em nível de batch:
@@ -99,7 +99,7 @@ flowchart LR
 
 ### 3.4. Motor Morfológico Determinístico V3 e Consenso Multi-Visada
 
-No script de produção [`scripts/run_v3_inference_and_update_map.py`](scripts/run_v3_inference_and_update_map.py), as probabilidades Sigmoid passam por binarização calibrada (`THRESHOLDS = {0: 0.50, 1: 0.40, 2: 0.50}`), limpeza geométrica em 8-conectividade (`cv2.connectedComponentsWithStats`) e duas dilatações elípticas sobre a máscara limpa de fiação (`Painel 1` da figura no topo):
+No script de produção [`scripts/run_operational_pipeline.py`](scripts/run_operational_pipeline.py), as probabilidades Sigmoid passam por binarização calibrada (`THRESHOLDS = {0: 0.50, 1: 0.40, 2: 0.50}`), limpeza geométrica em 8-conectividade (`cv2.connectedComponentsWithStats`) e duas dilatações elípticas sobre a máscara limpa de fiação (`Painel 1` da figura no topo):
 
 ```mermaid
 flowchart TD
@@ -131,4 +131,4 @@ Quando há visada frontal e lateral disponível (`has_single_view = False`):
 | `webapp/` (Mapa e API) | `manifest.json` + `geosampa_cadastral/*.geojson` | Plotagem Leaflet das `271` árvores auditadas + camada cadastral GeoSampa (`7.912` pontos) + metadados comparativos (`gold_triage`, `v2_triage`, `v3_triage`). |
 | `llm-assistant/` (Copiloto) | `manifest.json` lido por `src/tools.py` | Fornece `distrito`, déficit SISGAU, `v3_triage` e `px_direct` / `px_wind` exatos quando o usuário pergunta por um `geosampa_id`. |
 | `data-processing/` (Big Data) | `/api/v1/inspections` + GeoJSONs | Cruzamento entre risco físico da fiação e ausência de vistorias (`88,2%` nulos na amostra) junto a séries climáticas Open-Meteo. |
-| Execução Web On-Demand | `segformer_v3_int8_dyn_matmul.onnx` (`43,9 MiB` Gzip) | Exportado por [`scripts/benchmark_quantization.py`](scripts/benchmark_quantization.py) para inferência via `onnxruntime-web` no navegador sem disputar RAM com o LLM no servidor. |
+| Execução Web On-Demand | `segformer_v3_int8_dyn_matmul.onnx` (`43,9 MiB` Gzip) | Exportado por [`04_quantizacao_onnx_e_benchmark_cpu.ipynb`](04_quantizacao_onnx_e_benchmark_cpu.ipynb) para inferência via `onnxruntime-web` no navegador sem disputar RAM com o LLM no servidor. |

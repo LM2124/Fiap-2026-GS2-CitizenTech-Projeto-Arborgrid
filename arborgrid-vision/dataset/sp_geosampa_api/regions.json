@@ -1,0 +1,75 @@
+{
+  "regions": {
+    "pinheiros": {
+      "label": "Pinheiros (Zona Oeste)",
+      "district_code": "PIN",
+      "grid_type": "overhead",
+      "bbox": [-46.6960, -23.5680, -46.6790, -23.5550],
+      "default_target_trees": 89,
+      "min_spacing_m": 32.0
+    },
+    "alto_da_mooca": {
+      "label": "Alto da Mooca (Zona Leste)",
+      "district_code": "MOO",
+      "grid_type": "overhead",
+      "bbox": [-46.6010, -23.5670, -46.5840, -23.5535],
+      "default_target_trees": 54,
+      "min_spacing_m": 32.0
+    },
+    "vila_mariana": {
+      "label": "Vila Mariana / Chácara Klabin (Centro-Sul)",
+      "district_code": "VMN",
+      "grid_type": "overhead",
+      "bbox": [-46.6440, -23.5950, -46.6270, -23.5820],
+      "default_target_trees": 54,
+      "min_spacing_m": 32.0
+    },
+    "avenida_paulista": {
+      "label": "Avenida Paulista (Corredor Subterrâneo — Controle Negativo)",
+      "district_code": "PAU",
+      "grid_type": "underground_control",
+      "bbox": [-46.6660, -23.5730, -46.6410, -23.5530],
+      "corridor_axis": {
+        "lat1": -23.5552,
+        "lon1": -46.6625,
+        "lat2": -23.5714,
+        "lon2": -46.6437,
+        "max_dist_to_axis_m": 45.0
+      },
+      "default_target_trees": 74,
+      "min_spacing_m": 25.0
+    },
+    "campo_belo": {
+      "label": "Campo Belo (Zona Sul)",
+      "district_code": "CBE",
+      "grid_type": "overhead",
+      "bbox": [-46.6780, -23.6320, -46.6610, -23.6190],
+      "default_target_trees": 50,
+      "min_spacing_m": 32.0
+    },
+    "moema": {
+      "label": "Moema (Zona Sul)",
+      "district_code": "MOE",
+      "grid_type": "overhead",
+      "bbox": [-46.6690, -23.6100, -46.6520, -23.5970],
+      "default_target_trees": 50,
+      "min_spacing_m": 32.0
+    },
+    "perdizes": {
+      "label": "Perdizes / Pompeia (Zona Oeste)",
+      "district_code": "PRD",
+      "grid_type": "overhead",
+      "bbox": [-46.6830, -23.5430, -46.6660, -23.5300],
+      "default_target_trees": 50,
+      "min_spacing_m": 32.0
+    },
+    "saude": {
+      "label": "Saúde / Mirandópolis (Zona Sul)",
+      "district_code": "SAU",
+      "grid_type": "overhead",
+      "bbox": [-46.6430, -23.6220, -46.6260, -23.6090],
+      "default_target_trees": 50,
+      "min_spacing_m": 32.0
+    }
+  }
+}

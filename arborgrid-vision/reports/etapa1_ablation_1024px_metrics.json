@@ -1,0 +1,38 @@
+{
+  "A": {
+    "copa": {
+      "iou": 91.25,
+      "precision": 92.87,
+      "recall": 98.12
+    },
+    "fiacao": {
+      "iou": 3.97,
+      "precision": 89.86,
+      "recall": 3.99
+    },
+    "poste": {
+      "iou": 12.79,
+      "precision": 27.67,
+      "recall": 19.21
+    },
+    "mean_iou": 36.0
+  },
+  "C": {
+    "copa": {
+      "iou": 91.43,
+      "precision": 93.29,
+      "recall": 97.87
+    },
+    "fiacao": {
+      "iou": 39.6,
+      "precision": 76.43,
+      "recall": 45.11
+    },
+    "poste": {
+      "iou": 32.42,
+      "precision": 68.07,
+      "recall": 38.24
+    },
+    "mean_iou": 54.48
+  }
+}

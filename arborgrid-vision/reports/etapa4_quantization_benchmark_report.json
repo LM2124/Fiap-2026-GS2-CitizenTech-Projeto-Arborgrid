@@ -1,0 +1,1376 @@
+[
+  {
+    "variant": "pytorch_fp32",
+    "model_file": "arborgrid_segformer_b2_1024_v3_gold.pt",
+    "size_mib": 104.49,
+    "gzip_mib": 96.89,
+    "peak_ram_rss_mib": 3310.1,
+    "cpu_threads": 2,
+    "n_images_timed": 28,
+    "latency_mean_ms": 4401.1,
+    "latency_p95_ms": 4465.4,
+    "val_metrics": {
+      "copa_iou": 92.8597,
+      "copa_precision": 95.8025,
+      "copa_recall": 96.798,
+      "fiacao_iou": 42.4397,
+      "fiacao_precision": 76.5881,
+      "fiacao_recall": 48.7662,
+      "poste_iou": 30.9348,
+      "poste_precision": 96.6468,
+      "poste_recall": 31.2704,
+      "miou": 55.4114
+    },
+    "paulista_blind": {
+      "mean_fp_pixels": 6494.6,
+      "zero_fp_rate": 75.0,
+      "clean_images": 15,
+      "total_images": 20
+    },
+    "triages": {
+      "tree_597616_center_front_h6": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 872218
+      },
+      "tree_597616_side_angle_A_h41": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 826167
+      },
+      "tree_597652_center_front_h350": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2044,
+        "px_wind": 4380,
+        "wire_px": 9729,
+        "copa_px": 750721
+      },
+      "tree_597652_side_angle_A_h36": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2417,
+        "px_wind": 5610,
+        "wire_px": 18479,
+        "copa_px": 442160
+      },
+      "tree_597668_center_front_h280": {
+        "triage": "CRITICO",
+        "px_direct": 84891,
+        "px_wind": 81843,
+        "wire_px": 56623,
+        "copa_px": 950715
+      },
+      "tree_597668_side_angle_A_h25": {
+        "triage": "CRITICO",
+        "px_direct": 52561,
+        "px_wind": 42481,
+        "wire_px": 142145,
+        "copa_px": 356429
+      },
+      "tree_597842_center_front_h192": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 269,
+        "px_wind": 2039,
+        "wire_px": 29044,
+        "copa_px": 147450
+      },
+      "tree_597842_side_angle_A_h272": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 35250,
+        "copa_px": 12417
+      },
+      "tree_2137_center_front_h316": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 324438
+      },
+      "tree_21_center_front_h68": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 747529
+      },
+      "tree_25_center_front_h28": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 305752
+      },
+      "tree_4730_center_front_h137": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 1996,
+        "px_wind": 6054,
+        "wire_px": 947,
+        "copa_px": 763599
+      },
+      "tree_5654_center_front_h161": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 398840
+      },
+      "tree_5677_center_front_h277": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 289048
+      },
+      "tree_5680_center_front_h196": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 795093
+      },
+      "tree_5687_center_front_h17": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 935121
+      },
+      "tree_6130_center_front_h145": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 252441
+      },
+      "tree_7108_center_front_h131": {
+        "triage": "CRITICO",
+        "px_direct": 6771,
+        "px_wind": 11816,
+        "wire_px": 3433,
+        "copa_px": 985595
+      },
+      "tree_7110_center_front_h305": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 383624
+      },
+      "tree_7150_center_front_h248": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 1379,
+        "px_wind": 3989,
+        "wire_px": 526,
+        "copa_px": 792402
+      },
+      "tree_7159_center_front_h142": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 308964
+      },
+      "tree_7163_center_front_h1": {
+        "triage": "CRITICO",
+        "px_direct": 157478,
+        "px_wind": 78405,
+        "wire_px": 115975,
+        "copa_px": 808785
+      },
+      "tree_7171_center_front_h288": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2975,
+        "px_wind": 7901,
+        "wire_px": 7161,
+        "copa_px": 500209
+      },
+      "tree_7202_center_front_h136": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 711538
+      },
+      "tree_7210_center_front_h121": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 781002
+      },
+      "tree_7464_center_front_h170": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 440613
+      },
+      "tree_7471_center_front_h143": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 349589
+      },
+      "tree_7559_center_front_h164": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 0
+      }
+    },
+    "triage_agreement_pct": 100.0,
+    "triage_matches": "28/28"
+  },
+  {
+    "variant": "onnx_fp32",
+    "model_file": "segformer_v3_fp32.onnx",
+    "size_mib": 104.59,
+    "gzip_mib": 96.87,
+    "peak_ram_rss_mib": 5235.1,
+    "cpu_threads": 2,
+    "n_images_timed": 28,
+    "latency_mean_ms": 2732.5,
+    "latency_p95_ms": 2774.0,
+    "val_metrics": {
+      "copa_iou": 92.8597,
+      "copa_precision": 95.8025,
+      "copa_recall": 96.7979,
+      "fiacao_iou": 42.4397,
+      "fiacao_precision": 76.5881,
+      "fiacao_recall": 48.7662,
+      "poste_iou": 30.9348,
+      "poste_precision": 96.6468,
+      "poste_recall": 31.2704,
+      "miou": 55.4114
+    },
+    "paulista_blind": {
+      "mean_fp_pixels": 6494.6,
+      "zero_fp_rate": 75.0,
+      "clean_images": 15,
+      "total_images": 20
+    },
+    "triages": {
+      "tree_597616_center_front_h6": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 872218
+      },
+      "tree_597616_side_angle_A_h41": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 826167
+      },
+      "tree_597652_center_front_h350": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2044,
+        "px_wind": 4380,
+        "wire_px": 9729,
+        "copa_px": 750721
+      },
+      "tree_597652_side_angle_A_h36": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2417,
+        "px_wind": 5610,
+        "wire_px": 18479,
+        "copa_px": 442160
+      },
+      "tree_597668_center_front_h280": {
+        "triage": "CRITICO",
+        "px_direct": 84891,
+        "px_wind": 81843,
+        "wire_px": 56623,
+        "copa_px": 950715
+      },
+      "tree_597668_side_angle_A_h25": {
+        "triage": "CRITICO",
+        "px_direct": 52561,
+        "px_wind": 42481,
+        "wire_px": 142145,
+        "copa_px": 356429
+      },
+      "tree_597842_center_front_h192": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 269,
+        "px_wind": 2039,
+        "wire_px": 29044,
+        "copa_px": 147450
+      },
+      "tree_597842_side_angle_A_h272": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 35250,
+        "copa_px": 12416
+      },
+      "tree_2137_center_front_h316": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 324438
+      },
+      "tree_21_center_front_h68": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 747529
+      },
+      "tree_25_center_front_h28": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 305752
+      },
+      "tree_4730_center_front_h137": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 1996,
+        "px_wind": 6054,
+        "wire_px": 947,
+        "copa_px": 763599
+      },
+      "tree_5654_center_front_h161": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 398840
+      },
+      "tree_5677_center_front_h277": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 289048
+      },
+      "tree_5680_center_front_h196": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 795093
+      },
+      "tree_5687_center_front_h17": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 935121
+      },
+      "tree_6130_center_front_h145": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 252441
+      },
+      "tree_7108_center_front_h131": {
+        "triage": "CRITICO",
+        "px_direct": 6771,
+        "px_wind": 11816,
+        "wire_px": 3433,
+        "copa_px": 985595
+      },
+      "tree_7110_center_front_h305": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 383624
+      },
+      "tree_7150_center_front_h248": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 1379,
+        "px_wind": 3989,
+        "wire_px": 526,
+        "copa_px": 792402
+      },
+      "tree_7159_center_front_h142": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 308964
+      },
+      "tree_7163_center_front_h1": {
+        "triage": "CRITICO",
+        "px_direct": 157478,
+        "px_wind": 78405,
+        "wire_px": 115975,
+        "copa_px": 808785
+      },
+      "tree_7171_center_front_h288": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2975,
+        "px_wind": 7901,
+        "wire_px": 7161,
+        "copa_px": 500209
+      },
+      "tree_7202_center_front_h136": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 711538
+      },
+      "tree_7210_center_front_h121": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 781002
+      },
+      "tree_7464_center_front_h170": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 440613
+      },
+      "tree_7471_center_front_h143": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 349589
+      },
+      "tree_7559_center_front_h164": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 0
+      }
+    },
+    "triage_agreement_pct": 100.0,
+    "triage_matches": "28/28"
+  },
+  {
+    "variant": "onnx_fp16",
+    "model_file": "segformer_v3_fp16.onnx",
+    "size_mib": 52.53,
+    "gzip_mib": 48.29,
+    "peak_ram_rss_mib": 6272.9,
+    "cpu_threads": 2,
+    "n_images_timed": 28,
+    "latency_mean_ms": 3376.8,
+    "latency_p95_ms": 3417.3,
+    "val_metrics": {
+      "copa_iou": 92.8586,
+      "copa_precision": 95.8022,
+      "copa_recall": 96.7971,
+      "fiacao_iou": 42.4421,
+      "fiacao_precision": 76.5905,
+      "fiacao_recall": 48.7684,
+      "poste_iou": 30.9842,
+      "poste_precision": 96.6403,
+      "poste_recall": 31.3216,
+      "miou": 55.4283
+    },
+    "paulista_blind": {
+      "mean_fp_pixels": 6495.4,
+      "zero_fp_rate": 75.0,
+      "clean_images": 15,
+      "total_images": 20
+    },
+    "triages": {
+      "tree_597616_center_front_h6": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 872213
+      },
+      "tree_597616_side_angle_A_h41": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 826164
+      },
+      "tree_597652_center_front_h350": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2044,
+        "px_wind": 4380,
+        "wire_px": 9729,
+        "copa_px": 750702
+      },
+      "tree_597652_side_angle_A_h36": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2417,
+        "px_wind": 5610,
+        "wire_px": 18479,
+        "copa_px": 442157
+      },
+      "tree_597668_center_front_h280": {
+        "triage": "CRITICO",
+        "px_direct": 84929,
+        "px_wind": 81818,
+        "wire_px": 56658,
+        "copa_px": 950673
+      },
+      "tree_597668_side_angle_A_h25": {
+        "triage": "CRITICO",
+        "px_direct": 52560,
+        "px_wind": 42477,
+        "wire_px": 142124,
+        "copa_px": 356418
+      },
+      "tree_597842_center_front_h192": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 269,
+        "px_wind": 2039,
+        "wire_px": 29032,
+        "copa_px": 147450
+      },
+      "tree_597842_side_angle_A_h272": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 35248,
+        "copa_px": 12467
+      },
+      "tree_2137_center_front_h316": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 324435
+      },
+      "tree_21_center_front_h68": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 747520
+      },
+      "tree_25_center_front_h28": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 305767
+      },
+      "tree_4730_center_front_h137": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 1993,
+        "px_wind": 6033,
+        "wire_px": 944,
+        "copa_px": 763579
+      },
+      "tree_5654_center_front_h161": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 398847
+      },
+      "tree_5677_center_front_h277": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 289040
+      },
+      "tree_5680_center_front_h196": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 795097
+      },
+      "tree_5687_center_front_h17": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 935097
+      },
+      "tree_6130_center_front_h145": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 252448
+      },
+      "tree_7108_center_front_h131": {
+        "triage": "CRITICO",
+        "px_direct": 6777,
+        "px_wind": 11818,
+        "wire_px": 3435,
+        "copa_px": 985551
+      },
+      "tree_7110_center_front_h305": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 383619
+      },
+      "tree_7150_center_front_h248": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 1381,
+        "px_wind": 3988,
+        "wire_px": 529,
+        "copa_px": 792367
+      },
+      "tree_7159_center_front_h142": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 308946
+      },
+      "tree_7163_center_front_h1": {
+        "triage": "CRITICO",
+        "px_direct": 157484,
+        "px_wind": 78410,
+        "wire_px": 115990,
+        "copa_px": 808774
+      },
+      "tree_7171_center_front_h288": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2975,
+        "px_wind": 7901,
+        "wire_px": 7161,
+        "copa_px": 500204
+      },
+      "tree_7202_center_front_h136": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 711492
+      },
+      "tree_7210_center_front_h121": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 780944
+      },
+      "tree_7464_center_front_h170": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 440615
+      },
+      "tree_7471_center_front_h143": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 349548
+      },
+      "tree_7559_center_front_h164": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 0
+      }
+    },
+    "triage_agreement_pct": 100.0,
+    "triage_matches": "28/28"
+  },
+  {
+    "variant": "onnx_int8_dyn_matmul",
+    "model_file": "segformer_v3_int8_dyn_matmul.onnx",
+    "size_mib": 51.77,
+    "gzip_mib": 43.93,
+    "peak_ram_rss_mib": 5128.6,
+    "cpu_threads": 2,
+    "n_images_timed": 28,
+    "latency_mean_ms": 2478.9,
+    "latency_p95_ms": 2553.5,
+    "val_metrics": {
+      "copa_iou": 92.8904,
+      "copa_precision": 96.2451,
+      "copa_recall": 96.3834,
+      "fiacao_iou": 42.5476,
+      "fiacao_precision": 75.0532,
+      "fiacao_recall": 49.556,
+      "poste_iou": 33.4094,
+      "poste_precision": 97.1047,
+      "poste_recall": 33.7455,
+      "miou": 56.2825
+    },
+    "paulista_blind": {
+      "mean_fp_pixels": 6730.05,
+      "zero_fp_rate": 75.0,
+      "clean_images": 15,
+      "total_images": 20
+    },
+    "triages": {
+      "tree_597616_center_front_h6": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 870455
+      },
+      "tree_597616_side_angle_A_h41": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 823811
+      },
+      "tree_597652_center_front_h350": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2524,
+        "px_wind": 6452,
+        "wire_px": 10040,
+        "copa_px": 748633
+      },
+      "tree_597652_side_angle_A_h36": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2378,
+        "px_wind": 5681,
+        "wire_px": 18584,
+        "copa_px": 437195
+      },
+      "tree_597668_center_front_h280": {
+        "triage": "CRITICO",
+        "px_direct": 89851,
+        "px_wind": 86792,
+        "wire_px": 60478,
+        "copa_px": 939794
+      },
+      "tree_597668_side_angle_A_h25": {
+        "triage": "CRITICO",
+        "px_direct": 55015,
+        "px_wind": 45014,
+        "wire_px": 147060,
+        "copa_px": 353568
+      },
+      "tree_597842_center_front_h192": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 488,
+        "px_wind": 2233,
+        "wire_px": 30417,
+        "copa_px": 146936
+      },
+      "tree_597842_side_angle_A_h272": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 35503,
+        "copa_px": 1005
+      },
+      "tree_2137_center_front_h316": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 322271
+      },
+      "tree_21_center_front_h68": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 746626
+      },
+      "tree_25_center_front_h28": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 313809
+      },
+      "tree_4730_center_front_h137": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2378,
+        "px_wind": 6653,
+        "wire_px": 1299,
+        "copa_px": 757351
+      },
+      "tree_5654_center_front_h161": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 399420
+      },
+      "tree_5677_center_front_h277": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 317789
+      },
+      "tree_5680_center_front_h196": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 783541
+      },
+      "tree_5687_center_front_h17": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 932376
+      },
+      "tree_6130_center_front_h145": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 249646
+      },
+      "tree_7108_center_front_h131": {
+        "triage": "CRITICO",
+        "px_direct": 7012,
+        "px_wind": 12026,
+        "wire_px": 3608,
+        "copa_px": 975872
+      },
+      "tree_7110_center_front_h305": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 380742
+      },
+      "tree_7150_center_front_h248": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 1359,
+        "px_wind": 3725,
+        "wire_px": 500,
+        "copa_px": 777571
+      },
+      "tree_7159_center_front_h142": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 308024
+      },
+      "tree_7163_center_front_h1": {
+        "triage": "CRITICO",
+        "px_direct": 161114,
+        "px_wind": 80710,
+        "wire_px": 119299,
+        "copa_px": 802665
+      },
+      "tree_7171_center_front_h288": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2926,
+        "px_wind": 7806,
+        "wire_px": 7687,
+        "copa_px": 497950
+      },
+      "tree_7202_center_front_h136": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 706879
+      },
+      "tree_7210_center_front_h121": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 775475
+      },
+      "tree_7464_center_front_h170": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 430944
+      },
+      "tree_7471_center_front_h143": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 340424
+      },
+      "tree_7559_center_front_h164": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 0
+      }
+    },
+    "triage_agreement_pct": 100.0,
+    "triage_matches": "28/28"
+  },
+  {
+    "variant": "onnx_int8_dynamic",
+    "model_file": "segformer_v3_int8_dynamic.onnx",
+    "size_mib": 26.87,
+    "gzip_mib": 18.7,
+    "peak_ram_rss_mib": 4370.8,
+    "cpu_threads": 2,
+    "n_images_timed": 28,
+    "latency_mean_ms": 26643.1,
+    "latency_p95_ms": 26936.1,
+    "val_metrics": {
+      "copa_iou": 92.8768,
+      "copa_precision": 96.2832,
+      "copa_recall": 96.3306,
+      "fiacao_iou": 42.3956,
+      "fiacao_precision": 74.9329,
+      "fiacao_recall": 49.402,
+      "poste_iou": 34.7025,
+      "poste_precision": 96.5844,
+      "poste_recall": 35.1337,
+      "miou": 56.6583
+    },
+    "paulista_blind": {
+      "mean_fp_pixels": 6925.65,
+      "zero_fp_rate": 75.0,
+      "clean_images": 15,
+      "total_images": 20
+    },
+    "triages": {
+      "tree_597616_center_front_h6": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 870208
+      },
+      "tree_597616_side_angle_A_h41": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 823314
+      },
+      "tree_597652_center_front_h350": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2480,
+        "px_wind": 6387,
+        "wire_px": 10047,
+        "copa_px": 747697
+      },
+      "tree_597652_side_angle_A_h36": {
+        "triage": "CRITICO",
+        "px_direct": 3161,
+        "px_wind": 8180,
+        "wire_px": 19075,
+        "copa_px": 437667
+      },
+      "tree_597668_center_front_h280": {
+        "triage": "CRITICO",
+        "px_direct": 88162,
+        "px_wind": 82586,
+        "wire_px": 59400,
+        "copa_px": 938797
+      },
+      "tree_597668_side_angle_A_h25": {
+        "triage": "CRITICO",
+        "px_direct": 56108,
+        "px_wind": 46005,
+        "wire_px": 147247,
+        "copa_px": 353970
+      },
+      "tree_597842_center_front_h192": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 628,
+        "px_wind": 2456,
+        "wire_px": 30765,
+        "copa_px": 146422
+      },
+      "tree_597842_side_angle_A_h272": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 35277,
+        "copa_px": 0
+      },
+      "tree_2137_center_front_h316": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 322622
+      },
+      "tree_21_center_front_h68": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 746682
+      },
+      "tree_25_center_front_h28": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 311597
+      },
+      "tree_4730_center_front_h137": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2358,
+        "px_wind": 6610,
+        "wire_px": 1265,
+        "copa_px": 757465
+      },
+      "tree_5654_center_front_h161": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 398697
+      },
+      "tree_5677_center_front_h277": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 316306
+      },
+      "tree_5680_center_front_h196": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 780479
+      },
+      "tree_5687_center_front_h17": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 934145
+      },
+      "tree_6130_center_front_h145": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 249421
+      },
+      "tree_7108_center_front_h131": {
+        "triage": "CRITICO",
+        "px_direct": 7116,
+        "px_wind": 12110,
+        "wire_px": 3678,
+        "copa_px": 973368
+      },
+      "tree_7110_center_front_h305": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 379835
+      },
+      "tree_7150_center_front_h248": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 1266,
+        "px_wind": 3423,
+        "wire_px": 476,
+        "copa_px": 779391
+      },
+      "tree_7159_center_front_h142": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 306572
+      },
+      "tree_7163_center_front_h1": {
+        "triage": "CRITICO",
+        "px_direct": 163226,
+        "px_wind": 79781,
+        "wire_px": 121304,
+        "copa_px": 801964
+      },
+      "tree_7171_center_front_h288": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2997,
+        "px_wind": 7916,
+        "wire_px": 7810,
+        "copa_px": 497848
+      },
+      "tree_7202_center_front_h136": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 706674
+      },
+      "tree_7210_center_front_h121": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 775224
+      },
+      "tree_7464_center_front_h170": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 430394
+      },
+      "tree_7471_center_front_h143": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 337833
+      },
+      "tree_7559_center_front_h164": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 0
+      }
+    },
+    "triage_agreement_pct": 96.43,
+    "triage_matches": "27/28"
+  },
+  {
+    "variant": "onnx_int8_static_qdq",
+    "model_file": "segformer_v3_int8_static_qdq.onnx",
+    "size_mib": 27.38,
+    "gzip_mib": 18.6,
+    "peak_ram_rss_mib": 2654.5,
+    "cpu_threads": 2,
+    "n_images_timed": 28,
+    "latency_mean_ms": 5944.7,
+    "latency_p95_ms": 6016.0,
+    "val_metrics": {
+      "copa_iou": 91.0531,
+      "copa_precision": 95.9907,
+      "copa_recall": 94.6528,
+      "fiacao_iou": 40.4063,
+      "fiacao_precision": 78.006,
+      "fiacao_recall": 45.6015,
+      "poste_iou": 31.2926,
+      "poste_precision": 90.2546,
+      "poste_recall": 32.3869,
+      "miou": 54.2507
+    },
+    "paulista_blind": {
+      "mean_fp_pixels": 6971.25,
+      "zero_fp_rate": 55.0,
+      "clean_images": 11,
+      "total_images": 20
+    },
+    "triages": {
+      "tree_597616_center_front_h6": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 861172
+      },
+      "tree_597616_side_angle_A_h41": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 805682
+      },
+      "tree_597652_center_front_h350": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2566,
+        "px_wind": 6169,
+        "wire_px": 9002,
+        "copa_px": 721208
+      },
+      "tree_597652_side_angle_A_h36": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2362,
+        "px_wind": 5923,
+        "wire_px": 16636,
+        "copa_px": 429495
+      },
+      "tree_597668_center_front_h280": {
+        "triage": "CRITICO",
+        "px_direct": 68403,
+        "px_wind": 83725,
+        "wire_px": 50260,
+        "copa_px": 855947
+      },
+      "tree_597668_side_angle_A_h25": {
+        "triage": "CRITICO",
+        "px_direct": 47718,
+        "px_wind": 47444,
+        "wire_px": 132157,
+        "copa_px": 333312
+      },
+      "tree_597842_center_front_h192": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 308,
+        "px_wind": 2314,
+        "wire_px": 29025,
+        "copa_px": 167405
+      },
+      "tree_597842_side_angle_A_h272": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 30277,
+        "copa_px": 89895
+      },
+      "tree_2137_center_front_h316": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 316649
+      },
+      "tree_21_center_front_h68": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 733702
+      },
+      "tree_25_center_front_h28": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 290566
+      },
+      "tree_4730_center_front_h137": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 2689,
+        "px_wind": 7443,
+        "wire_px": 1566,
+        "copa_px": 738808
+      },
+      "tree_5654_center_front_h161": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 370135
+      },
+      "tree_5677_center_front_h277": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 324607
+      },
+      "tree_5680_center_front_h196": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 731487
+      },
+      "tree_5687_center_front_h17": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 910489
+      },
+      "tree_6130_center_front_h145": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 218879
+      },
+      "tree_7108_center_front_h131": {
+        "triage": "CRITICO",
+        "px_direct": 6290,
+        "px_wind": 11037,
+        "wire_px": 3185,
+        "copa_px": 942491
+      },
+      "tree_7110_center_front_h305": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 283,
+        "copa_px": 363242
+      },
+      "tree_7150_center_front_h248": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 753,
+        "px_wind": 3566,
+        "wire_px": 605,
+        "copa_px": 733067
+      },
+      "tree_7159_center_front_h142": {
+        "triage": "PROXIMIDADE",
+        "px_direct": 838,
+        "px_wind": 2880,
+        "wire_px": 594,
+        "copa_px": 294454
+      },
+      "tree_7163_center_front_h1": {
+        "triage": "CRITICO",
+        "px_direct": 161403,
+        "px_wind": 81678,
+        "wire_px": 118322,
+        "copa_px": 784372
+      },
+      "tree_7171_center_front_h288": {
+        "triage": "CRITICO",
+        "px_direct": 7235,
+        "px_wind": 14064,
+        "wire_px": 10301,
+        "copa_px": 479863
+      },
+      "tree_7202_center_front_h136": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 607333
+      },
+      "tree_7210_center_front_h121": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 719938
+      },
+      "tree_7464_center_front_h170": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 116,
+        "copa_px": 375852
+      },
+      "tree_7471_center_front_h143": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 243514
+      },
+      "tree_7559_center_front_h164": {
+        "triage": "SEGURO",
+        "px_direct": 0,
+        "px_wind": 0,
+        "wire_px": 0,
+        "copa_px": 0
+      }
+    },
+    "triage_agreement_pct": 92.86,
+    "triage_matches": "26/28"
+  }
+]

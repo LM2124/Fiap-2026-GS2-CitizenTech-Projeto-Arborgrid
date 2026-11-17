@@ -1,0 +1,124 @@
+{
+  "config": {
+    "seeds": [
+      42
+    ],
+    "epochs": 3,
+    "n_train": 60,
+    "n_val": 8,
+    "val_tree_ids": [
+      "597616",
+      "597652",
+      "597668",
+      "597842"
+    ]
+  },
+  "direct_label_iou_reviewed_imgs": {
+    "base_vs_revised": {
+      "copa": {
+        "iou": 97.48,
+        "precision": 98.18,
+        "recall": 99.27
+      },
+      "fiacao": {
+        "iou": 8.33,
+        "precision": 73.88,
+        "recall": 8.59
+      },
+      "poste": {
+        "iou": 41.07,
+        "precision": 62.5,
+        "recall": 54.5
+      },
+      "mean_iou": 48.96
+    }
+  },
+  "segformer_val_iou_mean_over_seeds": {
+    "A": {
+      "copa": {
+        "iou": 91.46,
+        "precision": 93.49,
+        "recall": 97.69
+      },
+      "fiacao": {
+        "iou": 11.03,
+        "precision": 78.41,
+        "recall": 11.37
+      },
+      "poste": {
+        "iou": 17.44,
+        "precision": 46.39,
+        "recall": 21.84
+      },
+      "mean_iou": 39.98,
+      "mean_iou_per_seed": [
+        39.98
+      ]
+    },
+    "C": {
+      "copa": {
+        "iou": 90.72,
+        "precision": 92.67,
+        "recall": 97.73
+      },
+      "fiacao": {
+        "iou": 43.09,
+        "precision": 58.1,
+        "recall": 62.52
+      },
+      "poste": {
+        "iou": 0.39,
+        "precision": 11.46,
+        "recall": 0.4
+      },
+      "mean_iou": 44.73,
+      "mean_iou_per_seed": [
+        44.73
+      ]
+    }
+  },
+  "segformer_val_iou_per_seed": {
+    "A": [
+      {
+        "copa": {
+          "iou": 91.46,
+          "precision": 93.49,
+          "recall": 97.69
+        },
+        "fiacao": {
+          "iou": 11.03,
+          "precision": 78.41,
+          "recall": 11.37
+        },
+        "poste": {
+          "iou": 17.44,
+          "precision": 46.39,
+          "recall": 21.84
+        },
+        "mean_iou": 39.98
+      }
+    ],
+    "C": [
+      {
+        "copa": {
+          "iou": 90.72,
+          "precision": 92.67,
+          "recall": 97.73
+        },
+        "fiacao": {
+          "iou": 43.09,
+          "precision": 58.1,
+          "recall": 62.52
+        },
+        "poste": {
+          "iou": 0.39,
+          "precision": 11.46,
+          "recall": 0.4
+        },
+        "mean_iou": 44.73
+      }
+    ]
+  },
+  "yolov8s_seg_val_iou": null,
+  "anomalies_oof": []
+}

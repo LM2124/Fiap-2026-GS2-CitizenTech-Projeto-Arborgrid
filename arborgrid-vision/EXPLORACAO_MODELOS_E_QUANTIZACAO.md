@@ -13,7 +13,7 @@
 
 ## 1. Pré-Segmentação Genérica Inicial, Curadoria da 1ª Metade e Salto para `1024×1024`
 
-### 1.1. Como Funcionava o Modelo Genérico Inicial na GPU ([`scripts/auto_prelabel_and_audit.py`](scripts/auto_prelabel_and_audit.py))
+### 1.1. Como Funcionava o Modelo Genérico Inicial na GPU ([`01_coleta_geosampa_e_prelabel_generico.ipynb`](01_coleta_geosampa_e_prelabel_generico.ipynb))
 
 Para não anotar centenas de polígonos do zero no `X-AnyLabeling`, montamos um pipeline híbrido (*zero-shot* + visão computacional clássica) sobre as fotos Street View (`640×640`), antes de dividir o dataset residencial em duas metades (`pacote_1/` e `pacote_2/`):
 
@@ -37,7 +37,7 @@ O gabarito do Pacote 1 (`68` imagens: `60` treino + `8` validação isolada por 
 ### 1.2. Por que Subir de `640×640` para `1024×1024` Após Concluir o Pacote 1
 
 1. **Testes locais na `RTX 3060 Ti (8 GB)` após terminar o Pacote 1:**
-   - Em piloto inicial em `640×640` (`3` épocas via [`scripts/run_pilot_ablation_segformer_vs_yolo.py`](scripts/run_pilot_ablation_segformer_vs_yolo.py)), os cabos curados já subiam para `43,09%` de IoU, mas `poste` colapsava em `0,39%` de IoU e os fios saíam picotados em diagonais.
+   - Em piloto inicial em `640×640` (`3` épocas via [`02_ablation_v1_resolucao_e_expansao_v2.ipynb`](02_ablation_v1_resolucao_e_expansao_v2.ipynb)), os cabos curados já subiam para `43,09%` de IoU, mas `poste` colapsava em `0,39%` de IoU e os fios saíam picotados em diagonais.
    - Ao tentar elevar a resolução localmente para `800×800` (`25` épocas), os gradientes estouraram os `8 GB` de VRAM disponíveis, disparando swap contínuo via PCIe: a época `3/25` levou `7,96 min` (`~191 min` estimados para apenas um experimento).
 2. **Prova visual do *Sub-Pixel Aliasing* no decodificador $1/4$ (`All-MLP`):**
    - O decodificador `All-MLP` do SegFormer funde *features* em $1/4$ da resolução de entrada. Em `640×640`, o mapa latente tem apenas `160×160 px`, fazendo cabos de ~`2 px` encolherem para `~0,3–0,5` célula e quebrarem em traços pontilhados. Subindo para `1024×1024`, o mapa latente cresce para `256×256 px` (`+156%` de área de tokens), mantendo suporte $\ge 1\text{ px}$ conectado em toda a diagonal.
@@ -66,7 +66,7 @@ Mantendo arquitetura (`SegFormer-B2`), hiperparâmetros e validação rigorosame
 
 ## 2. Pré-Labeling da 2ª Metade (`V1 → V2 Full`) e Pacote 3 (`Hard Negatives`)
 
-Com o modelo intermediário `V1 Ouro (1024×1024)` validado na 1ª metade, executamos [`scripts/prelabel_pacote_2_with_gold_model.py`](scripts/prelabel_pacote_2_with_gold_model.py) sobre a 2ª metade (`pacote_2/`) para substituir os pré-labels genéricos por polígonos de alta resolução. Após revisão humana desse pré-labeling e consolidação das duas metades, treinamos o `V2 Full` (`132` imagens: `124` treino + `8` validação fixa) em GPU `NVIDIA L4 24 GB`:
+Com o modelo intermediário `V1 Ouro (1024×1024)` validado na 1ª metade, executamos [`02_ablation_v1_resolucao_e_expansao_v2.ipynb`](02_ablation_v1_resolucao_e_expansao_v2.ipynb) sobre a 2ª metade (`pacote_2/`) para substituir os pré-labels genéricos por polígonos de alta resolução. Após revisão humana desse pré-labeling e consolidação das duas metades, treinamos o `V2 Full` (`132` imagens: `124` treino + `8` validação fixa) em GPU `NVIDIA L4 24 GB`:
 
 - `V1 Intermediário (68 imgs) → V2 Full (132 imgs)`:
   - `IoU Fiação`: `39,60% → 45,03%` (`+5,43 p.p.`; Recall `45,11% → 50,99%`, Precisão `76,43% → 79,40%`).
@@ -82,7 +82,7 @@ Ao concluir o Pacote 2 e executar o `V2 Full` em campo na Avenida Paulista — c
 
 ## 3. Matriz Experimental Final A/B/C (`V3 Ouro`) e Impacto em Campo
 
-No notebook autônomo [`ArborGrid_Training_Colab_1024px_Final_A_B.ipynb`](ArborGrid_Training_Colab_1024px_Final_A_B.ipynb) (gerado via [`scripts/build_colab_final_ab_notebook.py`](scripts/build_colab_final_ab_notebook.py)), isolamos o impacto de *data augmentation* segura e *Hard Negative Mining* sobre **`143` imagens anotadas** (após descarte `_delete_` de amostras com oclusão extrema) e avaliamos em paralelo na **validação residencial (`8` imgs)** e no **Teste Cego da Av. Paulista (`20` imgs)**:
+No notebook autônomo [`colab/Colab_02_Treino_Final_V3_ABC_1024px.ipynb`](colab/Colab_02_Treino_Final_V3_ABC_1024px.ipynb) (gerado via [`colab/Colab_01_Ablation_V1_e_Treino_V2_1024px.ipynb`](colab/Colab_01_Ablation_V1_e_Treino_V2_1024px.ipynb)), isolamos o impacto de *data augmentation* segura e *Hard Negative Mining* sobre **`143` imagens anotadas** (após descarte `_delete_` de amostras com oclusão extrema) e avaliamos em paralelo na **validação residencial (`8` imgs)** e no **Teste Cego da Av. Paulista (`20` imgs)**:
 
 ![Etapa 2 & 3 — Evolução V1 -> V2 -> Matriz A/B/C V3](assets/etapa2_evolucao_v1_v2_v3.png)
 
@@ -95,7 +95,7 @@ No notebook autônomo [`ArborGrid_Training_Colab_1024px_Final_A_B.ipynb`](ArborG
 ### Decisão Arquitetural: Por que adotar o `Modelo C Ouro V3` em vez do `Modelo B`?
 - Embora as novas augmentations do `Modelo B` tenham alcançado o pico de `IoU Fiação` na validação (`45,13%`), elas elevaram os falsos alarmes no Teste Cego da Paulista para `8.157 px` médios e baixaram o `Zero-FP` para `70,0%`.
 - Ao incluir os `18` *hard negatives* da Paulista (`Modelo C Ouro V3`), aceitamos um recuo controlado de `-2,69 p.p.` no `IoU Fiação` da validação (`42,44%`) para derrubar em **`-20,4%` os pixels falsos médios no teste cego (`8.157 → 6.495 px`)**, preservando `96,64%` de precisão em postes e `92,86%` de IoU em copas.
-- Além disso, na auditoria completa sobre todas as `143` imagens curadas (reproduzível via [`scripts/audit_anomalies_v3_dataset.py`](scripts/audit_anomalies_v3_dataset.py)), o `Modelo C V3` obteve `100,00%` de concordância (`iou_wire`) nas `18` imagens de `pacote_3_hard_negatives`, `82,78%` no treino do `pacote_1` e `80,09%` no `pacote_2`. Mesmo quando isolamos os exemplos com maior discrepância absoluta de pixels do dataset, as predições permanecem geometricamente alinhadas aos feixes reais e ao gabarito humano:
+- Além disso, na auditoria completa sobre todas as `143` imagens curadas (reproduzível via [`03_avaliacao_v3_auditoria_e_inferencia_campo.ipynb`](03_avaliacao_v3_auditoria_e_inferencia_campo.ipynb)), o `Modelo C V3` obteve `100,00%` de concordância (`iou_wire`) nas `18` imagens de `pacote_3_hard_negatives`, `82,78%` no treino do `pacote_1` e `80,09%` no `pacote_2`. Mesmo quando isolamos os exemplos com maior discrepância absoluta de pixels do dataset, as predições permanecem geometricamente alinhadas aos feixes reais e ao gabarito humano:
 
 ![Maiores Anomalias do Dataset V3 — Alinhamento entre Gabarito Humano e Modelo C V3](assets/exemplo_etapa3_maiores_anomalias_v3.jpg)
 
@@ -118,7 +118,7 @@ Comparando a inferência completa do `V2 Full` vs. `V3 Ouro` no [`manifest.json`
 
 Como o servidor de nuvem do ecossistema precisa rodar `webapp/`, `nginx`, `prometheus`/`grafana` e o copiloto `llm-assistant/` (`Qwen 1.7B Q4_K_M`, `2.015 MiB` base) sem GPU dedicada, avaliamos se seria possível compactar o `SegFormer-B2 V3 (1024×1024)` para CPU ou se o melhor caminho seria executá-lo **no navegador via Web**.
 
-Implementamos [`scripts/benchmark_quantization.py`](scripts/benchmark_quantization.py) executando cada variante em subprocesso isolado limitado a `2 threads` de CPU, medindo tamanho bruto e Gzip (custo de download Web), pico de RAM RSS (`psutil`), latência (`28` imagens = `8` validação + `20` teste cego Paulista), IoU, `Zero-FP` e concordância do veredito final do motor morfológico V3:
+Implementamos [`04_quantizacao_onnx_e_benchmark_cpu.ipynb`](04_quantizacao_onnx_e_benchmark_cpu.ipynb) executando cada variante em subprocesso isolado limitado a `2 threads` de CPU, medindo tamanho bruto e Gzip (custo de download Web), pico de RAM RSS (`psutil`), latência (`28` imagens = `8` validação + `20` teste cego Paulista), IoU, `Zero-FP` e concordância do veredito final do motor morfológico V3:
 
 ![Etapa 4 — Quantização e Exportação SegFormer-B2 V3 (CPU 2 Threads)](assets/etapa4_quantizacao_segformer_v3.png)
 
