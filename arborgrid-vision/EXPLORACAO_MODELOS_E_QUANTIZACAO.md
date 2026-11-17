@@ -1,6 +1,6 @@
 # Estudo Experimental, Curadoria, Quantização e Decisão de Deploy (`arborgrid-vision/`)
 
-> Documento complementar ao [`README.md`](README.md) e à [`ARQUITETURA_PIPELINE.md`](ARQUITETURA_PIPELINE.md). Registra a trajetória experimental em **fluxo decisório com provas visuais** — da pré-segmentação inicial genérica e divisão em duas metades até a migração para `1024×1024` pós-Pacote 1, o pré-labeling da 2ª metade com o modelo intermediário, o estudo A/B/C final (`V3 Ouro`) e a quantização ONNX para a Web.
+> Documento complementar ao [`README.md`](README.md) e à [`ARQUITETURA_PIPELINE.md`](ARQUITETURA_PIPELINE.md). Registra a trajetória experimental em fluxo decisório com provas visuais e exemplos concretos — da pré-segmentação inicial genérica e divisão em duas metades até a migração para `1024×1024` pós-Pacote 1, o pré-labeling da 2ª metade com o modelo intermediário, o estudo A/B/C final (`V3 Ouro`) e a quantização ONNX para a Web.
 >
 > **Ambiente de execução local (inferência e quantização):**
 > - **GPU:** RTX 3060 Ti (8 GB)
@@ -15,58 +15,68 @@
 
 ### 1.1. Como Funcionava o Modelo Genérico Inicial na GPU ([`scripts/auto_prelabel_and_audit.py`](scripts/auto_prelabel_and_audit.py))
 
-Para não anotar centenas de polígonos do zero no `X-AnyLabeling`, montamos um pipeline híbrido **zero-shot + visão computacional clássica** sobre as fotos Street View (`640×640`), antes de dividir o dataset residencial em **duas metades (`pacote_1/` e `pacote_2/`)**:
+Para não anotar centenas de polígonos do zero no `X-AnyLabeling`, montamos um pipeline híbrido (*zero-shot* + visão computacional clássica) sobre as fotos Street View (`640×640`), antes de dividir o dataset residencial em duas metades (`pacote_1/` e `pacote_2/`):
 
 - **Ramo Semântico Genérico (`nvidia/segformer-b2-finetuned-cityscapes-1024-1024`, sem fine-tuning):**
-  - **`copa`:** extraímos a classe `vegetation` (`ID = 8`) do Cityscapes, aplicamos abertura morfológica (`5×5`) e filtramos componentes conexos (`área < 900 px` ou centróide rente ao chão `cy > 0,78·H`) para descartar arbustos baixos e canteiros.
-  - **`poste`:** extraímos a classe `pole` (`ID = 5`) do Cityscapes.
-- **Heurística Clássica OpenCV para `fiacao` (`detect_overhead_wires_contextual`):** como o Cityscapes **não possui classe de fiação elétrica**, combinamos **`Black-Hat` morfológico (`9×9`)** + **`Line Segment Detector (LSD)`** filtrando segmentos por comprimento (`>= 52 px`), ângulo (`<= 68°`), cota superior (`y <= 0,78·H`), **vale escuro transversal (`valley_contrast >= 6,5` a `±5 px`)** e exclusão de regiões de pista/veículos/pedestres do Cityscapes (`IDs [0,1,3,4,11..15]`).
+  - `copa`: extraímos a classe `vegetation` (`ID = 8`) do Cityscapes, aplicamos abertura morfológica (`5×5`) e filtramos componentes conexos (`área < 900 px` ou centróide rente ao chão `cy > 0,78·H`) para descartar arbustos baixos e canteiros.
+  - `poste`: extraímos a classe `pole` (`ID = 5`) do Cityscapes.
+- **Heurística Clássica OpenCV para `fiacao` (`detect_overhead_wires_contextual`):** como o Cityscapes não possui classe de fiação elétrica, combinamos `Black-Hat` morfológico (`9×9`) com o `Line Segment Detector (LSD)`, filtrando segmentos por comprimento (`>= 52 px`), ângulo (`<= 68°`), cota superior (`y <= 0,78·H`), vale escuro transversal (`valley_contrast >= 6,5` a `±5 px`) e exclusão de pista/veículos/pedestres do Cityscapes (`IDs [0,1,3,4,11..15]`).
 
 ![Etapa 0 — Pré-Segmentação Inicial com Modelo Genérico vs. Curadoria do Pacote 1](assets/etapa0_prelabel_generico_pipeline.png)
 
-- **Resultado medido contra o gabarito curado do Pacote 1:** o pipeline genérico entregou **`97,5%` de IoU direto em `copa`** (`98,2%` precisão) e **`41,1%` em `poste`**, poupando quase todo o contorno manual de árvores; em contrapartida, o `LSD` acertou apenas **`8,3%` de IoU direto em `fiacao`**, exigindo curadoria humana integral das fitas contínuas e junções no **Pacote 1 (`68` imagens: `60` treino + `8` validação fixa por `geosampa_id`)**.
+O gabarito do Pacote 1 (`68` imagens: `60` treino + `8` validação isolada por `geosampa_id`) foi criado **manualmente com base nessa própria segmentação inicial** — editando e completando os polígonos gerados pela GPU no X-AnyLabeling. Comparando diretamente os rótulos brutos de `pacote_1_prelabel/` contra a versão final de `pacote_1/`:
+
+- `copa` atingiu `97,5%` de IoU direto (`98,2%` de precisão), **poupando quase todo o contorno manual de árvores**;
+- `poste` atingiu `41,1%` de IoU direto (exigindo apenas adição de postes omitidos e remoção de falsos positivos em pilares);
+- `fiacao` via `LSD` obteve apenas `8,3%` de IoU direto, pois segmentos retos falham em cabos curvados contra prédios e folhagens — exigindo traçado manual completo em fitas contínuas e junções.
+
+![Exemplo Concreto Etapa 0 — Pré-Label Genérico vs. Gabarito Manual Curado no Pacote 1](assets/exemplo_etapa0_prelabel_vs_pacote1.jpg)
 
 ---
 
 ### 1.2. Por que Subir de `640×640` para `1024×1024` Após Concluir o Pacote 1
 
 1. **Testes locais na `RTX 3060 Ti (8 GB)` após terminar o Pacote 1:**
-   - Em piloto inicial em **`640×640`** (`3` épocas via [`scripts/run_pilot_ablation_segformer_vs_yolo.py`](scripts/run_pilot_ablation_segformer_vs_yolo.py)), os cabos curados já subiam para `43,09%` de IoU, mas **`poste` colapsava em `0,39%` IoU** e os fios saíam picotados em diagonais.
-   - Ao tentar elevar a resolução localmente para **`800×800`** (`25` épocas), os gradientes estouraram os `8 GB` de VRAM disponíveis, disparando swap contínuo via PCIe: a época `3/25` levou **`7,96 min`** (`~191 min` estimados para apenas um experimento).
+   - Em piloto inicial em `640×640` (`3` épocas via [`scripts/run_pilot_ablation_segformer_vs_yolo.py`](scripts/run_pilot_ablation_segformer_vs_yolo.py)), os cabos curados já subiam para `43,09%` de IoU, mas `poste` colapsava em `0,39%` de IoU e os fios saíam picotados em diagonais.
+   - Ao tentar elevar a resolução localmente para `800×800` (`25` épocas), os gradientes estouraram os `8 GB` de VRAM disponíveis, disparando swap contínuo via PCIe: a época `3/25` levou `7,96 min` (`~191 min` estimados para apenas um experimento).
 2. **Prova visual do *Sub-Pixel Aliasing* no decodificador $1/4$ (`All-MLP`):**
-   - O decodificador `All-MLP` do SegFormer funde *features* em **$1/4$ da resolução de entrada**. Em **`640×640`**, o mapa latente tem apenas **`160×160 px`**, fazendo cabos de ~`2 px` encolherem para **`~0,3–0,5` célula** e quebrarem em traços pontilhados. Subindo para **`1024×1024`**, o mapa latente cresce para **`256×256 px` (`+156%` de área de tokens)**, mantendo suporte $\ge 1\text{ px}$ conectado em toda a diagonal.
+   - O decodificador `All-MLP` do SegFormer funde *features* em $1/4$ da resolução de entrada. Em `640×640`, o mapa latente tem apenas `160×160 px`, fazendo cabos de ~`2 px` encolherem para `~0,3–0,5` célula e quebrarem em traços pontilhados. Subindo para `1024×1024`, o mapa latente cresce para `256×256 px` (`+156%` de área de tokens), mantendo suporte $\ge 1\text{ px}$ conectado em toda a diagonal.
 
 ![Etapa 1B — Prova Visual de Sub-Pixel Aliasing 640 vs 1024 e Impacto Empírico](assets/etapa1b_subpixel_aliasing_640_vs_1024.png)
 
-3. **Decisão:** Migramos o treino para GPUs de Data Center (**`NVIDIA A100 40 GB` / `L4 24 GB`** no Google Colab Pro) na resolução nativa **`1024×1024`**. No Pacote 1, isso destravou a convergência de postes (`0,4% → 32,4%` IoU, `68,1%` precisão) e consolidou o **modelo intermediário `V1 Ouro`**.
+![Exemplo Concreto na Validação Isolada — 640x640 vs. 1024x1024 (#597652)](assets/exemplo_etapa1_640_vs_1024_validacao.jpg)
+
+3. **Decisão:** Migramos o treino para GPUs de Data Center (`NVIDIA A100 40 GB` / `L4 24 GB` no Google Colab Pro) na resolução nativa **`1024×1024`**. No Pacote 1, isso destravou a convergência de postes (`0,4% → 32,4%` IoU, `68,1%` precisão) e consolidou o modelo intermediário `V1 Ouro`.
 
 ### 1.3. Pré-label Genérico vs. Modelo Intermediário `V1 Ouro` (`1024×1024`, `30` épocas)
 
-Mantendo arquitetura (`SegFormer-B2`), hiperparâmetros e validação rigorosamente congelados (`8` imagens de `4` árvores isoladas por `geosampa_id`: `597616`, `597652`, `597668`, `597842`), comparamos nas **`60` imagens de treino do Pacote 1** o treino sobre os rótulos genéricos iniciais vs. a 1ª metade curada manualmente:
+Mantendo arquitetura (`SegFormer-B2`), hiperparâmetros e validação rigorosamente congelados (`8` imagens de `4` árvores isoladas por `geosampa_id`: `597616`, `597652`, `597668`, `597842`), comparamos nas `60` imagens de treino do Pacote 1 o treino sobre os rótulos genéricos iniciais vs. a 1ª metade curada manualmente:
 
 ![Etapa 1 — Pré-Segmentação Genérica vs. Modelo Intermediário V1](assets/etapa1_ablation_v1_qualidade_resolucao.png)
 
 | Experimento (`V1 @ 1024px`) | Origem dos Rótulos (`Pacote 1` — `60` treino) | IoU Fiação | Recall Fiação | Precisão Poste | IoU Poste | IoU Copa | mIoU Geral |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **`V1 Base (Pré-label Genérico)`** | Segmentação inicial automática (`Cityscapes` + `Black-Hat`/`LSD`) | `3,97%` | `3,99%` | `27,67%` | `12,79%` | `91,25%` | `36,00%` |
-| **`V1 Intermediário (Ouro)`** | **Curadoria integral em fitas contínuas e junções em Y (`pacote_1`)** | **`39,60%`** | **`45,11%`** | **`68,07%`** | **`32,42%`** | **`91,43%`** | **`54,48%`** |
+| `V1 Base (Pré-label Genérico)` | Segmentação inicial automática (`Cityscapes` + `Black-Hat`/`LSD`) | `3,97%` | `3,99%` | `27,67%` | `12,79%` | `91,25%` | `36,00%` |
+| **`V1 Intermediário (Ouro)`** | Curadoria em fitas contínuas e junções (`pacote_1`) | **`39,60%`** | **`45,11%`** | **`68,07%`** | **`32,42%`** | **`91,43%`** | **`54,48%`** |
 
 ### Conclusão da Etapa 1: Modelo Intermediário `V1 Ouro` Pronto para Acelerar a 2ª Metade
-- A segmentação inicial genérica quase ignora fiação aérea contra fundos urbanos (`3,97% IoU`). A curadoria do **Pacote 1** + salto para **`1024×1024`** multiplicaram o **`IoU Fiação` por `10×`** (`39,60%`), gerando o **modelo intermediário `V1 Ouro`** usado na etapa seguinte para pré-rotular a segunda metade do dataset.
+- A segmentação inicial genérica quase ignora fiação aérea contra fundos urbanos (`3,97%` IoU). A curadoria do Pacote 1 + salto para `1024×1024` multiplicaram o `IoU Fiação` por `10×` (`39,60%`), gerando o modelo intermediário `V1 Ouro` usado na etapa seguinte para pré-rotular a segunda metade do dataset.
 
 ---
 
 ## 2. Pré-Labeling da 2ª Metade (`V1 → V2 Full`) e Pacote 3 (`Hard Negatives`)
 
-Com o **modelo intermediário `V1 Ouro (1024×1024)`** validado na 1ª metade, executamos [`scripts/prelabel_pacote_2_with_gold_model.py`](scripts/prelabel_pacote_2_with_gold_model.py) sobre a **2ª metade (`Pacote 2`)** para substituir os pré-labels genéricos por polígonos de alta resolução. Após revisão humana desse pré-labeling e consolidação das duas metades, treinamos o **`V2 Full` (`132` imagens: `124` treino + `8` validação fixa)** em GPU `NVIDIA L4 24 GB`:
+Com o modelo intermediário `V1 Ouro (1024×1024)` validado na 1ª metade, executamos [`scripts/prelabel_pacote_2_with_gold_model.py`](scripts/prelabel_pacote_2_with_gold_model.py) sobre a 2ª metade (`pacote_2/`) para substituir os pré-labels genéricos por polígonos de alta resolução. Após revisão humana desse pré-labeling e consolidação das duas metades, treinamos o `V2 Full` (`132` imagens: `124` treino + `8` validação fixa) em GPU `NVIDIA L4 24 GB`:
 
-- **`V1 Intermediário (68 imgs) → V2 Full (132 imgs)`:**
-  - `IoU Fiação`: `39,60% → 45,03%` (**`+5,43 p.p.`**; Recall `45,11% → 50,99%`, Precisão `76,43% → 79,40%`).
-  - `Poste`: IoU `32,42% → 34,95%` e **Precisão `68,07% → 94,71%`** (`+26,64 p.p.`, eliminando quase todos os falsos postes em pilares prediais).
-  - `Copa`: IoU `91,43% → 92,68%` (Precisão `95,84%`) e **`mIoU Geral = 57,55%`** (`+3,07 p.p.`).
+- `V1 Intermediário (68 imgs) → V2 Full (132 imgs)`:
+  - `IoU Fiação`: `39,60% → 45,03%` (`+5,43 p.p.`; Recall `45,11% → 50,99%`, Precisão `76,43% → 79,40%`).
+  - `Poste`: IoU `32,42% → 34,95%` e Precisão `68,07% → 94,71%` (`+26,64 p.p.`, eliminando quase todos os falsos postes em pilares prediais).
+  - `Copa`: IoU `91,43% → 92,68%` (Precisão `95,84%`) e `mIoU Geral = 57,55%` (`+3,07 p.p.`).
 
 ### Quebra de Expectativa após Terminar o Pacote 2 (Av. Paulista → Pacote 3)
-Ao concluir o **Pacote 2** e executar o `V2 Full` em campo na **Avenida Paulista** — corredor com rede elétrica **100% subterrânea** —, descobrimos um **viés de positividade**: como `100%` das fotos de Pinheiros/Mooca/Vila Mariana possuíam fios aéreos, a rede ativava falsos positivos sobre **frisos metálicos, brises e esquadrias de edifícios envidraçados**. Para neutralizar esse efeito sem perder sensibilidade em bairros reais, montamos depois do Pacote 2 o **Pacote 3 (`Hard Negative Mining`: `18` imagens curadas de `9` árvores da Av. Paulista com classe `fiacao` vazia)** e um **Teste Cego independente (`20` fotos inéditas da Paulista)**.
+Ao concluir o Pacote 2 e executar o `V2 Full` em campo na Avenida Paulista — corredor com rede elétrica 100% subterrânea —, descobrimos um viés de positividade: como `100%` das fotos de Pinheiros/Mooca/Vila Mariana possuíam fios aéreos, a rede ativava falsos positivos sobre frisos metálicos, brises e esquadrias de edifícios envidraçados. Para neutralizar esse efeito sem perder sensibilidade em bairros reais, montamos depois do Pacote 2 o **Pacote 3 (`Hard Negative Mining`: `18` imagens curadas de `9` árvores da Av. Paulista com classe `fiacao` vazia)** e um Teste Cego independente (`20` fotos inéditas da Paulista).
+
+![Exemplos Concretos Etapas 2 e 3 — Pré-Labeling do Pacote 2 pelo V1 e Supressão na Av. Paulista pelo V3](assets/exemplo_etapa2_e_3_p2_e_paulista.jpg)
 
 ---
 
@@ -83,9 +93,11 @@ No notebook autônomo [`ArborGrid_Training_Colab_1024px_Final_A_B.ipynb`](ArborG
 | **`Modelo C (Ouro V3 Final)`** | **`135` imgs** (`+Pacote 3 Hard Negs`) · `+Aug` | **`42,44%`** | **`92,86%`** | `30,95%` (**`96,64%`**) | **`55,42%`** | **`6.495,2 px`** | **`75,0%` (`15/20`)** |
 
 ### Decisão Arquitetural: Por que adotar o `Modelo C Ouro V3` em vez do `Modelo B`?
-- Embora as novas augmentations do **`Modelo B`** tenham alcançado o pico de `IoU Fiação` na validação (`45,13%`), elas elevaram os falsos alarmes no Teste Cego da Paulista para **`8.157 px` médios** e baixaram o `Zero-FP` para **`70,0%`**.
-- Ao incluir os **`18` *hard negatives* da Paulista (`Modelo C Ouro V3`)**, aceitamos um recuo controlado de `-2,69 p.p.` no `IoU Fiação` da validação (`42,44%`) para derrubar em **`-20,4%` os pixels falsos médios no teste cego (`8.157 → 6.495 px`)** preservando `96,64%` de precisão em postes e `92,86%` de IoU em copas.
-- Além disso, na auditoria completa sobre todas as **`143` imagens curadas** (reproduzível via [`scripts/audit_anomalies_v3_dataset.py`](scripts/audit_anomalies_v3_dataset.py)), o `Modelo C V3` obteve **`100,00%` de concordância (`iou_wire`)** nas `18` imagens de `pacote_3_hard_negatives`, **`82,78%`** no treino do `pacote_1` e **`80,09%`** no `pacote_2`.
+- Embora as novas augmentations do `Modelo B` tenham alcançado o pico de `IoU Fiação` na validação (`45,13%`), elas elevaram os falsos alarmes no Teste Cego da Paulista para `8.157 px` médios e baixaram o `Zero-FP` para `70,0%`.
+- Ao incluir os `18` *hard negatives* da Paulista (`Modelo C Ouro V3`), aceitamos um recuo controlado de `-2,69 p.p.` no `IoU Fiação` da validação (`42,44%`) para derrubar em **`-20,4%` os pixels falsos médios no teste cego (`8.157 → 6.495 px`)**, preservando `96,64%` de precisão em postes e `92,86%` de IoU em copas.
+- Além disso, na auditoria completa sobre todas as `143` imagens curadas (reproduzível via [`scripts/audit_anomalies_v3_dataset.py`](scripts/audit_anomalies_v3_dataset.py)), o `Modelo C V3` obteve `100,00%` de concordância (`iou_wire`) nas `18` imagens de `pacote_3_hard_negatives`, `82,78%` no treino do `pacote_1` e `80,09%` no `pacote_2`. Mesmo quando isolamos os exemplos com maior discrepância absoluta de pixels do dataset, as predições permanecem geometricamente alinhadas aos feixes reais e ao gabarito humano:
+
+![Maiores Anomalias do Dataset V3 — Alinhamento entre Gabarito Humano e Modelo C V3](assets/exemplo_etapa3_maiores_anomalias_v3.jpg)
 
 ### Comprovação Territorial em Produção (`271` árvores · `536` vistas)
 
@@ -95,18 +107,18 @@ Comparando a inferência completa do `V2 Full` vs. `V3 Ouro` no [`manifest.json`
 
 | Território (Rede Elétrica) | Árvores | Variação `wire_px` (`V2 → V3`) | `CRITICO_CONFIRMADO` | `DIVERGENCIA_PARALAXE` | `PROXIMIDADE` / Mono | `SEGURO` / Mono |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Pinheiros** *(Aérea)* | `89` | `-5,45%` | **`23` (`25,8%`)** | `22` (`24,7%`) | `11` (`12,4%`) | `33` (`37,1%`) |
-| **Alto da Mooca** *(Aérea)* | `54` | `-15,75%` | **`11` (`20,4%`)** | `11` (`20,4%`) | `17` (`31,5%`) | `15` (`27,8%`) |
-| **Vila Mariana / Klabin** *(Aérea)* | `54` | `-13,82%` | **`22` (`40,7%`)** | `6` (`11,1%`) | `9` (`16,7%`) | `17` (`31,5%`) |
-| **Av. Paulista** *(100% Subterrânea)* | `74` | **`-56,11%`** | **`3` (`4,1%`)** *(cruzamentos)* | `6` (`8,1%`) | `5` (`6,8%`) | **`60` (`81,1%`)** |
+| **Pinheiros** *(Aérea)* | `89` | `-5,45%` | `23` (`25,8%`) | `22` (`24,7%`) | `11` (`12,4%`) | `33` (`37,1%`) |
+| **Alto da Mooca** *(Aérea)* | `54` | `-15,75%` | `11` (`20,4%`) | `11` (`20,4%`) | `17` (`31,5%`) | `15` (`27,8%`) |
+| **Vila Mariana / Klabin** *(Aérea)* | `54` | `-13,82%` | `22` (`40,7%`) | `6` (`11,1%`) | `9` (`16,7%`) | `17` (`31,5%`) |
+| **Av. Paulista** *(100% Subterrânea)* | `74` | **`-56,11%`** | `3` (`4,1%`) *(cruzamentos)* | `6` (`8,1%`) | `5` (`6,8%`) | **`60` (`81,1%`)** |
 
 ---
 
 ## 4. Quantização ONNX (`CPU 2 threads`) e Decisão de Hospedagem Web
 
-Como o servidor de nuvem do ecossistema precisa rodar **`webapp/`**, **`nginx`**, **`prometheus`/`grafana`** e o copiloto **`llm-assistant/` (`Qwen 1.7B Q4_K_M`, `2.015 MiB` base)** sem GPU dedicada, avaliamos se seria possível compactar o **SegFormer-B2 V3 (`1024×1024`)** para CPU ou se o melhor caminho seria executá-lo **no navegador via Web**.
+Como o servidor de nuvem do ecossistema precisa rodar `webapp/`, `nginx`, `prometheus`/`grafana` e o copiloto `llm-assistant/` (`Qwen 1.7B Q4_K_M`, `2.015 MiB` base) sem GPU dedicada, avaliamos se seria possível compactar o `SegFormer-B2 V3 (1024×1024)` para CPU ou se o melhor caminho seria executá-lo **no navegador via Web**.
 
-Implementamos [`scripts/benchmark_quantization.py`](scripts/benchmark_quantization.py) executando cada variante em **subprocesso isolado limitado a `2 threads` de CPU**, medindo tamanho bruto e Gzip (custo de download Web), pico de RAM RSS (`psutil`), latência (`28` imagens = `8` validação + `20` teste cego Paulista), IoU, `Zero-FP` e **concordância do veredito final do motor morfológico V3**:
+Implementamos [`scripts/benchmark_quantization.py`](scripts/benchmark_quantization.py) executando cada variante em subprocesso isolado limitado a `2 threads` de CPU, medindo tamanho bruto e Gzip (custo de download Web), pico de RAM RSS (`psutil`), latência (`28` imagens = `8` validação + `20` teste cego Paulista), IoU, `Zero-FP` e concordância do veredito final do motor morfológico V3:
 
 ![Etapa 4 — Quantização e Exportação SegFormer-B2 V3 (CPU 2 Threads)](assets/etapa4_quantizacao_segformer_v3.png)
 
@@ -117,15 +129,15 @@ Implementamos [`scripts/benchmark_quantization.py`](scripts/benchmark_quantizati
 | `onnx_fp16` | Pesos `FP16` (`keep_io_types=True`) | `52,5 MiB` | `48,3 MiB` | `6.273 MiB` | `3,38s` (`3,42s`) | `55,43%` | `42,44%` | `75,0%` (`15/20`) | `100,0%` (`28/28`) |
 | **`onnx_int8_dyn_matmul`** | **Dinâmica `QInt8` só `MatMul`/`Gemm`** | **`51,8 MiB`** | **`43,9 MiB`** | `5.129 MiB` | **`2,48s` (`2,55s`)** | **`56,28%`** | **`42,55%`** | **`75,0%` (`15/20`)** | **`100,0%` (`28/28`)** |
 | `onnx_int8_dynamic` | Dinâmica `QInt8` completa (`Conv+MatMul`) | `26,9 MiB` | `18,7 MiB` | `4.371 MiB` | `26,64s` (`26,94s`) | `56,66%` | `42,40%` | `75,0%` (`15/20`) | `96,4%` (`27/28`) |
-| `onnx_int8_static_qdq` | Estática `QDQ` (`QUInt8`/`QInt8`, MinMax `24` imgs) | `27,4 MiB` | `18,6 MiB` | **`2.654 MiB`** | `5,94s` (`6,02s`) | `54,25%` | `40,41%` | `55,0%` (`11/20`) | `92,9%` (`26/28`) |
+| `onnx_int8_static_qdq` | Estática `QDQ` (`QUInt8`/`QInt8`, MinMax `24` imgs) | `27,4 MiB` | `18,6 MiB` | `2.654 MiB` | `5,94s` (`6,02s`) | `54,25%` | `40,41%` | `55,0%` (`11/20`) | `92,9%` (`26/28`) |
 
 ### Análise de Trade-offs e Decisão Final
 
-1. **Por que `onnx_int8_dynamic` (completo) falhou em latência (`26,64s`):** Ao quantizar também camadas convolucionais do `Mix-FFN` e `OverlapPatchEmbed`, o ONNX Runtime em CPU gera nós `ConvInteger` com perda severa de paralelismo/vetorização — ficando **`9,8×` mais lento que `onnx_fp32`** (`26,64s` vs. `2,73s`) e mudando `1` triagem (`PROXIMIDADE → CRITICO`).
-2. **Por que `onnx_int8_static_qdq` falhou em fiação e falsos alarmes:** O *clipping* estático `MinMax` em `QUInt8` achata gradientes sutis de cabos sub-pixel: `IoU Fiação` cai `42,44% → 40,41%`, o **`Zero-FP` da Paulista despenca `75,0% → 55,0%` (`11/20`)** e `2` triagens divergem (incluindo falso positivo `SEGURO → PROXIMIDADE` na Paulista). Além disso, seu pico de **`2.654 MiB` RSS** em CPU ainda inviabiliza rodar o modelo na mesma instância ao lado do **`Qwen 1.7B Q4_K_M` (`2.015 MiB` base)**.
-3. **Por que vencemos com `onnx_int8_dyn_matmul` hospedado para execução na Web:**
-   - Restringir a quantização dinâmica `QInt8` às camadas lineares e de atenção (`op_types_to_quantize=["MatMul", "Gemm"]`), mantendo as convoluções em `FP32`, reduz o arquivo pela metade (**`51,8 MiB`** em disco / **`43,9 MiB` via Gzip**), entrega a **menor latência de todas em CPU `2t` (`2,48s`, `-43,6%` vs. PyTorch)**, registra **`56,28%` mIoU**, **`42,55%` IoU Fiação**, **`75,0%` Zero-FP** e **`100,0%` (`28/28`) de concordância de triagem**.
-   - **Decisão fechada:** Hospedar `segformer_v3_int8_dyn_matmul.onnx` (`43,9 MiB` comprimido) como ativo estático para execução cliente no navegador (`onnxruntime-web`), liberando `100%` da RAM da VM na nuvem para a API e o assistente `Qwen`. Como alternativa caso haja GPU/WebGPU no cliente, `onnx_fp16` (`48,3 MiB` Gzip, `100,0%` de concordância) preserva pesos em meia precisão nativa.
+1. **Por que `onnx_int8_dynamic` (completo) falhou em latência (`26,64s`):** ao quantizar também camadas convolucionais do `Mix-FFN` e `OverlapPatchEmbed`, o ONNX Runtime em CPU gera nós `ConvInteger` com perda severa de paralelismo/vetorização — ficando `9,8×` mais lento que `onnx_fp32` (`26,64s` vs. `2,73s`) e mudando `1` triagem (`PROXIMIDADE → CRITICO`).
+2. **Por que `onnx_int8_static_qdq` falhou em fiação e falsos alarmes:** o *clipping* estático `MinMax` em `QUInt8` achata gradientes sutis de cabos sub-pixel: `IoU Fiação` cai `42,44% → 40,41%`, o `Zero-FP` da Paulista despenca `75,0% → 55,0%` (`11/20`) e `2` triagens divergem (incluindo falso positivo `SEGURO → PROXIMIDADE` na Paulista). Além disso, seu pico de `2.654 MiB` RSS em CPU ainda inviabiliza rodar o modelo na mesma instância ao lado do `Qwen 1.7B Q4_K_M` (`2.015 MiB` base).
+3. **Por que vencemos com `onnx_int8_dyn_matmul` na Web:**
+   - Restringir a quantização dinâmica `QInt8` às camadas lineares e de atenção (`op_types_to_quantize=["MatMul", "Gemm"]`), mantendo as convoluções em `FP32`, reduz o arquivo pela metade (`51,8 MiB` em disco / `43,9 MiB` via Gzip), entrega a **menor latência em CPU `2t` (`2,48s`, `-43,6%` vs. PyTorch)**, registra `56,28%` mIoU, `42,55%` IoU Fiação, `75,0%` Zero-FP e **`100,0%` (`28/28`) de concordância de triagem**.
+   - **Decisão fechada:** hospedar `segformer_v3_int8_dyn_matmul.onnx` (`43,9 MiB` comprimido) como ativo estático para execução cliente no navegador (`onnxruntime-web`), liberando `100%` da RAM da VM na nuvem para a API e o assistente `Qwen`. Como alternativa caso haja GPU/WebGPU no cliente, `onnx_fp16` (`48,3 MiB` Gzip, `100,0%` de concordância) preserva pesos em meia precisão nativa.
 
 ---
 
