@@ -119,6 +119,7 @@ arborgrid-vision/
 │   ├── Colab_01_Ablation_V1_e_Treino_V2_1024px.ipynb      # Treino 1024x1024 do Modelo V1 (Pacote 1) e Modelo V2 (Pacotes 1+2)
 │   └── Colab_02_Treino_Final_V3_ABC_1024px.ipynb          # Treino Final 1024x1024 do Modelo V3 (Pacotes 1+2+3) e Benchmark A/B/C
 ├── scripts/                                               # Módulos compartilhados e automação operacional enxuta
+│   ├── config.py                                          # Fonte única de diretórios, checkpoints, URLs e limiares V3
 │   ├── vision_utils.py                                    # Motor SegFormer (.pt / .onnx), Morfologia r1=6/r2=24 e Tipografia UTF-8
 │   ├── run_operational_pipeline.py                        # CLI Operacional: regions.json -> GeoSampa WFS -> Street View -> V3 -> WebApp
 │   ├── prepare_xanylabeling_workspace.py                  # Preparação de lotes para curadoria humana no X-AnyLabeling

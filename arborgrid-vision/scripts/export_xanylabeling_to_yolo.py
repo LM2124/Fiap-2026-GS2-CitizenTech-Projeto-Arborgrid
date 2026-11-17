@@ -12,17 +12,24 @@ Recursos "à prova de erro":
   - Divisão Treino (80%) / Validação (20%) agrupada por ID da árvore (zero Data Leakage entre ângulos).
 """
 
+import argparse
 import json
 import random
 import shutil
-import argparse
-import cv2
-import numpy as np
+import sys
 from pathlib import Path
 
-CV_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_SRC = CV_ROOT / "dataset" / "workspace_xanylabeling"
-DEFAULT_OUT = CV_ROOT / "dataset" / "yolo_seg_ready"
+import cv2
+import numpy as np
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from config import XANY_WORKSPACE_DIR, YOLO_EXPORT_DIR
+
+DEFAULT_SRC = XANY_WORKSPACE_DIR
+DEFAULT_OUT = YOLO_EXPORT_DIR
 
 LABEL_NORMALIZATION = {
     "copa": 0,

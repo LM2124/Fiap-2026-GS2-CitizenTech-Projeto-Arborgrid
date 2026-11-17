@@ -1,16 +1,18 @@
 """
-Utilitários compartilhados do ecossistema ArborGrid Vision (Pesquisa & Operação).
+Funções compartilhadas do ArborGrid Vision (pesquisa nos notebooks e pipeline operacional).
 
-Centraliza:
-  1. Carregamento e inferência do SegFormer-B2 (1024x1024) via PyTorch (.pt) ou ONNX Runtime (.onnx INT8).
-  2. Conversores geométricos de máscaras (X-AnyLabeling JSON e YOLO-Seg TXT -> máscaras binárias).
-  3. Motor morfológico V3 de detecção de conflito (r1 = 6 px / r2 = 24 px) e consenso de paralaxe multi-ângulo.
-  4. Renderizadores visuais com suporte nativo a UTF-8 (acentuação em português via Pillow TrueType).
+Reúne:
+  1. Desenho de textos e legendas com acentuação (via Pillow TrueType, já que o OpenCV só aceita ASCII).
+  2. Conversão das marcações manuais (JSON do X-AnyLabeling e TXT do YOLO) em máscaras binárias.
+  3. Overlays visuais (máscaras normais, mapas de diferença focados em fiação e anéis morfológicos).
+  4. Carregamento e execução do SegFormer-B2 em PyTorch (.pt) ou ONNX Runtime (.onnx INT8).
+  5. Regras geométricas V3 de distância árvore–fio e consenso entre dois ângulos da mesma árvore.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -18,57 +20,28 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-# ── Constantes de Classes, Cores e Limiares Calibrados V3 ────────────────────
-COLORS_BGR: dict[str, tuple[int, int, int]] = {
-    "arvore": (40, 210, 60),    # Verde vibrante (BGR)
-    "fiacao": (30, 45, 250),    # Vermelho vibrante (BGR)
-}
-
-STATUS_COLORS_HEX: dict[str, str] = {
-    "CRITICO": "#ef4444",
-    "PROXIMIDADE": "#f59e0b",
-    "SEGURO": "#10b981",
-    "CRITICO_CONFIRMADO": "#ef4444",
-    "CRITICO_MONO_VISADA": "#ef4444",
-    "DIVERGENCIA_PARALAXE": "#f97316",
-    "PROXIMIDADE_MONO_VISADA": "#f59e0b",
-    "SEGURO_MONO_VISADA": "#10b981",
-    "CRITICAL_INTERSECTION": "#ef4444",
-    "ATTENTION_PROXIMITY": "#f97316",
-    "SAFE_CLEAR": "#22c55e",
-    "SAFE_NO_WIRES": "#3b82f6",
-}
-
-THRESHOLDS: dict[str, int] = {
-    "min_wire_pixels": 120,
-    "min_tree_pixels": 600,
-    "r1_contact_radius_px": 6,        # ~1% da largura 640px (contato/oclusão direta)
-    "r2_proximity_radius_px": 24,     # ~3.75% da largura 640px (zona de proximidade)
-    "critical_contact_px": 35,        # Mínimo de pixels de fiação em contato direto na visão
-    "attention_contact_px": 8,        # Contato tênue
-    "attention_proximity_px": 90,     # Fiação abundante na zona de guarda
-}
-
-IMAGENET_MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-IMAGENET_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+from config import (
+    COLORS_BGR,
+    IMAGENET_MEAN,
+    IMAGENET_STD,
+    PACOTE_1_DIR,
+    PACOTE_1_PRELABEL_DIR,
+    PACOTE_2_DIR,
+    PACOTE_3_DIR,
+    SEGFORMER_BASE_MODEL,
+    STATUS_COLORS_HEX,
+    THRESHOLDS,
+    TTF_FONTS_BOLD,
+    TTF_FONTS_REGULAR,
+)
 
 
-# ── Helpers de Tipografia UTF-8 (Pillow TrueType sobre matriz BGR OpenCV) ────
-def _load_ttf_font(size: int = 16, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    """Carrega fonte TrueType com suporte completo a UTF-8 (Windows/Linux fallback)."""
-    candidates = (
-        [
-            "C:/Windows/Fonts/segoeuib.ttf",
-            "C:/Windows/Fonts/arialbd.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        ]
-        if bold
-        else [
-            "C:/Windows/Fonts/segoeui.ttf",
-            "C:/Windows/Fonts/arial.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        ]
-    )
+# ── Escrita de texto em português sobre imagens do OpenCV ────────────────────
+def _load_ttf_font(
+    size: int = 16, bold: bool = False
+) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    """Abre uma fonte TrueType do sistema para permitir acentos e cedilha nas legendas."""
+    candidates = TTF_FONTS_BOLD if bold else TTF_FONTS_REGULAR
     for path in candidates:
         if Path(path).exists():
             try:
@@ -82,10 +55,8 @@ def draw_utf8_text(
     img_bgr: np.ndarray,
     lines: list[tuple[int, int, str, tuple[int, int, int], int, bool]],
 ) -> np.ndarray:
-    """
-    Desenha múltiplas strings UTF-8 em uma imagem BGR usando Pillow.
-    Cada item em `lines`: (x, y, text, color_bgr, font_size, bold)
-    """
+    """Desenha múltiplas linhas com suporte a acentuação em uma imagem no formato BGR."""
+    # Converte temporariamente de BGR (OpenCV) para RGB (Pillow) antes de escrever
     pil_img = Image.fromarray(cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB))
     draw = ImageDraw.Draw(pil_img)
     for x, y, text, color_bgr, font_size, is_bold in lines:
@@ -101,16 +72,16 @@ def stamp_header(
     subtitle: str = "",
     badge_color: tuple[int, int, int] = (40, 210, 60),
 ) -> np.ndarray:
-    """Adiciona cabeçalho escuro com faixa lateral colorida e texto UTF-8 acentuado."""
-    h, w = img_bgr.shape[:2]
+    """Adiciona uma faixa escura no topo da imagem com marca lateral colorida e título."""
+    w = img_bgr.shape[1]
     bar_h = 60 if subtitle else 40
     bar = np.full((bar_h, w, 3), (18, 23, 34), dtype=np.uint8)
     cv2.rectangle(bar, (0, 0), (8, bar_h), badge_color, -1)
 
-    text_Specs = [(18, 7, title, (248, 250, 252), 17, True)]
+    text_specs = [(18, 7, title, (248, 250, 252), 17, True)]
     if subtitle:
-        text_Specs.append((18, 33, subtitle, (165, 180, 202), 13, False))
-    bar = draw_utf8_text(bar, text_Specs)
+        text_specs.append((18, 33, subtitle, (165, 180, 202), 13, False))
+    bar = draw_utf8_text(bar, text_specs)
     return np.vstack([bar, img_bgr])
 
 
@@ -119,7 +90,7 @@ def add_legend_bar(
     items: list[tuple[tuple[int, int, int], str]],
     footer_note: str = "",
 ) -> np.ndarray:
-    """Adiciona barra de legenda inferior com caixas coloridas e texto UTF-8."""
+    """Adiciona rodapé escuro com quadrados de cor, rótulos e nota explicativa à direita."""
     w = img_bgr.shape[1]
     bar_h = 44
     bar = np.full((bar_h, w, 3), (15, 23, 42), dtype=np.uint8)
@@ -135,8 +106,7 @@ def add_legend_bar(
         draw.rectangle([x, 13, x + 22, 31], fill=color_rgb, outline=(226, 232, 240))
         draw.text((x + 30, 12), text, font=font_bold, fill=(241, 245, 249))
         bbox = draw.textbbox((0, 0), text, font=font_bold)
-        text_w = bbox[2] - bbox[0]
-        x += 30 + text_w + 28
+        x += 30 + (bbox[2] - bbox[0]) + 28
 
     if footer_note:
         bbox = draw.textbbox((0, 0), footer_note, font=font_note)
@@ -152,31 +122,25 @@ def add_legend_bar(
     return np.vstack([img_bgr, bar_out])
 
 
-# ── Mapeamento de Caminhos e Conversores de Anotação ─────────────────────────
-def remap_colab_to_local(colab_path: str, base_dir: Path) -> Path:
-    """Converte caminhos de treino do Google Colab para a árvore local `dataset/workspace_xanylabeling/`."""
-    ws = base_dir / "dataset" / "workspace_xanylabeling"
+# ── Localização de arquivos e leitura das marcações ──────────────────────────
+def remap_colab_to_local(colab_path: str) -> Path:
+    """Converte caminhos antigos salvos em relatórios do Colab para as pastas locais atuais."""
     p = colab_path.replace("\\", "/")
-    if "pacote_colega_1_labelled/" in p:
-        rel = p.split("pacote_colega_1_labelled/", 1)[1]
-        return ws / "pacote_1" / Path(rel).name
-    if "pacote_1/" in p:
-        rel = p.split("pacote_1/", 1)[1]
-        return ws / "pacote_1" / Path(rel).name
-    if "pacote_colega_2/" in p:
-        rel = p.split("pacote_colega_2/", 1)[1]
-        return ws / "pacote_2" / Path(rel).name
-    if "pacote_2/" in p:
-        rel = p.split("pacote_2/", 1)[1]
-        return ws / "pacote_2" / Path(rel).name
-    if "pacote_3_hard_negatives/" in p:
-        rel = p.split("pacote_3_hard_negatives/", 1)[1]
-        return ws / "pacote_3_hard_negatives" / Path(rel).name
+    folder_map = {
+        "pacote_1_prelabel/": PACOTE_1_PRELABEL_DIR,
+        "pacote_1/": PACOTE_1_DIR,
+        "pacote_2/": PACOTE_2_DIR,
+        "pacote_3_hard_negatives/": PACOTE_3_DIR,
+    }
+    for marker, target_dir in folder_map.items():
+        if marker in p:
+            rel = p.split(marker, 1)[1]
+            return target_dir / Path(rel).name
     return Path(colab_path)
 
 
 def ensure_min_wire_thickness(mask_wire: np.ndarray, min_px: int = 3) -> np.ndarray:
-    """Garante espessura mínima (3px) em cabos elétricos para evitar perda por sub-amostragem."""
+    """Engrossa levemente fios muito finos para que não sumam quando a imagem é reduzida."""
     if mask_wire.sum() == 0:
         return mask_wire
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (min_px, min_px))
@@ -186,16 +150,19 @@ def ensure_min_wire_thickness(mask_wire: np.ndarray, min_px: int = 3) -> np.ndar
 def json_to_masks(
     json_path: Path, h: int = 640, w: int = 640
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Converte arquivo JSON do X-AnyLabeling em máscaras binárias `(mask_tree, mask_wire)`."""
+    """Lê os polígonos desenhados no X-AnyLabeling (.json) e gera `(mask_tree, mask_wire)`."""
     mask_tree = np.zeros((h, w), dtype=np.uint8)
     mask_wire = np.zeros((h, w), dtype=np.uint8)
     if not json_path.exists():
         return mask_tree, mask_wire
+
     data = json.loads(json_path.read_text(encoding="utf-8"))
+    # Ajusta as coordenadas caso o tamanho esperado difira do tamanho original salvo no JSON
     orig_w = float(data.get("imageWidth") or w)
     orig_h = float(data.get("imageHeight") or h)
     sx = w / max(orig_w, 1.0)
     sy = h / max(orig_h, 1.0)
+
     for shape in data.get("shapes", []):
         label = shape.get("label", "").lower().strip()
         pts_raw = shape.get("points", [])
@@ -212,11 +179,12 @@ def json_to_masks(
 def yolo_txt_to_masks(
     txt_path: Path, h: int = 640, w: int = 640
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Converte arquivo `.txt` YOLO-Seg em máscaras binárias `(mask_tree, mask_wire)`."""
+    """Lê polígonos normalizados de um arquivo YOLO-Seg (.txt) e gera `(mask_tree, mask_wire)`."""
     mask_tree = np.zeros((h, w), dtype=np.uint8)
     mask_wire = np.zeros((h, w), dtype=np.uint8)
     if not txt_path.exists():
         return mask_tree, mask_wire
+
     for line in txt_path.read_text(encoding="utf-8").splitlines():
         parts = line.strip().split()
         if len(parts) < 7:
@@ -231,7 +199,7 @@ def yolo_txt_to_masks(
     return mask_tree, mask_wire
 
 
-# ── Renderizadores de Overlays e Painéis de Discrepância ─────────────────────
+# ── Geração de painéis visuais (overlays, diferenças e anéis morfológicos) ────
 def render_overlay(
     img_bgr: np.ndarray,
     mask_tree: np.ndarray,
@@ -240,10 +208,7 @@ def render_overlay(
     alpha_wire: float = 0.25,
     wire_contour_px: int = 1,
 ) -> np.ndarray:
-    """
-    Renderiza sobreposição semitransparente de árvore (verde) e fiação (vermelho)
-    com contorno externo fino de 1px para preservar a visibilidade dos cabos reais.
-    """
+    """Pinta árvore (verde) e fiação (vermelho) com transparência e borda fina de 1 px."""
     canvas = img_bgr.copy()
 
     if mask_tree.sum() > 0:
@@ -276,12 +241,12 @@ def render_diff_panel(
     wire_only: bool = True,
 ) -> np.ndarray:
     """
-    Painel de discrepância pixel a pixel com transparência (`alpha`) sobre a foto:
-      - Verde: Previsão correta / Acordo (Interseção GT ∩ Pred)
-      - Vermelho: Falso Positivo / Extra previsto pelo modelo sem estar no GT
-      - Amarelo: Região perdida / Falso Negativo (anotado no GT, omitido pelo modelo)
-    Por padrão (`wire_only=True`), foca exclusivamente na classe Fiação.
+    Mostra onde a previsão acerta ou diverge do gabarito usando overlay semitransparente:
+      - Verde: previsão correta (acordo entre gabarito e modelo)
+      - Vermelho: falso positivo (modelo marcou sem estar no gabarito)
+      - Amarelo: região perdida (estava no gabarito, mas o modelo não marcou)
     """
+    # Escurece um pouco a foto original para o overlay colorido ficar bem legível por cima
     canvas = (img_bgr.astype(np.float32) * 0.72).astype(np.uint8)
     overlay = canvas.copy()
 
@@ -304,6 +269,7 @@ def render_diff_panel(
     if np.any(mask_any):
         blended = cv2.addWeighted(overlay, alpha, canvas, 1.0 - alpha, 0)
         canvas[mask_any] = blended[mask_any]
+        # Contorno fino ajuda a enxergar fios finos mesmo quando a transparência mistura com galhos
         for region_mask, edge_color in [
             (tp, (25, 160, 45)),
             (fp, (30, 35, 210)),
@@ -323,19 +289,20 @@ def draw_morphology_panel(
     mask_wire: np.ndarray,
 ) -> tuple[np.ndarray, int, int, str]:
     """
-    Renderiza o painel geométrico da Morfologia Matemática V3:
-      - Contorno amarelo tracejado/anel externo: Zona de Proximidade (r2 = 24 px)
-      - Contorno laranja interno: Zona de Contato Direto (r1 = 6 px)
-      - Pixels em vermelho vivo/ciano: Fiação em contato direto / buffer de vento
-    Retorna `(canvas_bgr, contact_px, buffer_px, status_label_utf8)`.
+    Desenha os dois anéis ao redor da copa para ilustrar a medição geométrica de conflito:
+      - Anel laranja interno (r1 = 6 px): contato direto / muito próximo
+      - Anel amarelo externo (r2 = 24 px): faixa de aproximação (risco com vento)
+      - Fios em ciano/amarelo: trechos do cabo que cruzam cada anel
     """
     canvas = (img_bgr.astype(np.float32) * 0.48).astype(np.uint8)
     canvas = render_overlay(
         canvas, mask_tree, mask_wire, alpha_tree=0.32, alpha_wire=0.22, wire_contour_px=1
     )
 
-    k_r1 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13))  # r1 = 6px -> 2*6+1 = 13
-    k_r2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (49, 49))  # r2 = 24px -> 2*24+1 = 49
+    r1 = THRESHOLDS["r1_contact_radius_px"]
+    r2 = THRESHOLDS["r2_proximity_radius_px"]
+    k_r1 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r1 + 1, 2 * r1 + 1))
+    k_r2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r2 + 1, 2 * r2 + 1))
     dil_r1 = cv2.dilate(mask_tree, k_r1)
     dil_r2 = cv2.dilate(mask_tree, k_r2)
 
@@ -348,18 +315,18 @@ def draw_morphology_panel(
     contact_direct = (dil_r1 > 0) & (mask_wire > 0)
     buffer_zone = (dil_r2 > 0) & (dil_r1 == 0) & (mask_wire > 0)
 
-    canvas[buffer_zone] = (0, 230, 255)   # Amarelo brilhante nos fios em zona de proximidade
-    canvas[contact_direct] = (255, 255, 0)  # Ciano brilhante nos fios em contato direto
+    canvas[buffer_zone] = (0, 230, 255)   # Amarelo nos fios dentro do anel externo
+    canvas[contact_direct] = (255, 255, 0)  # Ciano nos fios tocando o anel interno
 
     c_px = int(contact_direct.sum())
     b_px = int(buffer_zone.sum())
     w_px = int(mask_wire.sum())
 
-    if w_px < 120:
+    if w_px < THRESHOLDS["min_wire_pixels"]:
         status = "SEGURO (SEM FIAÇÃO)"
-    elif c_px >= 35:
+    elif c_px >= THRESHOLDS["critical_contact_px"]:
         status = "CRÍTICO (CONTATO DIRETO)"
-    elif c_px >= 8 or b_px >= 90:
+    elif c_px >= THRESHOLDS["attention_contact_px"] or b_px >= THRESHOLDS["attention_proximity_px"]:
         status = "PROXIMIDADE (ALERTA)"
     else:
         status = "SEGURO (LIVRE)"
@@ -367,14 +334,21 @@ def draw_morphology_panel(
     return canvas, c_px, b_px, status
 
 
-# ── Carregamento e Inferência SegFormer-B2 (PyTorch .pt & ONNX Runtime) ──────
+# ── Carregamento e execução do SegFormer-B2 (PyTorch .pt ou ONNX Runtime) ────
 def _remap_segformer_state_dict(sd: dict[str, Any]) -> dict[str, Any]:
-    """Converte chaves de checkpoints SegFormer salvos no Colab (transformers 5.x) para local (transformers 4.x)."""
-    import re
+    """
+    Traduz os nomes das camadas dos arquivos `.pt` salvos no Colab para o formato local.
 
+    Por que isso existe: os modelos foram treinados no Google Colab usando a versão 5.x da
+    biblioteca `transformers`, enquanto este ambiente local usa a versão 4.x. Os pesos numéricos
+    são exatamente os mesmos, mas a biblioteca mudou os nomes internos das camadas entre as duas
+    versões. Sem renomear essas chaves antes de carregar, o PyTorch acusa erro de incompatibilidade.
+    """
     out = {}
     for k, v in sd.items():
         nk = k
+
+        # 1. Blocos principais do codificador: `stages.N` (v5) -> `encoder` (v4)
         nk = re.sub(
             r"^segformer\.stages\.(\d+)\.patch_embeddings\.",
             r"segformer.encoder.patch_embeddings.\1.",
@@ -390,12 +364,16 @@ def _remap_segformer_state_dict(sd: dict[str, Any]) -> dict[str, Any]:
             r"segformer.encoder.block.\1.\2.",
             nk,
         )
+
+        # 2. Normalizações e projeções de atenção dentro de cada bloco
         nk = nk.replace(".layernorm_before.", ".layer_norm_1.")
         nk = nk.replace(".layernorm_after.", ".layer_norm_2.")
         nk = nk.replace(".attention.q_proj.", ".attention.self.query.")
         nk = nk.replace(".attention.k_proj.", ".attention.self.key.")
         nk = nk.replace(".attention.v_proj.", ".attention.self.value.")
         nk = nk.replace(".attention.o_proj.", ".attention.output.dense.")
+
+        # 3. Redução espacial da atenção e camadas densas finais de cada bloco
         nk = nk.replace(
             ".attention.sequence_reduction.sequence_reduction.",
             ".attention.self.sr.",
@@ -406,6 +384,8 @@ def _remap_segformer_state_dict(sd: dict[str, Any]) -> dict[str, Any]:
         )
         nk = nk.replace(".mlp.fc1.", ".mlp.dense1.")
         nk = nk.replace(".mlp.fc2.", ".mlp.dense2.")
+
+        # 4. Cabeçote de saída: `linear_projections` (v5) -> `linear_c` (v4)
         nk = re.sub(
             r"^decode_head\.linear_projections\.(\d+)\.",
             r"decode_head.linear_c.\1.",
@@ -416,15 +396,15 @@ def _remap_segformer_state_dict(sd: dict[str, Any]) -> dict[str, Any]:
 
 
 def load_segformer_weights(ckpt_path: Path, device: Any) -> Any:
-    """Carrega checkpoint `.pt` do SegFormer-B2 (3 classes: bg, arvore, fiacao) com remapeamento Colab->Local."""
+    """Carrega um checkpoint `.pt` do SegFormer-B2 (canais: copa, fiação e poste)."""
     import torch
     from transformers import SegformerForSemanticSegmentation
 
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     model_name = (
-        ckpt.get("model_name", "nvidia/segformer-b2-finetuned-ade-512-512")
+        ckpt.get("model_name", SEGFORMER_BASE_MODEL)
         if isinstance(ckpt, dict) and "model_name" in ckpt
-        else "nvidia/segformer-b2-finetuned-ade-512-512"
+        else SEGFORMER_BASE_MODEL
     )
     model = SegformerForSemanticSegmentation.from_pretrained(
         model_name, num_labels=3, ignore_mismatched_sizes=True
@@ -434,6 +414,7 @@ def load_segformer_weights(ckpt_path: Path, device: Any) -> Any:
         if isinstance(ckpt, dict) and "model_state_dict" in ckpt
         else (ckpt["state_dict"] if isinstance(ckpt, dict) and "state_dict" in ckpt else ckpt)
     )
+    # Detecta chaves da v5 do Colab e converte para o formato local da v4 quando necessário
     if any(k.startswith("segformer.stages.") for k in state_dict):
         state_dict = _remap_segformer_state_dict(state_dict)
     model.load_state_dict(state_dict)
@@ -442,7 +423,7 @@ def load_segformer_weights(ckpt_path: Path, device: Any) -> Any:
 
 
 def load_onnx_session(onnx_path: Path) -> Any:
-    """Inicializa sessão ONNX Runtime CPU para `segformer_v3_int8_dyn_matmul.onnx`."""
+    """Abre uma sessão ONNX Runtime em CPU (usada pelo modelo INT8 quantizado)."""
     import onnxruntime as ort
 
     sess_options = ort.SessionOptions()
@@ -454,14 +435,15 @@ def load_onnx_session(onnx_path: Path) -> Any:
 
 
 def _preprocess_1024(img_bgr: np.ndarray, res: int = 1024) -> np.ndarray:
-    """Converte imagem BGR para tensor NCHW float32 normalizado (ImageNet) em `res x res`."""
+    """Redimensiona para `res x res`, troca BGR->RGB e normaliza para o formato esperado pela rede."""
     rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     resized = cv2.resize(rgb, (res, res), interpolation=cv2.INTER_LINEAR)
     norm = (resized.astype(np.float32) / 255.0 - IMAGENET_MEAN) / IMAGENET_STD
-    return norm.transpose(2, 0, 1)[np.newaxis, ...]  # (1, 3, res, res)
+    return norm.transpose(2, 0, 1)[np.newaxis, ...]
 
 
 def _sigmoid_numpy(logits: np.ndarray) -> np.ndarray:
+    """Converte valores brutos de saída em probabilidades de 0 a 1 (sem precisar do PyTorch)."""
     return 1.0 / (1.0 + np.exp(-np.clip(logits, -30.0, 30.0)))
 
 
@@ -472,28 +454,27 @@ def infer_probs(
     res: int = 1024,
 ) -> np.ndarray:
     """
-    Executa forward pass em 1024x1024 (PyTorch Module ou ONNX InferenceSession)
-    e retorna matriz `(3, H, W)` de probabilidades Sigmoid (`0: copa, 1: fiacao, 2: poste`)
-    na resolução original da imagem.
+    Roda o modelo (PyTorch ou ONNX) e devolve probabilidades `(3, H, W)` no tamanho original da foto.
+    Canais: 0 = copa, 1 = fiação, 2 = poste.
     """
     orig_h, orig_w = img_bgr.shape[:2]
     inp_np = _preprocess_1024(img_bgr, res=res)
 
-    # Caso 1: Sessão ONNX Runtime
+    # Caminho 1: modelo leve quantizado rodando via ONNX Runtime
     if hasattr(model_or_session, "get_inputs"):
         input_name = model_or_session.get_inputs()[0].name
-        logits = model_or_session.run(None, {input_name: inp_np})[0]  # (1, 3, 256, 256)
-        probs_low = _sigmoid_numpy(logits)[0]  # (3, 256, 256)
-        probs = np.stack(
+        # O SegFormer sempre devolve mapas em 1/4 da resolução de entrada (ex.: 256x256 para 1024x1024)
+        logits = model_or_session.run(None, {input_name: inp_np})[0]
+        probs_low = _sigmoid_numpy(logits)[0]
+        return np.stack(
             [
                 cv2.resize(probs_low[c], (orig_w, orig_h), interpolation=cv2.INTER_LINEAR)
                 for c in range(probs_low.shape[0])
             ],
             axis=0,
         )
-        return probs
 
-    # Caso 2: Modelo PyTorch
+    # Caminho 2: modelo PyTorch completo em GPU ou CPU
     import torch
     import torch.nn.functional as F
 
@@ -517,7 +498,7 @@ def infer_masks(
     tree_thresh: float = 0.50,
     wire_thresh: float | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Retorna `(mask_tree, mask_wire)` binárias (uint8 0/1) onde canal 0=copa e canal 1=fiacao."""
+    """Devolve as máscaras binárias `(mask_tree, mask_wire)` usando cortes calibrados por classe."""
     probs = infer_probs(model_or_session, img_bgr, device=device, res=res)
     w_th = 0.35 if wire_thresh is None else wire_thresh
     mask_tree = (probs[0] >= tree_thresh).astype(np.uint8)
@@ -525,151 +506,15 @@ def infer_masks(
     return mask_tree, mask_wire
 
 
-# ── Motor Morfológico V3 (r1=6px / r2=24px) e Consenso de Paralaxe ───────────
-def analyze_conflict_morphology_calibrated(
-    mask_tree: np.ndarray,
-    mask_wire: np.ndarray,
-    prob_wire: np.ndarray,
-) -> dict[str, Any]:
-    """
-    Calcula a interação espacial 2D entre copa arbórea (`mask_tree`) e rede aérea (`mask_wire`)
-    utilizando dois anéis morfológicos concêntricos:
-      - Zona de Contato Direto (r1 = 6 px): Interseção/oclusão visual direta.
-      - Zona de Guarda / Proximidade (r2 = 24 px): Corredor de alerta preventivo.
-    """
-    tree_px = int(mask_tree.sum())
-    wire_px = int(mask_wire.sum())
-
-    if wire_px < THRESHOLDS["min_wire_pixels"] or tree_px < THRESHOLDS["min_tree_pixels"]:
-        return {
-            "status": "SAFE_NO_WIRES" if wire_px < THRESHOLDS["min_wire_pixels"] else "SAFE_CLEAR",
-            "severity_score": 0.0,
-            "tree_pixels": tree_px,
-            "wire_pixels": wire_px,
-            "contact_pixels": 0,
-            "proximity_pixels": 0,
-            "wire_in_tree_Envelope_ratio": 0.0,
-            "mean_wire_confidence": round(
-                float(prob_wire[mask_wire == 1].mean()) if wire_px > 0 else 0.0, 4
-            ),
-        }
-
-    r1 = THRESHOLDS["r1_contact_radius_px"]
-    r2 = THRESHOLDS["r2_proximity_radius_px"]
-    k_contact = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r1 + 1, 2 * r1 + 1))
-    k_prox = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r2 + 1, 2 * r2 + 1))
-
-    tree_contact_zone = cv2.dilate(mask_tree, k_contact)
-    tree_prox_zone = cv2.dilate(mask_tree, k_prox)
-
-    contact_mask = (tree_contact_zone == 1) & (mask_wire == 1)
-    prox_mask = (tree_prox_zone == 1) & (mask_wire == 1) & (~contact_mask)
-
-    contact_px = int(contact_mask.sum())
-    prox_px = int(prox_mask.sum())
-    wire_conf = float(prob_wire[mask_wire == 1].mean()) if wire_px > 0 else 0.0
-    envelope_ratio = float((contact_px + prox_px) / max(wire_px, 1))
-
-    if contact_px >= THRESHOLDS["critical_contact_px"] or (
-        contact_px >= 20 and envelope_ratio >= 0.28
-    ):
-        status = "CRITICAL_INTERSECTION"
-        raw_sev = 0.65 + min(0.35, (contact_px / 220.0) * 0.25 + envelope_ratio * 0.15)
-    elif (
-        contact_px >= THRESHOLDS["attention_contact_px"]
-        or prox_px >= THRESHOLDS["attention_proximity_px"]
-    ):
-        status = "ATTENTION_PROXIMITY"
-        raw_sev = 0.30 + min(0.34, (contact_px / 40.0) * 0.15 + (prox_px / 350.0) * 0.20)
-    else:
-        status = "SAFE_CLEAR"
-        raw_sev = min(0.25, (prox_px / 100.0) * 0.20)
-
-    return {
-        "status": status,
-        "severity_score": round(float(raw_sev * (0.75 + 0.25 * wire_conf)), 3),
-        "tree_pixels": tree_px,
-        "wire_pixels": wire_px,
-        "contact_pixels": contact_px,
-        "proximity_pixels": prox_px,
-        "wire_in_tree_Envelope_ratio": round(envelope_ratio, 4),
-        "mean_wire_confidence": round(wire_conf, 4),
-    }
-
-
-def consolidate_tree_triage(views_results: list[dict[str, Any]]) -> dict[str, Any]:
-    """
-    Regra de Consenso Multi-Ângulo (Mitigação de Falso-Positivo por Paralaxe 2D):
-    Uma árvore só recebe `CRITICAL_INTERSECTION` se:
-      1. Pelo menos 2 ângulos independentes apresentarem risco (CRITICAL ou ATTENTION), OU
-      2. Um único ângulo crítico apresentar contato maciço (>= 95 px) com alta razão de envelope (>= 0.35).
-    Caso contrário, um único ângulo crítico isolado é rebaixado para `ATTENTION_PROXIMITY`.
-    """
-    priority = {
-        "CRITICAL_INTERSECTION": 4,
-        "ATTENTION_PROXIMITY": 3,
-        "SAFE_CLEAR": 2,
-        "SAFE_NO_WIRES": 1,
-    }
-    valid_views = [v for v in views_results if "inference" in v]
-    if not valid_views:
-        return {
-            "overall_status": "PENDING_INFERENCE",
-            "max_severity_score": 0.0,
-            "color_hex": "#9ca3af",
-            "critical_views": 0,
-            "attention_views": 0,
-            "parallax_mitigated": False,
-        }
-
-    crit_views = [
-        v for v in valid_views if v["inference"]["status"] == "CRITICAL_INTERSECTION"
-    ]
-    att_views = [
-        v for v in valid_views if v["inference"]["status"] == "ATTENTION_PROXIMITY"
-    ]
-    best = max(
-        valid_views,
-        key=lambda v: (
-            priority.get(v["inference"]["status"], 0),
-            v["inference"]["severity_score"],
-        ),
-    )
-
-    overall_status = best["inference"]["status"]
-    max_sev = float(best["inference"]["severity_score"])
-    parallax_mitigated = False
-
-    if len(crit_views) == 1 and len(att_views) == 0 and len(valid_views) >= 2:
-        c_inf = crit_views[0]["inference"]
-        if (
-            c_inf["contact_pixels"] < 95
-            or c_inf.get("wire_in_tree_Envelope_ratio", 0.0) < 0.35
-        ):
-            overall_status = "ATTENTION_PROXIMITY"
-            max_sev = min(max_sev, 0.58)
-            parallax_mitigated = True
-
-    return {
-        "overall_status": overall_status,
-        "max_severity_score": round(max_sev, 3),
-        "dominant_view": best.get("view_type", "center_front"),
-        "color_hex": STATUS_COLORS_HEX.get(overall_status, "#9ca3af"),
-        "critical_views": len(crit_views),
-        "attention_views": len(att_views),
-        "parallax_mitigated": parallax_mitigated,
-    }
-
-
+# ── Motor geométrico V3 e consenso entre duas visadas da mesma árvore ────────
 def analyze_view_v3_manifest(
     mask_tree: np.ndarray,
     mask_wire: np.ndarray,
     file_name: str,
 ) -> tuple[dict[str, Any], np.ndarray, np.ndarray]:
     """
-    Calcula o dicionário `v3_analysis` compatível com `manifest.json` e `webapp/data/manifest.json`
-    a partir das máscaras binárias `mask_tree` e `mask_wire` (com r1 = 6 px e r2 = 24 px).
-    Retorna `(v3_analysis_dict, contact_mask, buffer_mask)`.
+    Mede quantos pixels de fiação tocam a copa (r1 = 6 px) ou ficam na faixa de vento (r2 = 24 px)
+    e retorna o resumo `v3_analysis` no formato esperado pelo `manifest.json`.
     """
     copa_px = int(mask_tree.sum())
     wire_px = int(mask_wire.sum())
@@ -718,8 +563,9 @@ def analyze_view_v3_manifest(
 
 def consolidate_tree_v3_manifest(views: list[dict[str, Any]]) -> dict[str, Any]:
     """
-    Consolida a triagem multi-ângulo no formato `v3_triage` do `manifest.json`
-    aplicando a Regra de Consenso de Paralaxe (`CRITICO_CONFIRMADO`, `DIVERGENCIA_PARALAXE`, `PROXIMIDADE`, `SEGURO`).
+    Cruza os dois ângulos da mesma árvore para evitar falsos alarmes causados pela perspectiva:
+    se apenas uma foto mostrar contato e a foto lateral mostrar árvore limpa, classifica como
+    `DIVERGENCIA_PARALAXE` em vez de confirmar `CRITICO_CONFIRMADO`.
     """
     v_analyses = [v.get("v3_analysis", {}) for v in views if "v3_analysis" in v]
     if not v_analyses:
@@ -747,6 +593,7 @@ def consolidate_tree_v3_manifest(views: list[dict[str, Any]]) -> dict[str, Any]:
         consolidated = "CRITICO_CONFIRMADO"
     elif "CRITICO" in (f_tri, s_tri):
         other_tri = s_tri if f_tri == "CRITICO" else f_tri
+        # Se a segunda foto pelo menos confirmar proximidade, mantém como crítico confirmado
         if other_tri == "PROXIMIDADE":
             consolidated = "CRITICO_CONFIRMADO"
         else:
@@ -766,4 +613,3 @@ def consolidate_tree_v3_manifest(views: list[dict[str, Any]]) -> dict[str, Any]:
         "has_paralax_divergence": has_div,
         "has_single_view": has_single,
     }
-

@@ -45,10 +45,22 @@ def _load_env_file(env_path: Path) -> None:
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-BASE_DIR = SCRIPT_DIR.parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
+from config import (
+    BASE_DIR,
+    GEOSAMPA_WFS_URL,
+    MANIFEST_PATH,
+    ONNX_V3_INT8_PATH,
+    PT_V3_1024_PATH,
+    REGIONS_PATH,
+    SP_IMAGES_RAW_DIR,
+    SP_V3_OVERLAYS_DIR,
+    SV_IMAGE_URL,
+    SV_METADATA_URL,
+    WEBAPP_MANIFEST_PATH,
+)
 from vision_utils import (
     analyze_view_v3_manifest,
     consolidate_tree_v3_manifest,
@@ -57,20 +69,6 @@ from vision_utils import (
     load_segformer_weights,
     render_overlay,
 )
-
-DATASET_DIR = BASE_DIR / "dataset" / "sp_geosampa_api"
-IMAGES_RAW_DIR = DATASET_DIR / "images"
-IMAGES_OVERLAY_DIR = DATASET_DIR / "v3_overlays"
-REGIONS_PATH = DATASET_DIR / "regions.json"
-MANIFEST_PATH = DATASET_DIR / "manifest.json"
-WEBAPP_MANIFEST_PATH = BASE_DIR.parent / "webapp" / "data" / "manifest.json"
-
-PT_CKPT_PATH = BASE_DIR / "models" / "arborgrid_segformer_b2_1024_v3_gold.pt"
-ONNX_INT8_PATH = BASE_DIR / "models" / "segformer_v3_int8_dyn_matmul.onnx"
-
-GEOSAMPA_WFS_URL = "http://wfs.geosampa.prefeitura.sp.gov.br/geoserver/geoportal/wfs"
-SV_METADATA_URL = "https://maps.googleapis.com/maps/api/streetview/metadata"
-SV_IMAGE_URL = "https://maps.googleapis.com/maps/api/streetview"
 
 
 # ── Helpers Geodésicos e WFS GeoSampa ────────────────────────────────────────
@@ -199,6 +197,7 @@ def expand_manifest_from_wfs(
             if tid in existing_ids:
                 continue
 
+            # Consulta gratuita de metadados: confirma se existe foto de rua antes de gastar cota com download
             meta_resp = requests.get(
                 SV_METADATA_URL,
                 params={
@@ -234,6 +233,7 @@ def expand_manifest_from_wfs(
                 }
             ]
 
+            # Anda lateralmente (~90 graus na rua) para conseguir um segundo ângulo e separar ilusão de profundidade
             s_lat, s_lon = step_latlon(pano_lat, pano_lon, (base_heading + 90.0) % 360.0, step_m)
             s_meta = requests.get(
                 SV_METADATA_URL,
@@ -279,7 +279,7 @@ def expand_manifest_from_wfs(
 
 # ── Estágio 3: Download Incremental de Imagens Street View Faltantes ─────────
 def download_missing_views(manifest: dict[str, Any], api_key: str, target_region: str | None = None) -> int:
-    IMAGES_RAW_DIR.mkdir(parents=True, exist_ok=True)
+    SP_IMAGES_RAW_DIR.mkdir(parents=True, exist_ok=True)
     downloaded = 0
     for tree in manifest.get("trees", []):
         if target_region and tree.get("region_key") != target_region:
@@ -288,7 +288,8 @@ def download_missing_views(manifest: dict[str, Any], api_key: str, target_region
             fname = v.get("file_name")
             if not fname:
                 continue
-            img_path = IMAGES_RAW_DIR / fname
+            img_path = SP_IMAGES_RAW_DIR / fname
+            # Evita baixar e gastar cota da API para fotos que já existem no disco
             if img_path.exists() and img_path.stat().st_size > 1024:
                 continue
             params = {
@@ -299,6 +300,7 @@ def download_missing_views(manifest: dict[str, Any], api_key: str, target_region
                 "source": "outdoor",
                 "key": api_key,
             }
+            # Usa pano_id exato quando disponível para garantir o mesmo ponto fotografado antes
             if v.get("pano_id"):
                 params["pano"] = v["pano_id"]
             else:
@@ -314,30 +316,30 @@ def download_missing_views(manifest: dict[str, Any], api_key: str, target_region
 
 # ── Estágio 4: Inferência Territorial V3 (PyTorch GPU ou ONNX INT8 CPU) ──────
 def load_best_available_engine() -> tuple[Any, Any, str]:
-    """Carrega `.pt` na GPU (se disponível) ou faz fallback transparente para `.onnx` INT8."""
+    """Carrega `.pt` na GPU quando disponível ou usa automaticamente o modelo `.onnx` leve em CPU."""
     try:
         import torch
 
-        if PT_CKPT_PATH.exists() and torch.cuda.is_available():
+        if PT_V3_1024_PATH.exists() and torch.cuda.is_available():
             device = torch.device("cuda")
-            model = load_segformer_weights(PT_CKPT_PATH, device)
-            return model, device, f"PyTorch GPU ({PT_CKPT_PATH.name})"
+            model = load_segformer_weights(PT_V3_1024_PATH, device)
+            return model, device, f"PyTorch GPU ({PT_V3_1024_PATH.name})"
     except Exception:
         pass
 
-    if ONNX_INT8_PATH.exists():
-        sess = load_onnx_session(ONNX_INT8_PATH)
-        return sess, None, f"ONNX Runtime INT8 CPU ({ONNX_INT8_PATH.name})"
+    if ONNX_V3_INT8_PATH.exists():
+        sess = load_onnx_session(ONNX_V3_INT8_PATH)
+        return sess, None, f"ONNX Runtime INT8 CPU ({ONNX_V3_INT8_PATH.name})"
 
-    if PT_CKPT_PATH.exists():
+    if PT_V3_1024_PATH.exists():
         import torch
 
         device = torch.device("cpu")
-        model = load_segformer_weights(PT_CKPT_PATH, device)
-        return model, device, f"PyTorch CPU ({PT_CKPT_PATH.name})"
+        model = load_segformer_weights(PT_V3_1024_PATH, device)
+        return model, device, f"PyTorch CPU ({PT_V3_1024_PATH.name})"
 
     raise FileNotFoundError(
-        f"Nenhum peso V3 encontrado em {PT_CKPT_PATH} ou {ONNX_INT8_PATH}."
+        f"Nenhum peso V3 encontrado em {PT_V3_1024_PATH} ou {ONNX_V3_INT8_PATH}."
     )
 
 
@@ -348,7 +350,7 @@ def run_v3_inference_on_manifest(
 ) -> dict[str, Any]:
     engine, device, engine_label = load_best_available_engine()
     print(f"[INFERÊNCIA V3] Motor ativo: {engine_label}")
-    IMAGES_OVERLAY_DIR.mkdir(parents=True, exist_ok=True)
+    SP_V3_OVERLAYS_DIR.mkdir(parents=True, exist_ok=True)
 
     inferred_views = 0
     t0 = time.perf_counter()
@@ -364,7 +366,7 @@ def run_v3_inference_on_manifest(
             fname = v.get("file_name")
             if not fname:
                 continue
-            img_path = IMAGES_RAW_DIR / fname
+            img_path = SP_IMAGES_RAW_DIR / fname
             if not img_path.exists():
                 continue
             img_bgr = cv2.imread(str(img_path))
@@ -375,9 +377,8 @@ def run_v3_inference_on_manifest(
             v3_dict, _, _ = analyze_view_v3_manifest(mask_tree, mask_wire, fname)
             v["v3_analysis"] = v3_dict
 
-            # Salva overlay V3
             ov_img = render_overlay(img_bgr, mask_tree, mask_wire, alpha_tree=0.36, alpha_wire=0.25)
-            cv2.imwrite(str(IMAGES_OVERLAY_DIR / v3_dict["v3_overlay_file"]), ov_img, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            cv2.imwrite(str(SP_V3_OVERLAYS_DIR / v3_dict["v3_overlay_file"]), ov_img, [cv2.IMWRITE_JPEG_QUALITY, 90])
 
             inferred_views += 1
             views_updated = True
@@ -405,7 +406,7 @@ def print_pipeline_status(regions_cfg: dict[str, Any], manifest: dict[str, Any])
         1
         for t in trees
         for v in t.get("views", [])
-        if (IMAGES_RAW_DIR / v.get("file_name", "")).exists()
+        if (SP_IMAGES_RAW_DIR / v.get("file_name", "")).exists()
     )
     inferred_views = sum(
         1 for t in trees for v in t.get("views", []) if "v3_analysis" in v
@@ -420,13 +421,13 @@ def print_pipeline_status(regions_cfg: dict[str, Any], manifest: dict[str, Any])
     print(f"Arquivo de Regiões : {REGIONS_PATH.relative_to(BASE_DIR)} ({len(regions_cfg.get('regions', []))} zonas configuradas)")
     print(f"Manifest Principal : {MANIFEST_PATH.relative_to(BASE_DIR)}")
     print(f"Árvores Mapeadas   : {len(trees)} árvores | {existing_files}/{total_views} imagens em disco | {inferred_views}/{total_views} com inferência V3")
-    print(f"Pesos Disponíveis  : PyTorch (.pt)={'SIM' if PT_CKPT_PATH.exists() else 'NÃO'} | ONNX INT8 (.onnx)={'SIM' if ONNX_INT8_PATH.exists() else 'NÃO'}")
+    print(f"Pesos Disponíveis  : PyTorch (.pt)={'SIM' if PT_V3_1024_PATH.exists() else 'NÃO'} | ONNX INT8 (.onnx)={'SIM' if ONNX_V3_INT8_PATH.exists() else 'NÃO'}")
     print(f"Paralaxe Multi-View: {parallax_div_count} árvores com divergência angular auditada pelo consenso")
     print("-" * 92)
     print(f"{'Região':<20} | {'Árvores':>7} | {'Imagens':>7} | {'Crítico':>8} | {'Paralaxe':>8} | {'Proximid.':>9} | {'Seguro':>7}")
     print("-" * 92)
 
-    for rid, reg in regions_cfg.get("regions", {}).items():
+    for rid in regions_cfg.get("regions", {}):
         rtrees = [t for t in trees if t.get("region_key") == rid]
         rviews = sum(len(t.get("views", [])) for t in rtrees)
         sc = Counter(t.get("v3_triage", {}).get("consolidated", "PENDENTE") for t in rtrees)

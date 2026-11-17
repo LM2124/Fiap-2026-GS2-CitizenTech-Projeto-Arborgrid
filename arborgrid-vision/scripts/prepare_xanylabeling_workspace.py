@@ -10,20 +10,26 @@ Suporta também `--split-packs N` para dividir o dataset de treino em N metades/
 (agrupando sempre por árvore para manter contexto visual e evitar data leakage).
 """
 
+import argparse
 import json
 import math
 import shutil
-import argparse
+import sys
+from pathlib import Path
+
 import cv2
 import numpy as np
-from pathlib import Path
 from PIL import Image
 
-CV_ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = CV_ROOT / "dataset" / "sp_geosampa_api"
-IMAGES_DIR = SRC_DIR / "images"
-PRELABELS_DIR = SRC_DIR / "prelabels_yolo_seg"
-DEFAULT_WORKSPACE = CV_ROOT / "dataset" / "workspace_xanylabeling"
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from config import SP_IMAGES_RAW_DIR, SP_PRELABELS_YOLO_DIR, XANY_WORKSPACE_DIR
+
+IMAGES_DIR = SP_IMAGES_RAW_DIR
+PRELABELS_DIR = SP_PRELABELS_YOLO_DIR
+DEFAULT_WORKSPACE = XANY_WORKSPACE_DIR
 
 CLASS_MAP = {
     0: "copa",
