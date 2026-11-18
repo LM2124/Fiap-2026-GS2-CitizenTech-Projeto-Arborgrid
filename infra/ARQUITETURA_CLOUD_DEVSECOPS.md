@@ -133,7 +133,10 @@ terraform apply
 gh secret set GCP_WIF_PROVIDER --body "$(terraform output -raw workload_identity_provider)"
 gh secret set GCP_DEPLOY_SA    --body "$(terraform output -raw deploy_service_account)"
 gh secret set VM_SSH_KEY       < ~/.ssh/arborgrid_ci
-ssh-keyscan -t ed25519 "$(terraform output -raw public_ip)" 2>/dev/null | sed 's/^[^ ]*/arborgrid-vm/' | gh secret set VM_KNOWN_HOSTS
+# Chave de host: evite o ssh-keyscan no Windows (o do OpenSSH 9.5 falha em silêncio por causa do KEX sntrup761).
+# Conecte uma vez (grava a chave no known_hosts; confira o fingerprint) e exporte com o alias usado pelo CI:
+ssh -i ~/.ssh/arborgrid_ci ubuntu@"$(terraform output -raw public_ip)" 'ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub'
+gh secret set VM_KNOWN_HOSTS --body "$(ssh-keygen -F "$(terraform output -raw public_ip)" | grep ' ssh-ed25519 ' | awk '{print "arborgrid-vm", $2, $3}')"
 gh variable set GCP_VM_NAME --body "$(terraform output -raw instance_name)"
 ```
 

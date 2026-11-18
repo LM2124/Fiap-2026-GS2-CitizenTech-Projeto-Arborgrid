@@ -136,7 +136,12 @@ jobs:
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           # Chave de host fixada (sem ssh-keyscan/TOFU): linhas no formato "arborgrid-vm ssh-ed25519 AAAA..."
-          printf '%s\n' "$VM_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # (remove CR de secrets gravados no Windows, comentarios e linhas vazias)
+          printf '%s\n' "$VM_KNOWN_HOSTS" | tr -d '\r' | grep -v -e '^#' -e '^[[:space:]]*$' > ~/.ssh/known_hosts || true
+          if ! ssh-keygen -l -f ~/.ssh/known_hosts; then
+            echo "::error::VM_KNOWN_HOSTS sem chave de host valida (esperado: 'arborgrid-vm ssh-ed25519 AAAA...'). Ver infra/ARQUITETURA_CLOUD_DEVSECOPS.md."
+            exit 1
+          fi
           cat > ~/.ssh/config <<EOF
           Host arborgrid-vm
             HostName ${VM_NAME}
