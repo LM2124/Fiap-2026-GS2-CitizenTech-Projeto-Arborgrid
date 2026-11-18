@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
 import re
 import time
@@ -13,12 +14,17 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from ..metrics import ASSISTANT_RESPONSES_TOTAL, LLM_FALLBACK_TOTAL
+from ..privacy import mask_personal_data
 from .gold_store import GoldRiskStore
 from .manifest_store import (
     ManifestStore,
     _normalize_macro_triage,
     _tree_raw_consolidated_triage,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 _TREE_ID_RE = re.compile(
@@ -416,11 +422,14 @@ class AssistantService:
         return {
             "kb_loaded": len(self.chunks) > 0,
             "chunks_count": len(self.chunks),
-            "llm_endpoint": self.llm_api_url,
             "llm_online": self.check_llm_health(),
             "model_name": self.llm_model_name,
             "suggested_prompts": self.SUGGESTED_PROMPTS,
         }
+
+    def _record_llm_fallback(self, reason: str, detail: str) -> None:
+        logger.warning("Fallback do LLM: reason=%s detalhe=%s", reason, detail)
+        LLM_FALLBACK_TOTAL.labels(reason=reason).inc()
 
     def _out_of_scope_response(self) -> dict[str, Any]:
         return {
@@ -503,97 +512,142 @@ class AssistantService:
         )
         try:
             with urllib.request.urlopen(req, timeout=25.0) as resp:
-                raw_resp = json.loads(resp.read().decode("utf-8"))
-            content = str(raw_resp["choices"][0]["message"]["content"] or "")
-            content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
-            match = re.search(r"\{.*\}", content, flags=re.DOTALL)
-            if not match:
-                return None
-            parsed = json.loads(match.group(0))
-            if not isinstance(parsed, dict):
-                return None
-            status = str(parsed.get("status") or "").strip()
-            acao = str(parsed.get("acao_imediata") or "").strip()
-            if status not in _ALLOWED_STATUS or not acao:
-                return None
-            if status == "nao_consta":
-                return self._out_of_scope_response()
-            acao_norm = _normalize_text(acao)
-            if "nao consta na base" in acao_norm or "whatsapp" in acao_norm:
-                return None
-
-            allowed_ids = {c["chunk_id"] for c in chunks}
-            fontes = [
-                str(s) for s in (parsed.get("fontes") or []) if str(s) in allowed_ids
-            ]
-            if tree_ctx and "ARBORGRID-TRIAGEM" in allowed_ids and "ARBORGRID-TRIAGEM" not in fontes:
-                fontes.append("ARBORGRID-TRIAGEM")
-            if not fontes and chunks:
-                fontes = [chunks[0]["chunk_id"]]
-
-            nivel_risco = str(parsed.get("nivel_risco") or "preventivo_rotina").strip()
-            if nivel_risco not in _ALLOWED_RISK:
-                nivel_risco = "preventivo_rotina"
-
-            q_norm = _normalize_text(question)
-            clean_q = _NEGATED_EMERGENCY_RE.sub(" ", q_norm)
-            has_emergency = any(term in clean_q for term in _EMERGENCY_TERMS)
-            has_fire_or_injury = any(
-                t in clean_q for t in ("fogo", "incendio", "chama", "ferid", "preso", "carro")
-            )
-            has_storm_fall = any(
-                t in clean_q for t in ("caiu", "caida", "ventania", "tempestade", "desab")
-            )
-            pode_podar = parsed.get("pode_podar_por_conta")
-            if not isinstance(pode_podar, bool) and pode_podar is not None:
-                pode_podar = None
-
-            orgao_out = _sanitize_internal_codes(
-                str(parsed.get("orgao_responsavel") or "Prefeitura de São Paulo (Subprefeituras / SVMA)")
-            )
-            canal_out = _sanitize_internal_codes(
-                str(parsed.get("telefone_ou_canal") or "Portal SP156 (156 / sp156.prefeitura.sp.gov.br)")
-            )
-            acao_out = _sanitize_internal_codes(acao)
-
-            if has_emergency:
-                nivel_risco = "emergencia_imediata"
-                pode_podar = False
-                if has_fire_or_injury:
-                    orgao_out = "Corpo de Bombeiros (193) + Enel Distribuição SP Emergência"
-                    canal_out = "193 (Bombeiros) / 0800 72 72 196 (Enel 24h)"
-                elif has_storm_fall:
-                    orgao_out = "Defesa Civil SP (199) + Enel Distribuição SP"
-                    canal_out = "199 (Defesa Civil) / 0800 72 72 196 (Enel 24h)"
-                else:
-                    orgao_out = "Enel Distribuição São Paulo (Emergência 24h)"
-                    canal_out = "0800 72 72 196"
-                if "156" in _normalize_text(acao_out) or (
-                    "0800" not in acao_out and "193" not in acao_out and "199" not in acao_out
-                ):
-                    acao_out = (
-                        f"Isole imediatamente o local, não se aproxime de cabos caídos ou da árvore "
-                        f"e acione os canais de emergência: {canal_out}."
-                    )
-            elif tree_ctx and tree_ctx["triage_macro"] == "CRITICO":
-                if nivel_risco in ("preventivo_rotina", "fora_de_escopo"):
-                    nivel_risco = "urgente_vistoria"
-                pode_podar = False
-
-            if canal_out.count("(") > canal_out.count(")"):
-                canal_out = canal_out + ")"
-
-            return {
-                "status": "respondido",
-                "nivel_risco": nivel_risco,
-                "orgao_responsavel": orgao_out,
-                "telefone_ou_canal": canal_out,
-                "pode_podar_por_conta": pode_podar,
-                "acao_imediata": acao_out,
-                "fontes": fontes,
-            }
-        except (urllib.error.URLError, TimeoutError, KeyError, ValueError, OSError):
+                raw_bytes = resp.read()
+        except urllib.error.HTTPError as exc:
+            self._record_llm_fallback("http_error", f"HTTP {exc.code}")
             return None
+        except TimeoutError as exc:
+            self._record_llm_fallback("timeout", str(exc) or "TimeoutError")
+            return None
+        except urllib.error.URLError as exc:
+            if isinstance(exc.reason, TimeoutError):
+                self._record_llm_fallback("timeout", str(exc.reason) or "TimeoutError")
+            else:
+                self._record_llm_fallback("connection_error", str(exc.reason or exc))
+            return None
+        except OSError as exc:
+            self._record_llm_fallback("connection_error", f"{type(exc).__name__}: {exc}")
+            return None
+
+        try:
+            raw_resp = json.loads(raw_bytes.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            self._record_llm_fallback("invalid_json", f"{type(exc).__name__}: {exc}")
+            return None
+
+        try:
+            content = str(raw_resp["choices"][0]["message"]["content"] or "")
+        except (KeyError, IndexError, TypeError) as exc:
+            self._record_llm_fallback(
+                "invalid_schema", f"estrutura choices invalida: {type(exc).__name__}"
+            )
+            return None
+
+        content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
+        match = re.search(r"\{.*\}", content, flags=re.DOTALL)
+        if not match:
+            self._record_llm_fallback("invalid_json", "nenhum objeto JSON encontrado")
+            return None
+
+        try:
+            parsed = json.loads(match.group(0))
+        except json.JSONDecodeError as exc:
+            self._record_llm_fallback("invalid_json", f"JSONDecodeError: {exc.msg}")
+            return None
+
+        if not isinstance(parsed, dict):
+            self._record_llm_fallback("invalid_schema", "payload JSON nao e objeto")
+            return None
+
+        status_val = str(parsed.get("status") or "").strip()
+        acao = str(parsed.get("acao_imediata") or "").strip()
+        if status_val not in _ALLOWED_STATUS or not acao:
+            self._record_llm_fallback(
+                "invalid_schema", "status invalido ou acao_imediata vazia"
+            )
+            return None
+        if status_val == "nao_consta":
+            return self._out_of_scope_response()
+        acao_norm = _normalize_text(acao)
+        if "nao consta na base" in acao_norm or "whatsapp" in acao_norm:
+            self._record_llm_fallback("filtered", "termo proibido na resposta")
+            return None
+
+        allowed_ids = {c["chunk_id"] for c in chunks}
+        raw_fontes = parsed.get("fontes")
+        fontes = (
+            [str(s) for s in raw_fontes if str(s) in allowed_ids]
+            if isinstance(raw_fontes, list)
+            else []
+        )
+        # O bloco [DADOS_TECNICOS_ARBORGRID] no prompt e derivado da especificacao ARBORGRID-TRIAGEM.
+        if tree_ctx and "ARBORGRID-TRIAGEM" in allowed_ids and "ARBORGRID-TRIAGEM" not in fontes:
+            fontes.append("ARBORGRID-TRIAGEM")
+        if not fontes:
+            self._record_llm_fallback("ungrounded", "nenhuma fonte valida citada")
+            return None
+
+        nivel_risco = str(parsed.get("nivel_risco") or "preventivo_rotina").strip()
+        if nivel_risco not in _ALLOWED_RISK:
+            nivel_risco = "preventivo_rotina"
+
+        q_norm = _normalize_text(question)
+        clean_q = _NEGATED_EMERGENCY_RE.sub(" ", q_norm)
+        has_emergency = any(term in clean_q for term in _EMERGENCY_TERMS)
+        has_fire_or_injury = any(
+            t in clean_q for t in ("fogo", "incendio", "chama", "ferid", "preso", "carro")
+        )
+        has_storm_fall = any(
+            t in clean_q for t in ("caiu", "caida", "ventania", "tempestade", "desab")
+        )
+        pode_podar = parsed.get("pode_podar_por_conta")
+        if not isinstance(pode_podar, bool) and pode_podar is not None:
+            pode_podar = None
+
+        orgao_out = _sanitize_internal_codes(
+            str(parsed.get("orgao_responsavel") or "Prefeitura de São Paulo (Subprefeituras / SVMA)")
+        )
+        canal_out = _sanitize_internal_codes(
+            str(parsed.get("telefone_ou_canal") or "Portal SP156 (156 / sp156.prefeitura.sp.gov.br)")
+        )
+        acao_out = _sanitize_internal_codes(acao)
+
+        if has_emergency:
+            nivel_risco = "emergencia_imediata"
+            pode_podar = False
+            if has_fire_or_injury:
+                orgao_out = "Corpo de Bombeiros (193) + Enel Distribuição SP Emergência"
+                canal_out = "193 (Bombeiros) / 0800 72 72 196 (Enel 24h)"
+            elif has_storm_fall:
+                orgao_out = "Defesa Civil SP (199) + Enel Distribuição SP"
+                canal_out = "199 (Defesa Civil) / 0800 72 72 196 (Enel 24h)"
+            else:
+                orgao_out = "Enel Distribuição São Paulo (Emergência 24h)"
+                canal_out = "0800 72 72 196"
+            if "156" in _normalize_text(acao_out) or (
+                "0800" not in acao_out and "193" not in acao_out and "199" not in acao_out
+            ):
+                acao_out = (
+                    f"Isole imediatamente o local, não se aproxime de cabos caídos ou da árvore "
+                    f"e acione os canais de emergência: {canal_out}."
+                )
+        elif tree_ctx and tree_ctx["triage_macro"] == "CRITICO":
+            if nivel_risco in ("preventivo_rotina", "fora_de_escopo"):
+                nivel_risco = "urgente_vistoria"
+            pode_podar = False
+
+        if canal_out.count("(") > canal_out.count(")"):
+            canal_out = canal_out + ")"
+
+        return {
+            "status": "respondido",
+            "nivel_risco": nivel_risco,
+            "orgao_responsavel": orgao_out,
+            "telefone_ou_canal": canal_out,
+            "pode_podar_por_conta": pode_podar,
+            "acao_imediata": acao_out,
+            "fontes": fontes,
+        }
 
     def _synthesize_deterministic(
         self,
@@ -729,28 +783,33 @@ class AssistantService:
         history: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         t0 = time.perf_counter()
-        clean_history = [
-            {"role": str(t["role"]), "content": str(t["content"])}
-            for t in (history or [])
-            if t.get("role") in ("user", "assistant") and str(t.get("content") or "").strip()
-        ][-6:]
+        masked_question, question_cats = mask_personal_data(question)
+        masked_cats_set = set(question_cats)
+        clean_history: list[dict[str, str]] = []
+        for t in history or []:
+            if t.get("role") in ("user", "assistant") and str(t.get("content") or "").strip():
+                masked_content, turn_cats = mask_personal_data(str(t["content"]))
+                masked_cats_set.update(turn_cats)
+                clean_history.append({"role": str(t["role"]), "content": masked_content})
+        clean_history = clean_history[-6:]
+        masked_categories = sorted(masked_cats_set)
 
-        tree_ctx = self._lookup_tree_context(question, explicit_geosampa_id=geosampa_id)
+        tree_ctx = self._lookup_tree_context(masked_question, explicit_geosampa_id=geosampa_id)
         last_user_msg = next(
             (t["content"] for t in reversed(clean_history) if t["role"] == "user"), ""
         )
         if not tree_ctx and not geosampa_id and last_user_msg:
             tree_ctx = self._lookup_tree_context(last_user_msg, explicit_geosampa_id=None)
 
-        q_norm = _normalize_text(question)
-        enriched_query = question
+        q_norm = _normalize_text(masked_question)
+        enriched_query = masked_question
         if tree_ctx:
             enriched_query = (
-                f"{question} {tree_ctx['triage_consolidated']} sp156 poda rede eletrica "
+                f"{masked_question} {tree_ctx['triage_consolidated']} sp156 poda rede eletrica "
                 "enel nbr-16246 arborgrid"
             )
-        elif last_user_msg and len(question.split()) <= 6:
-            enriched_query = f"{last_user_msg} {question}"
+        elif last_user_msg and len(masked_question.split()) <= 6:
+            enriched_query = f"{last_user_msg} {masked_question}"
         chunks = self.retrieve(enriched_query, top_k=3)
 
         # Se for pergunta sobre poda sem árvore vinculada, prioriza os trechos legais relevantes
@@ -778,14 +837,22 @@ class AssistantService:
         top_score = chunks[0]["score"] if chunks else 0.0
         if not tree_ctx and top_score < 0.12:
             mode = "rag_deterministic"
+            metric_mode = "fora_de_escopo"
             structured = self._out_of_scope_response()
         else:
             mode = "rag_deterministic"
-            structured = self._call_local_qwen(question, chunks, tree_ctx, clean_history)
+            structured = self._call_local_qwen(
+                masked_question, chunks, tree_ctx, clean_history
+            )
             if structured is not None:
                 mode = "qwen3_gguf"
             else:
-                structured = self._synthesize_deterministic(question, chunks, tree_ctx)
+                structured = self._synthesize_deterministic(
+                    masked_question, chunks, tree_ctx
+                )
+            metric_mode = mode
+
+        ASSISTANT_RESPONSES_TOTAL.labels(mode=metric_mode).inc()
 
         fontes_ids = set(structured.get("fontes") or [])
         citations = [
@@ -820,11 +887,12 @@ class AssistantService:
 
         latency_ms = round((time.perf_counter() - t0) * 1000.0, 2)
         return {
-            "question": question,
+            "question": masked_question,
             "mode": mode,
             "structured": structured,
             "answer": structured["acao_imediata"],
             "citations": citations,
             "tree_context": tree_ctx,
+            "privacy": {"masked_categories": masked_categories},
             "latency_ms": latency_ms,
         }

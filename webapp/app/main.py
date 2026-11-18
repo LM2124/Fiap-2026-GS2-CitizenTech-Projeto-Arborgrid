@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 import mimetypes
+import os
 import re
 import time
 from contextlib import asynccontextmanager
@@ -11,13 +13,28 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from .config import Settings, get_settings
+from .metrics import (
+    GOLD_SCORES_GAUGE,
+    HTTP_ERRORS_TOTAL,
+    HTTP_INPROGRESS,
+    HTTP_REQUEST_DURATION,
+    HTTP_REQUESTS_TOTAL,
+    TREES_LOADED_GAUGE,
+)
 from .routers.api_v1 import router as api_v1_router
 from .services.assistant_service import AssistantService
 from .services.gold_store import GoldRiskStore
 from .services.manifest_store import ManifestStore
+
+
+logging.basicConfig(
+    level=os.getenv("ARBORGRID_LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 mimetypes.add_type("application/wasm", ".wasm")
@@ -29,42 +46,11 @@ ALLOWED_MEDIA_FOLDERS = frozenset(
 SAFE_FILENAME_RE = re.compile(r"^[A-Za-z0-9_.-]+\.(?:jpg|jpeg|png|webp)$", re.IGNORECASE)
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
-# Metricas dos 4 Golden Signals (Latency, Traffic, Errors, Saturation)
-HTTP_REQUESTS_TOTAL = Counter(
-    "arborgrid_http_requests_total",
-    "Total de requisicoes HTTP processadas (Traffic)",
-    ["method", "route", "status_code"],
-)
-HTTP_REQUEST_DURATION = Histogram(
-    "arborgrid_http_request_duration_seconds",
-    "Latencia de resposta HTTP em segundos (Latency)",
-    ["method", "route"],
-    buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
-)
-HTTP_ERRORS_TOTAL = Counter(
-    "arborgrid_http_errors_total",
-    "Total de respostas de erro HTTP 4xx/5xx (Errors)",
-    ["method", "route", "error_class"],
-)
-HTTP_INPROGRESS = Gauge(
-    "arborgrid_inprogress_requests",
-    "Requisicoes HTTP simultaneas em andamento (Saturation)",
-)
-TREES_LOADED_GAUGE = Gauge(
-    "arborgrid_trees_loaded",
-    "Quantidade de arvores georreferenciadas carregadas do manifesto",
-)
-GOLD_SCORES_GAUGE = Gauge(
-    "arborgrid_gold_scores_loaded",
-    "Quantidade de registros sincronizados da camada Gold (Big Data)",
-)
-
-
 def _route_label(request: Request) -> str:
     route = request.scope.get("route")
     if route is not None and getattr(route, "path", None):
         return str(route.path)
-    return request.url.path
+    return "unmatched"
 
 
 def create_app(custom_settings: Settings | None = None) -> FastAPI:
@@ -164,9 +150,14 @@ def create_app(custom_settings: Settings | None = None) -> FastAPI:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Nome de arquivo invalido."
             )
-        base_dir = (request.app.state.settings.media_dir / folder).resolve()
-        candidate = (base_dir / filename).resolve()
-        if not candidate.is_relative_to(base_dir) or not candidate.is_file():
+        try:
+            base_dir = (request.app.state.settings.media_dir / folder).resolve()
+            candidate = (base_dir / filename).resolve()
+            is_valid = candidate.is_relative_to(base_dir) and candidate.is_file()
+        except OSError as exc:
+            logger.warning("Erro ao acessar midia %s/%s: %s", folder, filename, exc)
+            is_valid = False
+        if not is_valid:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Midia nao encontrada no volume montado.",

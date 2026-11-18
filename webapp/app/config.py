@@ -88,6 +88,7 @@ class Settings(BaseSettings):
     api_token: str | None = Field(default=None)
     require_auth: bool = Field(default=True)
     expose_media_urls: bool = Field(default=False)
+    allow_demo_seed: bool = Field(default=True)
     public_base_url: str = Field(default="")
 
 

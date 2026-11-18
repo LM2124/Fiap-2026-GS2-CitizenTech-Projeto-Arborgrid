@@ -55,6 +55,7 @@ services:
       ARBORGRID_API_TOKEN: ${ARBORGRID_API_TOKEN:?Defina ARBORGRID_API_TOKEN no .env}
       ARBORGRID_REQUIRE_AUTH: "true"
       ARBORGRID_EXPOSE_MEDIA_URLS: ${ARBORGRID_EXPOSE_MEDIA_URLS:-false}
+      ARBORGRID_ALLOW_DEMO_SEED: ${ARBORGRID_ALLOW_DEMO_SEED:-true}
       ARBORGRID_LLM_API_URL: ${ARBORGRID_LLM_API_URL:-http://llama-server:8080/v1/chat/completions}
     volumes:
       - ${ARBORGRID_MEDIA_HOST_DIR:-../arborgrid-vision/dataset/sp_geosampa_api}:/app/media:ro

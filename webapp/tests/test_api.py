@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import urllib.request
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from app.config import Settings, get_settings
 from app.main import create_app
+from app.privacy import mask_personal_data
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -77,7 +79,11 @@ SAMPLE_MANIFEST = {
 }
 
 
-def _make_client(tmp_path: Path, api_token: str | None = "test-secret-token") -> TestClient:
+def _make_client(
+    tmp_path: Path,
+    api_token: str | None = "test-secret-token",
+    allow_demo_seed: bool = True,
+) -> TestClient:
     manifest_file = tmp_path / "manifest.json"
     manifest_file.write_text(json.dumps(SAMPLE_MANIFEST), encoding="utf-8")
     media_dir = tmp_path / "media"
@@ -123,6 +129,8 @@ def _make_client(tmp_path: Path, api_token: str | None = "test-secret-token") ->
         api_token=api_token,
         require_auth=True,
         expose_media_urls=False,
+        allow_demo_seed=allow_demo_seed,
+        llm_api_url="http://127.0.0.1:9/v1/chat/completions",
     )
     app = create_app(custom_settings=settings)
     app.dependency_overrides[get_settings] = lambda: settings
@@ -243,6 +251,7 @@ def test_seed_demo_assistant_and_vision_endpoints(tmp_path: Path) -> None:
         assert r_status.status_code == 200
         assert r_status.json()["kb_loaded"] is True
         assert r_status.json()["chunks_count"] >= 16
+        assert "llm_endpoint" not in r_status.json()
 
         r_ask_tree = client.post(
             "/api/v1/assistant/ask",
@@ -369,3 +378,221 @@ def test_real_manifest_counts_and_v3_triage_normalization(tmp_path: Path) -> Non
             r_get_onnx = client.get("/api/v1/vision/model.onnx")
             assert r_get_onnx.status_code == 200
             assert len(r_get_onnx.content) > 50_000_000
+
+
+def test_media_permission_error_degrades_gracefully(tmp_path: Path, monkeypatch) -> None:
+    orig_is_file = Path.is_file
+
+    def _fake_is_file(path_obj: Path) -> bool:
+        if "v3_overlays" in str(path_obj):
+            raise PermissionError(13, "Permission denied", str(path_obj))
+        return orig_is_file(path_obj)
+
+    monkeypatch.setattr(Path, "is_file", _fake_is_file)
+    with _make_client(tmp_path) as client:
+        r_boot = client.get("/api/v1/public/map-bootstrap")
+        assert r_boot.status_code == 200
+        trees = r_boot.json()["trees"]
+        assert len(trees) == 1
+        assert all(view["overlay_url"] is None for view in trees[0]["views"])
+
+        r_health = client.get("/api/v1/health")
+        assert r_health.status_code == 200
+
+
+def test_gold_seed_demo_non_destructive_and_switchable(tmp_path: Path) -> None:
+    headers = {"Authorization": "Bearer test-secret-token"}
+    with _make_client(tmp_path) as client:
+        real_batch = {
+            "batch_id": "databricks-real-batch",
+            "records": [
+                {
+                    "geosampa_id": "612162",
+                    "distrito": "PINHEIROS",
+                    "composite_risk_score": 12.5,
+                    "priority_tier": "BAIXA",
+                    "recommended_action": "Monitoramento de rotina",
+                }
+            ],
+        }
+        r_real = client.post("/api/v1/gold/risk-scores", json=real_batch, headers=headers)
+        assert r_real.status_code == 200
+
+        r_seed = client.post("/api/v1/gold/seed-demo")
+        assert r_seed.status_code == 200
+        assert r_seed.json()["skipped_real"] == 1
+
+        r_scores = client.get("/api/v1/gold/risk-scores", headers=headers)
+        assert r_scores.status_code == 200
+        assert r_scores.json()["items"][0]["composite_risk_score"] == 12.5
+
+    demo_twice_dir = tmp_path / "demo_twice"
+    demo_twice_dir.mkdir()
+    with _make_client(demo_twice_dir) as client_demo:
+        r_first = client_demo.post("/api/v1/gold/seed-demo")
+        assert r_first.status_code == 200
+        assert r_first.json()["inserted"] == 1
+        assert r_first.json()["updated"] == 0
+
+        r_second = client_demo.post("/api/v1/gold/seed-demo")
+        assert r_second.status_code == 200
+        assert r_second.json()["inserted"] == 0
+        assert r_second.json()["updated"] == 1
+
+    demo_disabled_dir = tmp_path / "demo_disabled"
+    demo_disabled_dir.mkdir()
+    with _make_client(demo_disabled_dir, allow_demo_seed=False) as client_off:
+        r_disabled = client_off.post("/api/v1/gold/seed-demo")
+        assert r_disabled.status_code == 403
+
+
+def test_corrupt_gold_state_quarantined_on_startup(tmp_path: Path) -> None:
+    gold_path = tmp_path / "gold_state.json"
+    gold_path.write_text("{corrupt-json", encoding="utf-8")
+    with _make_client(tmp_path) as client:
+        r_stats = client.get("/api/v1/stats")
+        assert r_stats.status_code == 200
+        assert r_stats.json()["gold_layer"]["total_records"] == 0
+        corrupt_files = list(tmp_path.glob("gold_state.json.corrupt-*"))
+        assert len(corrupt_files) == 1
+
+
+def test_privacy_masking_unit_and_assistant_api(tmp_path: Path) -> None:
+    masked_cpf, cats_cpf = mask_personal_data("Meu CPF e 123.456.789-00.")
+    assert masked_cpf == "Meu CPF e [CPF omitido]."
+    assert cats_cpf == ["cpf"]
+
+    masked_cnpj, cats_cnpj = mask_personal_data("Empresa CNPJ 12.345.678/0001-90")
+    assert masked_cnpj == "Empresa CNPJ [CNPJ omitido]"
+    assert cats_cnpj == ["cnpj"]
+
+    masked_email, cats_email = mask_personal_data("Contato: cidadao@exemplo.sp.gov.br")
+    assert masked_email == "Contato: [e-mail omitido]"
+    assert cats_email == ["email"]
+
+    masked_placa, cats_placa = mask_personal_data("Carro placa ABC1D23 e antiga XYZ-1234")
+    assert masked_placa == "Carro placa [placa omitida] e antiga [placa omitida]"
+    assert cats_placa == ["placa"]
+
+    masked_tel, cats_tel = mask_personal_data(
+        "Ligar (11) 91234-5678, 11 91234 5678, 11912345678 ou (11) 3456-7890"
+    )
+    assert masked_tel == (
+        "Ligar [telefone omitido], [telefone omitido], [telefone omitido] ou [telefone omitido]"
+    )
+    assert cats_tel == ["telefone"]
+
+    unchanged_service, cats_service = mask_personal_data("Ligue 0800 72 72 196 ou 193")
+    assert unchanged_service == "Ligue 0800 72 72 196 ou 193"
+    assert cats_service == []
+
+    unchanged_tree, cats_tree = mask_personal_data("arvore #612162")
+    assert unchanged_tree == "arvore #612162"
+    assert cats_tree == []
+
+    with _make_client(tmp_path) as client:
+        r_ask = client.post(
+            "/api/v1/assistant/ask",
+            json={
+                "question": (
+                    "Sou morador, CPF 123.456.789-00, placa ABC1D23, "
+                    "telefone (11) 91234-5678. Como pedir poda da arvore na calcada?"
+                )
+            },
+        )
+        assert r_ask.status_code == 200
+        body = r_ask.json()
+        dumped = json.dumps(body)
+        assert "123.456.789-00" not in dumped
+        assert "ABC1D23" not in dumped
+        assert "91234-5678" not in dumped
+        assert body["privacy"]["masked_categories"] == ["cpf", "placa", "telefone"]
+
+
+def test_llm_never_fabricates_citations(tmp_path: Path, monkeypatch) -> None:
+    class _FakeResponse:
+        def __init__(self, payload: dict) -> None:
+            self._data = json.dumps(payload).encode("utf-8")
+
+        def read(self) -> bytes:
+            return self._data
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+    with _make_client(tmp_path) as client:
+        service = client.app.state.assistant_service
+        two_chunks = [dict(c) for c in service.chunks[:2]]
+
+        fake_ungrounded = {
+            "choices": [
+                {
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "status": "respondido",
+                                "nivel_risco": "preventivo_rotina",
+                                "orgao_responsavel": "Prefeitura de Sao Paulo",
+                                "telefone_ou_canal": "Portal SP156 (156)",
+                                "pode_podar_por_conta": False,
+                                "acao_imediata": "Solicite vistoria pelo Portal SP156.",
+                                "fontes": ["INVENTADO-99"],
+                            }
+                        )
+                    }
+                }
+            ]
+        }
+        monkeypatch.setattr(
+            urllib.request,
+            "urlopen",
+            lambda req, timeout=25.0: _FakeResponse(fake_ungrounded),
+        )
+        assert service._call_local_qwen("Como pedir poda?", two_chunks, None) is None
+
+        real_id = two_chunks[0]["chunk_id"]
+        fake_grounded = {
+            "choices": [
+                {
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "status": "respondido",
+                                "nivel_risco": "preventivo_rotina",
+                                "orgao_responsavel": "Prefeitura de Sao Paulo",
+                                "telefone_ou_canal": "Portal SP156 (156)",
+                                "pode_podar_por_conta": False,
+                                "acao_imediata": "Solicite vistoria pelo Portal SP156.",
+                                "fontes": [real_id],
+                            }
+                        )
+                    }
+                }
+            ]
+        }
+        monkeypatch.setattr(
+            urllib.request,
+            "urlopen",
+            lambda req, timeout=25.0: _FakeResponse(fake_grounded),
+        )
+        ok_res = service._call_local_qwen("Como pedir poda?", two_chunks, None)
+        assert ok_res is not None
+        assert real_id in ok_res["fontes"]
+
+
+def test_metrics_assistant_and_low_cardinality_route_labels(tmp_path: Path) -> None:
+    with _make_client(tmp_path) as client:
+        r_ask = client.post(
+            "/api/v1/assistant/ask",
+            json={"question": "Posso podar arvore na calcada?"},
+        )
+        assert r_ask.status_code == 200
+        client.get("/static/nao-existe-xyz.js")
+
+        r_metrics = client.get("/metrics")
+        assert r_metrics.status_code == 200
+        assert "arborgrid_assistant_responses_total" in r_metrics.text
+        assert "nao-existe-xyz" not in r_metrics.text

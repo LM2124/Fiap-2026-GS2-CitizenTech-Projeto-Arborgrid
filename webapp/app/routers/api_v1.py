@@ -11,7 +11,7 @@ from ..schemas import AssistantQueryIn, GoldRiskBatchIn
 from ..security import require_bearer_token
 from ..services.assistant_service import AssistantService
 from ..services.gold_store import GoldRiskStore
-from ..services.manifest_store import ManifestStore
+from ..services.manifest_store import ManifestStore, _safe_is_dir, _safe_is_file
 
 
 router = APIRouter(prefix="/api/v1", tags=["ArborGrid API v1"])
@@ -37,16 +37,16 @@ def health(request: Request) -> dict:
     assistant = _assistant_service(request)
     settings = request.app.state.settings
     media_dir = settings.media_dir
-    media_mounted = (media_dir / "v3_overlays").is_dir() and (
+    media_mounted = _safe_is_dir(media_dir / "v3_overlays") and _safe_is_dir(
         media_dir / "images"
-    ).is_dir()
+    )
     return {
         "status": "ok",
         "trees_loaded": len(store.trees),
         "views_loaded": len(store.inspections),
         "gold_records_loaded": len(gold.records),
         "kb_chunks_loaded": len(assistant.chunks),
-        "onnx_model_ready": settings.onnx_model_path.is_file(),
+        "onnx_model_ready": _safe_is_file(settings.onnx_model_path),
         "media_mounted": media_mounted,
         "model_version": store.model_version,
     }
@@ -232,9 +232,15 @@ def upsert_gold_scores(request: Request, batch: GoldRiskBatchIn) -> dict:
     summary="Carrega lote demonstrativo da camada Gold para o painel BI e Mapa",
 )
 def seed_gold_demo(request: Request) -> dict:
+    settings = request.app.state.settings
+    if not settings.allow_demo_seed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Carga demonstrativa desabilitada neste ambiente (ARBORGRID_ALLOW_DEMO_SEED=false).",
+        )
     store = _manifest_store(request)
     gold = _gold_store(request)
-    sample_path = request.app.state.settings.sample_gold_path
+    sample_path = settings.sample_gold_path
     if not sample_path.is_file():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -249,7 +255,7 @@ def seed_gold_demo(request: Request) -> dict:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Nenhum registro do lote demo corresponde ao manifesto carregado.",
         )
-    result = gold.upsert_batch(
+    result = gold.seed_demo(
         batch_id=str(raw.get("batch_id") or "gold-demo-sp"),
         items=records,
     )
@@ -321,9 +327,13 @@ def vision_sample_image(request: Request, filename: str):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Nome de arquivo de amostra invalido.",
         )
-    base_dir = request.app.state.settings.samples_dir.resolve()
-    candidate = (base_dir / filename).resolve()
-    if not candidate.is_relative_to(base_dir) or not candidate.is_file():
+    try:
+        base_dir = request.app.state.settings.samples_dir.resolve()
+        candidate = (base_dir / filename).resolve()
+        is_valid = candidate.is_relative_to(base_dir) and candidate.is_file()
+    except OSError:
+        is_valid = False
+    if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Imagem de amostra nao encontrada.",

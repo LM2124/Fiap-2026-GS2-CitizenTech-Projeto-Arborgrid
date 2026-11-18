@@ -4,9 +4,39 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from collections import Counter
 from pathlib import Path
 from typing import Any
+
+
+logger = logging.getLogger(__name__)
+_media_check_warned = False
+
+
+def _warn_once_media_oserror(path: Path, exc: OSError) -> None:
+    global _media_check_warned
+    if not _media_check_warned:
+        _media_check_warned = True
+        logger.warning("Falha ao verificar midia em %s: %s", path, exc)
+
+
+def _safe_is_file(path: Path) -> bool:
+    """Verifica se o arquivo existe tratando OSError/PermissionError como indisponivel."""
+    try:
+        return path.is_file()
+    except OSError as exc:
+        _warn_once_media_oserror(path, exc)
+        return False
+
+
+def _safe_is_dir(path: Path) -> bool:
+    """Verifica se o diretorio existe tratando OSError/PermissionError como indisponivel."""
+    try:
+        return path.is_dir()
+    except OSError as exc:
+        _warn_once_media_oserror(path, exc)
+        return False
 
 
 REGION_CAMPAIGN_DATES: dict[str, str] = {
@@ -343,7 +373,7 @@ class ManifestStore:
         """Monta payload enxuto e enriquecido para a SPA React + Leaflet."""
         overlays_dir = self.media_dir / "v3_overlays"
         images_dir = self.media_dir / "images"
-        has_media_root = overlays_dir.is_dir() or images_dir.is_dir()
+        has_media_root = _safe_is_dir(overlays_dir) or _safe_is_dir(images_dir)
 
         public_trees: list[dict[str, Any]] = []
         for tree in self.trees:
@@ -368,11 +398,11 @@ class ManifestStore:
                 img_file = str(view.get("file_name") or "")
                 ov_exists = bool(
                     ov_file
-                    and (self.expose_media_urls or (has_media_root and (overlays_dir / ov_file).is_file()))
+                    and (self.expose_media_urls or (has_media_root and _safe_is_file(overlays_dir / ov_file)))
                 )
                 img_exists = bool(
                     img_file
-                    and (self.expose_media_urls or (has_media_root and (images_dir / img_file).is_file()))
+                    and (self.expose_media_urls or (has_media_root and _safe_is_file(images_dir / img_file)))
                 )
                 prefix = self.public_base_url
                 public_views.append(
