@@ -133,11 +133,15 @@ jobs:
           VM_KNOWN_HOSTS: ${{ secrets.VM_KNOWN_HOSTS }}
         run: |
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
+          # Secrets gravados por pipe do PowerShell chegam com BOM UTF-8 e/ou CRLF: o OpenSSH recusa ("error in libcrypto")
+          (umask 077 && printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' | sed '1s/^\xEF\xBB\xBF//' > ~/.ssh/deploy_key)
+          if ! ssh-keygen -l -f ~/.ssh/deploy_key || ! ssh-keygen -y -P '' -f ~/.ssh/deploy_key > /dev/null; then
+            echo "::error::VM_SSH_KEY nao e uma chave privada OpenSSH valida e sem senha (grave pelo Git Bash: gh secret set VM_SSH_KEY < ~/.ssh/arborgrid_ci)."
+            exit 1
+          fi
           # Chave de host fixada (sem ssh-keyscan/TOFU): linhas no formato "arborgrid-vm ssh-ed25519 AAAA..."
           # (remove CR de secrets gravados no Windows, comentarios e linhas vazias)
-          printf '%s\n' "$VM_KNOWN_HOSTS" | tr -d '\r' | grep -v -e '^#' -e '^[[:space:]]*$' > ~/.ssh/known_hosts || true
+          printf '%s\n' "$VM_KNOWN_HOSTS" | tr -d '\r' | sed '1s/^\xEF\xBB\xBF//' | grep -v -e '^#' -e '^[[:space:]]*$' > ~/.ssh/known_hosts || true
           if ! ssh-keygen -l -f ~/.ssh/known_hosts; then
             echo "::error::VM_KNOWN_HOSTS sem chave de host valida (esperado: 'arborgrid-vm ssh-ed25519 AAAA...'). Ver infra/ARQUITETURA_CLOUD_DEVSECOPS.md."
             exit 1

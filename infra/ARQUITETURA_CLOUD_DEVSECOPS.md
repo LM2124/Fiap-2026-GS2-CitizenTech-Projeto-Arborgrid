@@ -132,7 +132,7 @@ terraform apply
 # 3. Secrets e variáveis do repositório
 gh secret set GCP_WIF_PROVIDER --body "$(terraform output -raw workload_identity_provider)"
 gh secret set GCP_DEPLOY_SA    --body "$(terraform output -raw deploy_service_account)"
-gh secret set VM_SSH_KEY       < ~/.ssh/arborgrid_ci
+gh secret set VM_SSH_KEY       < ~/.ssh/arborgrid_ci   # redirecionamento do bash: o pipe do PowerShell 5.1 insere BOM/CRLF
 # Chave de host: evite o ssh-keyscan no Windows (o do OpenSSH 9.5 falha em silêncio por causa do KEX sntrup761).
 # Conecte uma vez (grava a chave no known_hosts; confira o fingerprint) e exporte com o alias usado pelo CI:
 ssh -i ~/.ssh/arborgrid_ci ubuntu@"$(terraform output -raw public_ip)" 'ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub'
