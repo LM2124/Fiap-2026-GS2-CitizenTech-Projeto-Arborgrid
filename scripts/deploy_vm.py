@@ -181,6 +181,7 @@ fi
 # O container roda como UID 10001: midias enviadas do Windows chegam sem leitura/travessia para "outros"
 sudo chmod -R a+rX /opt/arborgrid/media || true
 docker compose --env-file "$ENV_PATH" up -d --build --remove-orphans
+docker compose --env-file "$ENV_PATH" restart nginx prometheus grafana  # bind mounts de arquivo presos ao inode antigo
 docker compose --env-file "$ENV_PATH" ps
 """
 
