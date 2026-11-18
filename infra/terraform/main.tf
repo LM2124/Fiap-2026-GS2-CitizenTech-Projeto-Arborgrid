@@ -108,7 +108,7 @@ resource "aws_instance" "arborgrid_vm" { # nosemgrep: terraform.aws.security.aws
 
   root_block_device {
     volume_type = "gp3"
-    volume_size = 20
+    volume_size = 30
     encrypted   = true
   }
 
@@ -117,8 +117,8 @@ resource "aws_instance" "arborgrid_vm" { # nosemgrep: terraform.aws.security.aws
   })
 
   tags = {
-    Name        = "${var.project_name}-ec2"
-    Project     = "ArborGrid-CitizenTech"
-    ManagedBy   = "Terraform"
+    Name      = "${var.project_name}-ec2"
+    Project   = "ArborGrid-CitizenTech"
+    ManagedBy = "Terraform"
   }
 }

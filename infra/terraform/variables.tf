@@ -11,9 +11,9 @@ variable "project_name" {
 }
 
 variable "instance_type" {
-  description = "Tipo da instancia EC2 para hospedar o Docker Compose (FastAPI + Nginx + Prometheus + Grafana)"
+  description = "Tipo da instancia EC2 para hospedar o Docker Compose (FastAPI + Nginx + llama.cpp + Prometheus + Grafana)"
   type        = string
-  default     = "t3.small"
+  default     = "t3.medium"
 }
 
 variable "key_name" {
@@ -28,15 +28,5 @@ variable "allowed_ssh_cidr" {
   validation {
     condition     = var.allowed_ssh_cidr != "0.0.0.0/0" && can(cidrhost(var.allowed_ssh_cidr, 0))
     error_message = "Por seguranca (DevSecOps), allowed_ssh_cidr deve ser um IP/CIDR valido e jamais 0.0.0.0/0."
-  }
-}
-
-variable "allowed_observability_cidr" {
-  description = "Bloco CIDR autorizado para consulta opcional ao Grafana (ou restringir ao mesmo IP admin)."
-  type        = string
-
-  validation {
-    condition     = var.allowed_observability_cidr != "0.0.0.0/0" && can(cidrhost(var.allowed_observability_cidr, 0))
-    error_message = "allowed_observability_cidr nao pode ser aberto para 0.0.0.0/0."
   }
 }

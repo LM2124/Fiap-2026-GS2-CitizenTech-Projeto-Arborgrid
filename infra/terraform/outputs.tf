@@ -9,8 +9,13 @@ output "public_ip" {
 }
 
 output "mvp_public_url" {
-  description = "URL publica do Web App ArborGrid"
+  description = "URL publica por IP do Web App ArborGrid"
   value       = "http://${aws_instance.arborgrid_vm.public_ip}"
+}
+
+output "mvp_aws_dns_url" {
+  description = "URL publica com DNS automatico gerado pela AWS EC2"
+  value       = "http://${aws_instance.arborgrid_vm.public_dns}"
 }
 
 output "grafana_ssh_tunnel_command" {

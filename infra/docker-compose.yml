@@ -13,7 +13,7 @@ services:
     tmpfs:
       - /tmp
     volumes:
-      - ../llm-assistant/models:/models:ro
+      - ${ARBORGRID_LLM_MODELS_DIR:-../llm-assistant/models}:/models:ro
     command:
       - "-m"
       - "/models/arborgrid-qwen3-1.7b-q4_k_m.gguf"
@@ -28,7 +28,7 @@ services:
       - "-np"
       - "1"
       - "-t"
-      - "6"
+      - "${LLAMA_THREADS:-2}"
       - "--reasoning"
       - "off"
       - "--reasoning-budget"

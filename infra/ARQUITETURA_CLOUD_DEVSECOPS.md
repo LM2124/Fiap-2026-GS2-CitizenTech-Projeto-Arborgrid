@@ -12,10 +12,12 @@ flowchart LR
     Airflow[Airflow 3 / Big Data] -->|Bearer Token HTTPS/HTTP| SG
     Admin[Engenheiro DevOps] -->|SSH 22 CIDR Restrito| SG
 
-    subgraph EC2[AWS EC2 t3.small — Ubuntu 24.04 — Terraform IaC]
+    subgraph EC2[AWS EC2 t3.medium — Ubuntu 24.04 — Terraform IaC]
         SG --> Nginx[Nginx Reverse Proxy :80]
         Nginx --> App[FastAPI WebApp non-root :8000]
+        App -->|Chat RAG :8080| Llama[llama.cpp Qwen3-1.7B Q4_K_M]
         Media[(Volume RO /opt/arborgrid/media)] --> App
+        LLMModel[(Volume RO /opt/arborgrid/llm_models)] --> Llama
         State[(Volume RW /app/state Gold JSON)] <--> App
         Prom[Prometheus 127.0.0.1:9090] -->|Scrape /metrics| App
         Graf[Grafana 127.0.0.1:3000] -->|Query PromQL| Prom
@@ -51,16 +53,16 @@ flowchart LR
 
 ## 4. Estimativa de Custo Mensal (AWS `us-east-1`)
 
-Valores referenciais *on-demand* (sujeitos a cobertura por créditos de estudante / Free Tier):
+Valores referenciais *on-demand* (cobertos por créditos do AWS Academy Learner Lab durante sessões ativas):
 
-| Recurso | Especificação | Custo Mensal Estimado (USD) |
-| :--- | :--- | ---: |
-| Computação EC2 | `1x t3.small` (2 vCPU, 2 GiB RAM, 730 h/mês) | ~\$15,18 |
-| Armazenamento EBS | `20 GB gp3` criptografado | ~\$1,60 |
-| IPv4 Público & Tráfego | `1x IPv4` público + ~10 GB/mês transferência | ~\$4,50 |
-| **Total Mensal Estimado** | | **~\$21,28 / mês** |
+| Recurso | Especificação | Custo Mensal 24/7 (USD) | Custo por Hora |
+| :--- | :--- | ---: | ---: |
+| Computação EC2 | `1x t3.medium` (2 vCPU, 4 GiB RAM, necessária para `Qwen3-1.7B Q4_K_M`) | ~\$30,37 | \$0,0416/h |
+| Armazenamento EBS | `30 GB gp3` criptografado | ~\$2,40 | \$0,0033/h |
+| IPv4 Público & Tráfego | `1x IPv4` público (`$0,005/h`) + ~10 GB/mês transferência | ~\$4,55 | \$0,0062/h |
+| **Total Estimado** | | **~\$37,32 / mês (730 h)** | **~\$0,051 / hora** |
 
-*Observação:* durante períodos sem demonstração ativa, o volume reduzido da imagem (`webapp/Dockerfile`) permite rodar em `t3.micro` (~\$7,59/mês *on-demand* ou elegível ao Free Tier quando aplicável) com swap de `1 GB`.
+*Observação:* quando a VM está desligada (`Stopped`) fora dos testes/demonstrações no Learner Lab, a cobrança recai apenas sobre o disco EBS (`30 GB` ≈ `~$2,40/mês`), consumindo fração mínima do orçamento de créditos do laboratório. Para execução enxuta sem inferência neural GGUF (usando *fallback* determinístico RAG), é possível reduzir para `t3.small` (~\$22,13/mês em 30 GB `gp3`).
 
 ---
 

@@ -289,14 +289,12 @@ def draw_morphology_panel(
     mask_wire: np.ndarray,
 ) -> tuple[np.ndarray, int, int, str]:
     """
-    Desenha os dois anéis ao redor da copa para ilustrar a medição geométrica de conflito:
-      - Anel laranja interno (r1 = 6 px): contato direto / muito próximo
-      - Anel amarelo externo (r2 = 24 px): faixa de aproximação (risco com vento)
-      - Fios em ciano/amarelo: trechos do cabo que cruzam cada anel
+    Desenha a zona de aproximação ao redor da copa para ilustrar a medição geométrica de conflito:
+      - Contorno amarelo externo (r2 = 24 px): faixa de aproximação (risco com vento)
+      - Fios em ciano/amarelo translúcidos: trechos do cabo em contato direto (r1 = 6 px) ou na zona de vento (r2)
     """
-    canvas = (img_bgr.astype(np.float32) * 0.48).astype(np.uint8)
     canvas = render_overlay(
-        canvas, mask_tree, mask_wire, alpha_tree=0.32, alpha_wire=0.22, wire_contour_px=1
+        img_bgr, mask_tree, mask_wire, alpha_tree=0.32, alpha_wire=0.22, wire_contour_px=1
     )
 
     r1 = THRESHOLDS["r1_contact_radius_px"]
@@ -309,14 +307,17 @@ def draw_morphology_panel(
     cnt_r2, _ = cv2.findContours(dil_r2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cv2.drawContours(canvas, cnt_r2, -1, (0, 215, 255), 1, cv2.LINE_AA)
 
-    cnt_r1, _ = cv2.findContours(dil_r1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(canvas, cnt_r1, -1, (0, 140, 255), 1, cv2.LINE_AA)
-
     contact_direct = (dil_r1 > 0) & (mask_wire > 0)
     buffer_zone = (dil_r2 > 0) & (dil_r1 == 0) & (mask_wire > 0)
 
-    canvas[buffer_zone] = (0, 230, 255)   # Amarelo nos fios dentro do anel externo
-    canvas[contact_direct] = (255, 255, 0)  # Ciano nos fios tocando o anel interno
+    if np.any(buffer_zone):
+        canvas[buffer_zone] = (
+            0.42 * canvas[buffer_zone] + 0.58 * np.array([0, 230, 255], dtype=np.float32)
+        ).astype(np.uint8)  # Amarelo translúcido nos fios dentro do anel externo
+    if np.any(contact_direct):
+        canvas[contact_direct] = (
+            0.38 * canvas[contact_direct] + 0.62 * np.array([255, 255, 0], dtype=np.float32)
+        ).astype(np.uint8)  # Ciano translúcido nos fios tocando o anel interno
 
     c_px = int(contact_direct.sum())
     b_px = int(buffer_zone.sum())

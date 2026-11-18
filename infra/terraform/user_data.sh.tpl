@@ -21,6 +21,6 @@ systemctl enable docker
 systemctl start docker
 usermod -aG docker ubuntu
 
-mkdir -p /opt/arborgrid/app /opt/arborgrid/media/images /opt/arborgrid/media/v3_overlays
+mkdir -p /opt/arborgrid/app /opt/arborgrid/media/images /opt/arborgrid/media/v3_overlays /opt/arborgrid/llm_models
 chown -R ubuntu:ubuntu /opt/arborgrid
 echo "Provisionamento ${project_name} concluido" > /var/log/arborgrid-bootstrap.log

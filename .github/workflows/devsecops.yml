@@ -124,10 +124,11 @@ jobs:
             --exclude 'arborgrid-vision/models/*.pt' \
             --exclude 'arborgrid-vision/dataset/sp_geosampa_api/images' \
             --exclude 'arborgrid-vision/dataset/sp_geosampa_api/*overlays*' \
+            --exclude 'llm-assistant/models/*.gguf' \
             -e "ssh -i ~/.ssh/deploy_key" \
             ./ "${EC2_USER}@${EC2_HOST}:/opt/arborgrid/app/"
 
-          printf 'ARBORGRID_API_TOKEN=%s\nARBORGRID_EXPOSE_MEDIA_URLS=false\nARBORGRID_MEDIA_HOST_DIR=/opt/arborgrid/media\nGRAFANA_ADMIN_USER=admin\nGRAFANA_ADMIN_PASSWORD=%s\n' \
+          printf 'ARBORGRID_API_TOKEN=%s\nARBORGRID_EXPOSE_MEDIA_URLS=false\nARBORGRID_MEDIA_HOST_DIR=/opt/arborgrid/media\nARBORGRID_LLM_MODELS_DIR=/opt/arborgrid/llm_models\nCOMPOSE_PROFILES=llm\nLLAMA_THREADS=2\nGRAFANA_ADMIN_USER=admin\nGRAFANA_ADMIN_PASSWORD=%s\n' \
             "$ARBORGRID_API_TOKEN" "$GRAFANA_ADMIN_PASSWORD" | \
             ssh -i ~/.ssh/deploy_key "${EC2_USER}@${EC2_HOST}" 'cat > /opt/arborgrid/app/infra/.env && chmod 600 /opt/arborgrid/app/infra/.env'
 

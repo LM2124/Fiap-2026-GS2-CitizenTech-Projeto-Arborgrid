@@ -68,7 +68,7 @@ A partir da posição da árvore $(\phi_t, \lambda_t)$ e da câmera veicular $(\
 - **Inclinação vertical adaptativa (`pitch`):**
   $$\alpha = \operatorname{atan2}\!\big(h_{\text{rede}} - h_{\text{cam}},\; \max(d,\; 4{,}5)\big)$$
   com $h_{\text{cam}} \approx 2{,}5\text{ m}$ (altura veicular) e $h_{\text{rede}} \approx 5{,}7\text{ m}$ (altura média dos condutores secundários/primários). O piso de $4{,}5\text{ m}$ evita inclinações extremas junto ao meio-fio.
-- **Segundo ângulo ortogonal ($\theta \pm 90^\circ$):** árvores plantadas recuadas dentro de lotes podem aparentar cruzar os cabos na visada frontal (`Painel 2` acima); a visada lateral ao longo do eixo da via (`Painel 3`, `#633197`) expõe a separação física real e permite sinalizar `DIVERGENCIA_PARALAXE`.
+- **Segundo ângulo ortogonal ($\theta \pm 90^\circ$):** mudanças de perspectiva expõem quando um cruzamento aparente em 2D resulta apenas de projeção oblíqua (`#629831` na figura acima), permitindo diferenciar contato físico confirmado de `DIVERGENCIA_PARALAXE`.
 
 ---
 
