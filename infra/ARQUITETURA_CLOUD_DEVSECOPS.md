@@ -117,6 +117,10 @@ O job `deploy-to-vm` de [`.github/workflows/devsecops.yml`](../.github/workflows
 gcloud services enable cloudresourcemanager.googleapis.com serviceusage.googleapis.com
 #    Papéis da SA do Terraform: Service Usage Admin, Service Account Admin,
 #    Workload Identity Pool Admin, Project IAM Admin e IAP Policy Admin
+#    Se o Terraform usar chave JSON de SA: organizações novas aplicam a org policy
+#    iam.disableServiceAccountKeyCreation, e é preciso sobrescrevê-la no projeto para criar a chave.
+#    O deploy do CI não usa chave (WIF): depois do apply, a policy pode voltar a valer
+#    (chaves já criadas continuam funcionando).
 
 # 1. Par de chaves dedicado ao CI
 ssh-keygen -t ed25519 -f ~/.ssh/arborgrid_ci -N "" -C arborgrid-ci
