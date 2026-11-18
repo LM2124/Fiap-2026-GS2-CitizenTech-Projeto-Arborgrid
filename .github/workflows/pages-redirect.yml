@@ -58,7 +58,7 @@ jobs:
           SECRET_HOST: ${{ secrets.VM_HOST || secrets.EC2_HOST }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           GCP_ZONE: ${{ vars.GCP_ZONE || 'us-central1-a' }}
-          GCP_VM_NAME: ${{ vars.GCP_VM_NAME || 'arborgrid-mvp-vm' }}
+          GCP_VM_NAME: ${{ vars.GCP_VM_NAME || '' }}
           GCP_AUTH_OK: ${{ steps.gcp_auth.outcome }}
           GITHUB_REPO: ${{ github.repository }}
         run: |
@@ -66,16 +66,42 @@ jobs:
           if [ -n "${INPUT_URL:-}" ]; then
             TARGET="${INPUT_URL}"
           elif [ "${GCP_AUTH_OK:-}" = "success" ]; then
+            EFFECTIVE_PROJECT="${GCP_PROJECT_ID:-${GCLOUD_PROJECT:-}}"
             PROJECT_ARG=""
-            if [ -n "${GCP_PROJECT_ID:-}" ]; then
-              PROJECT_ARG="--project=${GCP_PROJECT_ID}"
+            if [ -n "${EFFECTIVE_PROJECT:-}" ]; then
+              PROJECT_ARG="--project=${EFFECTIVE_PROJECT}"
             fi
-            VM_IP="$(gcloud compute instances describe "${GCP_VM_NAME}" \
-              ${PROJECT_ARG} \
-              --zone="${GCP_ZONE}" \
-              --format='get(networkInterfaces[0].accessConfigs[0].natIP)' 2>/dev/null || true)"
+
+            VM_IP=""
+            if [ -n "${GCP_VM_NAME:-}" ]; then
+              VM_IP="$(gcloud compute instances describe "${GCP_VM_NAME}" \
+                ${PROJECT_ARG} \
+                --zone="${GCP_ZONE}" \
+                --format='get(networkInterfaces[0].accessConfigs[0].natIP)' || true)"
+            fi
+
+            if [ -z "${VM_IP:-}" ]; then
+              VM_IP="$(gcloud compute instances list \
+                ${PROJECT_ARG} \
+                --filter="labels.project=arborgrid-citizentech AND status=RUNNING" \
+                --sort-by="~creationTimestamp" \
+                --limit=1 \
+                --format='value(networkInterfaces[0].accessConfigs[0].natIP)' || true)"
+            fi
+
+            if [ -z "${VM_IP:-}" ]; then
+              VM_IP="$(gcloud compute instances list \
+                ${PROJECT_ARG} \
+                --filter="name~'^arborgrid.*-vm$' AND status=RUNNING" \
+                --sort-by="~creationTimestamp" \
+                --limit=1 \
+                --format='value(networkInterfaces[0].accessConfigs[0].natIP)' || true)"
+            fi
+
             if [ -n "${VM_IP:-}" ]; then
               TARGET="http://${VM_IP}"
+            else
+              echo "::warning::Lookup no GCP autenticado, mas nenhuma VM RUNNING foi encontrada no projeto ${EFFECTIVE_PROJECT:-atual}."
             fi
           fi
 
