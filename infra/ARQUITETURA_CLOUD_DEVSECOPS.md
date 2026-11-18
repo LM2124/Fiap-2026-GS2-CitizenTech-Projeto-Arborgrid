@@ -112,6 +112,12 @@ O job `deploy-to-vm` de [`.github/workflows/devsecops.yml`](../.github/workflows
 **Configuração (uma vez):**
 
 ```bash
+# 0. Bootstrap (uma vez por projeto): o provider lê o projeto pela Cloud Resource Manager,
+#    e a identidade do Terraform precisa poder ativar APIs, criar SAs/pools e conceder papéis
+gcloud services enable cloudresourcemanager.googleapis.com serviceusage.googleapis.com
+#    Papéis da SA do Terraform: Service Usage Admin, Service Account Admin,
+#    Workload Identity Pool Admin, Project IAM Admin e IAP Policy Admin
+
 # 1. Par de chaves dedicado ao CI
 ssh-keygen -t ed25519 -f ~/.ssh/arborgrid_ci -N "" -C arborgrid-ci
 

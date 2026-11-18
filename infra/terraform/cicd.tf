@@ -1,6 +1,12 @@
 # Deploy automatico do GitHub Actions sem abrir a porta 22 para a internet:
 # o runner se autentica por Workload Identity Federation (sem chave JSON de longa
 # duracao) e chega na VM pelo tunel TCP do Identity-Aware Proxy (IAP).
+#
+# Pre-requisito (bootstrap manual, uma vez por projeto): as APIs
+# cloudresourcemanager.googleapis.com e serviceusage.googleapis.com precisam estar
+# ativas ANTES do apply. O provider le o projeto pela Cloud Resource Manager ao
+# gerenciar google_project_service e google_project_iam_member, entao nao da para
+# ativa-la pelo proprio Terraform (problema do ovo e da galinha).
 
 locals {
   cicd_apis = toset([
