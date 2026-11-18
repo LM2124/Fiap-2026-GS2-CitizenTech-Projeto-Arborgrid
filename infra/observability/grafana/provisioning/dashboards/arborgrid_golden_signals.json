@@ -1,5 +1,7 @@
 {
-  "annotations": { "list": [] },
+  "annotations": {
+    "list": []
+  },
   "editable": true,
   "id": null,
   "panels": [
@@ -7,7 +9,12 @@
       "id": 1,
       "title": "1. Traffic — Requisicoes por Segundo (RPS)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
       "targets": [
         {
           "expr": "sum(rate(arborgrid_http_requests_total[1m])) by (route)",
@@ -19,7 +26,12 @@
       "id": 2,
       "title": "2. Latency — P50 e P95 (segundos)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum(rate(arborgrid_http_request_duration_seconds_bucket[1m])) by (le))",
@@ -35,7 +47,12 @@
       "id": 3,
       "title": "3. Errors — Taxa de Erros 4xx/5xx (req/s)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
       "targets": [
         {
           "expr": "sum(rate(arborgrid_http_errors_total[1m])) by (error_class)",
@@ -47,7 +64,12 @@
       "id": 4,
       "title": "4. Saturation — Requisicoes Simultaneas & Memoria Residente (MB)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
       "targets": [
         {
           "expr": "arborgrid_inprogress_requests",
@@ -63,18 +85,68 @@
       "id": 5,
       "title": "Arvores GeoSampa Carregadas",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 12, "x": 0, "y": 16 },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
       "targets": [
-        { "expr": "arborgrid_trees_loaded", "legendFormat": "Trees" }
+        {
+          "expr": "arborgrid_trees_loaded",
+          "legendFormat": "Trees"
+        }
       ]
     },
     {
       "id": 6,
       "title": "Registros Sincronizados da Camada Gold (Big Data)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 16 },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
       "targets": [
-        { "expr": "arborgrid_gold_scores_loaded", "legendFormat": "Gold Scores" }
+        {
+          "expr": "arborgrid_gold_scores_loaded",
+          "legendFormat": "Gold Scores"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Assistente — Respostas por Modo (LLM x Fallback)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(arborgrid_assistant_responses_total[15m])) by (mode)",
+          "legendFormat": "{{mode}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Assistente — Motivos de Fallback do LLM",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(arborgrid_llm_fallback_total[15m])) by (reason)",
+          "legendFormat": "{{reason}}"
+        }
       ]
     }
   ],
@@ -82,5 +154,5 @@
   "schemaVersion": 39,
   "title": "ArborGrid — 4 Golden Signals & Telemetria MVP",
   "uid": "arborgrid-golden-signals",
-  "version": 1
+  "version": 2
 }

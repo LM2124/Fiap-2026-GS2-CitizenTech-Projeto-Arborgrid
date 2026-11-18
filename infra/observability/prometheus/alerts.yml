@@ -1,25 +1,52 @@
 groups:
   - name: arborgrid_golden_signals_alerts
     rules:
-      - alert: ArborGridHighClientErrorRate
-        expr: sum(rate(arborgrid_http_errors_total{error_class=~"4xx|5xx"}[1m])) > 0.2
-        for: 15s
-        labels:
-          severity: warning
-          service: arborgrid-webapp
-        annotations:
-          summary: "Taxa elevada de erros HTTP na API ArborGrid"
-          description: "Erros HTTP (4xx/5xx) acima de 0.2 req/s nos ultimos 60 segundos."
-
-      - alert: ArborGridHighLatencyP95
-        expr: histogram_quantile(0.95, sum(rate(arborgrid_http_request_duration_seconds_bucket[5m])) by (le)) > 0.5
+      # Errors: proporcao de respostas 5xx (falha do servico), nao contagem absoluta
+      - alert: ArborGridHigh5xxRatio
+        expr: |
+          sum(rate(arborgrid_http_requests_total{status_code=~"5.."}[5m]))
+            / clamp_min(sum(rate(arborgrid_http_requests_total[5m])), 1e-9) > 0.05
         for: 1m
         labels:
           severity: critical
           service: arborgrid-webapp
         annotations:
-          summary: "Latencia P95 acima de 500ms no ArborGrid"
-          description: "O percentil 95 de latencia HTTP excedeu 0.5s por mais de 1 minuto."
+          summary: "Mais de 5% das respostas da API ArborGrid sao erros 5xx"
+          description: "Proporcao de respostas 5xx acima de 5% nos ultimos 5 minutos."
+
+      # Seguranca: rajada de 401 indica varredura ou forca bruta no Bearer token
+      - alert: ArborGridAuthFailuresSpike
+        expr: sum(rate(arborgrid_http_requests_total{status_code="401"}[1m])) > 0.2
+        for: 15s
+        labels:
+          severity: warning
+          service: arborgrid-webapp
+        annotations:
+          summary: "Rajada de requisicoes sem credencial valida (HTTP 401)"
+          description: "Mais de 0.2 req/s com 401 nas rotas autenticadas (Big Data) no ultimo minuto."
+
+      # Latency: rotas interativas, excluindo o LLM e o download do modelo ONNX (lentos por natureza)
+      - alert: ArborGridHighLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(arborgrid_http_request_duration_seconds_bucket{route!~"/api/v1/assistant/ask|/api/v1/vision/model.onnx"}[5m]))) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+          service: arborgrid-webapp
+        annotations:
+          summary: "Latencia P95 acima de 500 ms nas rotas interativas"
+          description: "P95 das rotas (exceto assistente e modelo ONNX) acima de 0.5 s por 2 minutos."
+
+      - alert: ArborGridAssistantLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(arborgrid_http_request_duration_seconds_bucket{route="/api/v1/assistant/ask"}[10m]))) > 25
+        for: 5m
+        labels:
+          severity: warning
+          service: arborgrid-webapp
+        annotations:
+          summary: "Assistente com P95 acima de 25 s"
+          description: "Respostas do assistente acima do timeout do LLM; o fallback deterministico deve estar sendo usado."
 
       - alert: ArborGridServiceDown
         expr: up{job="arborgrid-webapp"} == 0
