@@ -28,7 +28,7 @@ export function Navbar({
         <button
           type="button"
           onClick={() => onSelectTab("bi")}
-          className="text-left focus:outline-none"
+          className="rounded text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]"
         >
           <div className="flex items-baseline gap-2.5">
             <span className="text-lg font-bold tracking-tight text-[#1B4332]">
@@ -53,8 +53,9 @@ export function Navbar({
               <button
                 key={item.id}
                 type="button"
+                aria-current={active ? "page" : undefined}
                 onClick={() => onSelectTab(item.id)}
-                className={`rounded px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm ${
+                className={`rounded px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F] sm:text-sm ${
                   active
                     ? "bg-[#1B4332] text-white"
                     : "text-[#2D4234] hover:bg-[#E7EFE4] hover:text-[#18241B]"

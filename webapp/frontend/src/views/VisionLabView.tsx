@@ -259,6 +259,13 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
         </div>
       </div>
 
+      <div
+        role="note"
+        className="rounded-md border border-[#FDE68A] bg-[#FFFBEB] px-4 py-2.5 text-xs text-[#92400E]"
+      >
+        <strong>IA Responsável:</strong> triagem visual automática executada no navegador (suas fotos não saem do dispositivo) — não substitui vistoria técnica presencial. Em emergência: <strong>Enel 0800 72 72 196</strong> · <strong>Bombeiros 193</strong> · <strong>Defesa Civil 199</strong>.
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Coluna Esquerda: Amostras + Drag-and-Drop + Camadas */}
         <div className="space-y-4 lg:col-span-4">
@@ -286,23 +293,23 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
                   >
                     <img
                       src={s.image_url}
-                      alt={s.region_label}
+                      alt={`Amostra Street View árvore GeoSampa #${s.geosampa_id} (${s.region_label})`}
                       className="h-24 w-full object-cover"
                     />
                     <div className="p-2">
                       <div className="flex items-center justify-between gap-1">
-                        <span className="font-mono text-[11px] font-semibold text-[#18241B]">
+                        <span className="font-mono text-xs font-semibold text-[#18241B]">
                           #{s.geosampa_id}
                         </span>
                         <span
-                          className={`rounded border px-1 py-0.5 text-[9px] font-semibold ${
+                          className={`rounded border px-1 py-0.5 text-xs font-semibold ${
                             BADGE_CLASS[s.reference_v3.triage] ?? BADGE_CLASS.SEGURO
                           }`}
                         >
                           {formatMacroTriageShort(s.reference_v3.triage)}
                         </span>
                       </div>
-                      <p className="mt-0.5 truncate text-[11px] text-[#4A5D4E]">{s.distrito}</p>
+                      <p className="mt-0.5 truncate text-xs text-[#4A5D4E]">{s.distrito}</p>
                     </div>
                   </button>
                 );
@@ -359,30 +366,32 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
               <span>{running ? "Analisando foto..." : "2. Analisar Foto"}</span>
             </button>
 
-            {loadingText && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between gap-2 text-xs text-[#2D4234]">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1B4332]" />
-                    <span>{loadingText}</span>
-                  </span>
-                  <span>{progressPct}%</span>
+            <div aria-live="polite" className="space-y-3">
+              {loadingText && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2 text-xs text-[#2D4234]">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1B4332]" />
+                      <span>{loadingText}</span>
+                    </span>
+                    <span>{progressPct}%</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded bg-[#E6ECE3]">
+                    <div
+                      className="h-full bg-[#2D6A4F] transition-all duration-200"
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded bg-[#E6ECE3]">
-                  <div
-                    className="h-full bg-[#2D6A4F] transition-all duration-200"
-                    style={{ width: `${progressPct}%` }}
-                  />
-                </div>
-              </div>
-            )}
+              )}
 
-            {errorMsg && (
-              <div className="flex items-start gap-2 rounded border border-[#FECACA] bg-[#FEF2F2] p-3 text-xs text-[#991B1B]">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
+              {errorMsg && (
+                <div className="flex items-start gap-2 rounded border border-[#FECACA] bg-[#FEF2F2] p-3 text-xs text-[#991B1B]">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+            </div>
 
             <div className="space-y-3 border-t border-[#E6ECE3] pt-3">
               <span className="block text-xs font-semibold text-[#18241B]">
@@ -466,7 +475,7 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
                   </label>
                 ))}
               </div>
-              <p className="flex items-center gap-1.5 text-[11px] leading-snug text-[#4A5D4E]">
+              <p className="flex items-center gap-1.5 text-xs leading-snug text-[#4A5D4E]">
                 <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-[#dc2626]" />
                 <span>
                   Com <strong>Copa</strong> e <strong>Fiação</strong> ativas, a sobreposição direta
@@ -506,7 +515,7 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
                   "Selecione uma imagem ou arraste para cá"
                 )}
               </div>
-              <span className="text-[11px] text-[#4A5D4E]">
+              <span className="text-xs text-[#4A5D4E]">
                 Arraste outra foto para esta área ou escolha um exemplo ao lado
               </span>
             </div>

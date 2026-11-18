@@ -596,3 +596,32 @@ def test_metrics_assistant_and_low_cardinality_route_labels(tmp_path: Path) -> N
         assert r_metrics.status_code == 200
         assert "arborgrid_assistant_responses_total" in r_metrics.text
         assert "nao-existe-xyz" not in r_metrics.text
+
+
+def test_public_map_bootstrap_omits_audit_actor_hash(tmp_path: Path) -> None:
+    headers = {"Authorization": "Bearer test-secret-token"}
+    with _make_client(tmp_path) as client:
+        batch = {
+            "batch_id": "batch-lgpd-check",
+            "records": [
+                {
+                    "geosampa_id": "612162",
+                    "distrito": "PINHEIROS",
+                    "composite_risk_score": 82.0,
+                    "priority_tier": "ALTA",
+                    "recommended_action": "Vistoria preventiva",
+                    "audit_actor_hash": "sha256-operador-privado",
+                }
+            ],
+        }
+        assert client.post("/api/v1/gold/risk-scores", json=batch, headers=headers).status_code == 200
+
+        r_pub = client.get("/api/v1/public/map-bootstrap")
+        assert r_pub.status_code == 200
+        gold_public = r_pub.json()["gold_records"]
+        assert len(gold_public) == 1
+        assert "audit_actor_hash" not in gold_public[0]
+
+        r_priv = client.get("/api/v1/gold/risk-scores", headers=headers)
+        assert r_priv.status_code == 200
+        assert r_priv.json()["items"][0]["audit_actor_hash"] == "sha256-operador-privado"

@@ -82,7 +82,10 @@ def public_map_bootstrap(request: Request) -> dict:
         gold_scores=gold.records,
         gold_summary=gold.summary(),
     )
-    payload["gold_records"] = gold.list_records()
+    payload["gold_records"] = [
+        {k: v for k, v in rec.items() if k != "audit_actor_hash"}
+        for rec in gold.list_records()
+    ]
     return payload
 
 

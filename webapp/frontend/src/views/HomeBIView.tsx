@@ -365,7 +365,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                     <td className="px-3 py-3 text-xs text-[#3D4F41]">{rec.distrito}</td>
                     <td className="px-3 py-3">
                       <span
-                        className={`inline-block rounded border px-2 py-0.5 text-[11px] font-semibold ${
+                        className={`inline-block rounded border px-2 py-0.5 text-xs font-semibold ${
                           PRIORITY_BADGE[rec.priority_tier] ?? PRIORITY_BADGE.BAIXA
                         }`}
                       >

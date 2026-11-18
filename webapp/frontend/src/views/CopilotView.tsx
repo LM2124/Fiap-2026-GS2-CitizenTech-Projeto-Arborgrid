@@ -172,18 +172,29 @@ export function CopilotView({
         </div>
       </div>
 
+      <div
+        role="note"
+        className="rounded-md border border-[#FDE68A] bg-[#FFFBEB] px-4 py-2.5 text-xs text-[#92400E]"
+      >
+        <strong>IA Responsável:</strong> triagem automática — não substitui vistoria técnica presencial. Em emergência elétrica ou risco iminente: <strong>Enel 0800 72 72 196</strong> · <strong>Bombeiros 193</strong> · <strong>Defesa Civil 199</strong>.
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Coluna Esquerda: Pergunta + Resposta */}
         <div className="flex h-[640px] flex-col rounded-md border border-[#D5E0D1] bg-white lg:col-span-7">
           <div className="space-y-3 border-b border-[#E6ECE3] p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <label className="text-xs font-medium text-[#4A5D4E]">
+              <label
+                htmlFor="assistant-tree-select"
+                className="text-xs font-medium text-[#4A5D4E]"
+              >
                 Vincular árvore cadastrada (opcional):
               </label>
               <select
+                id="assistant-tree-select"
                 value={selectedTreeId}
                 onChange={(e) => setSelectedTreeId(e.target.value)}
-                className="flex-1 rounded border border-[#D5E0D1] bg-[#F6F8F5] px-3 py-1.5 text-xs text-[#18241B] focus:border-[#2D6A4F] focus:bg-white focus:outline-none"
+                className="flex-1 rounded border border-[#D5E0D1] bg-[#F6F8F5] px-3 py-1.5 text-xs text-[#18241B] focus:border-[#2D6A4F] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]"
               >
                 <option value="">Sem árvore específica (dúvida geral)</option>
                 {selectedTreeId && !criticalSampleTrees.some((t) => t.geosampa_id === selectedTreeId) && (
@@ -203,7 +214,7 @@ export function CopilotView({
                   key={idx}
                   type="button"
                   onClick={() => submitQuestion(prompt)}
-                  className="rounded border border-[#D5E0D1] bg-[#FAFBF9] px-2.5 py-1 text-left text-[11px] text-[#2D4234] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC]"
+                  className="rounded border border-[#D5E0D1] bg-[#FAFBF9] px-2.5 py-1 text-left text-xs text-[#2D4234] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC]"
                 >
                   {prompt}
                 </button>
@@ -211,7 +222,11 @@ export function CopilotView({
             </div>
           </div>
 
-          <div ref={chatContainerRef} className="flex-1 space-y-4 overflow-y-auto bg-[#FAFBF9] p-4">
+          <div
+            ref={chatContainerRef}
+            aria-live="polite"
+            className="flex-1 space-y-4 overflow-y-auto bg-[#FAFBF9] p-4"
+          >
             {turns.length === 0 && (
               <div className="flex h-full flex-col items-center justify-center text-center text-[#4A5D4E]">
                 <p className="text-sm font-semibold text-[#18241B]">
@@ -246,21 +261,21 @@ export function CopilotView({
                     <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className={`rounded border px-2 py-0.5 text-[10px] font-bold ${riskMeta.cls}`}
+                          className={`rounded border px-2 py-0.5 text-xs font-bold ${riskMeta.cls}`}
                         >
                           {riskMeta.label}
                         </span>
-                        <span className="rounded border border-[#D5E0D1] bg-[#F6F8F5] px-2 py-0.5 text-[10px] font-medium text-[#4A5D4E]">
+                        <span className="rounded border border-[#D5E0D1] bg-[#F6F8F5] px-2 py-0.5 text-xs font-medium text-[#4A5D4E]">
                           Análise IA · {formatDurationSeconds(turn.response?.latency_ms)}
                         </span>
                       </div>
                       {s.pode_podar_por_conta === false && (
-                        <span className="text-[11px] font-semibold text-[#991B1B]">
+                        <span className="text-xs font-semibold text-[#991B1B]">
                           Proibida poda por conta própria em área pública
                         </span>
                       )}
                       {s.pode_podar_por_conta === true && (
-                        <span className="text-[11px] font-semibold text-[#92400E]">
+                        <span className="text-xs font-semibold text-[#92400E]">
                           Área privada: laudo ART + aviso 10 dias úteis
                         </span>
                       )}
@@ -286,11 +301,11 @@ export function CopilotView({
 
                   {s && s.fontes.length > 0 && (
                     <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                      <span className="text-[11px] text-[#4A5D4E]">Fontes normativas:</span>
+                      <span className="text-xs text-[#4A5D4E]">Fontes normativas:</span>
                       {s.fontes.map((fid) => (
                         <span
                           key={fid}
-                          className="rounded border border-[#C6DBC0] bg-[#EEF4EC] px-1.5 py-0.5 font-mono text-[10px] font-semibold text-[#1B4332]"
+                          className="rounded border border-[#C6DBC0] bg-[#EEF4EC] px-1.5 py-0.5 font-mono text-xs font-semibold text-[#1B4332]"
                         >
                           [{fid}]
                         </span>
@@ -320,8 +335,9 @@ export function CopilotView({
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              aria-label="Pergunta para o assistente normativo"
               placeholder="Pergunte sobre poda, fiação caída, SP156, Enel ou informe um número GeoSampa..."
-              className="flex-1 rounded border border-[#D5E0D1] bg-[#F6F8F5] px-4 py-2.5 text-sm text-[#18241B] placeholder-[#6B7D70] focus:border-[#2D6A4F] focus:bg-white focus:outline-none"
+              className="flex-1 rounded border border-[#D5E0D1] bg-[#F6F8F5] px-4 py-2.5 text-sm text-[#18241B] placeholder-[#6B7D70] focus:border-[#2D6A4F] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]"
             />
             <button
               type="submit"
@@ -362,7 +378,7 @@ export function CopilotView({
                     <span className="font-mono font-bold text-[#1B4332]">
                       GeoSampa #{activeEvidence.tree_context.geosampa_id}
                     </span>
-                    <span className="rounded border border-[#C6DBC0] bg-white px-2 py-0.5 text-[10px] font-semibold text-[#18241B]">
+                    <span className="rounded border border-[#C6DBC0] bg-white px-2 py-0.5 text-xs font-semibold text-[#18241B]">
                       {formatTriageLabel(activeEvidence.tree_context.triage_consolidated)}
                     </span>
                   </div>
@@ -371,7 +387,7 @@ export function CopilotView({
                     {activeEvidence.tree_context.subprefeitura} · SISGAU:{" "}
                     {activeEvidence.tree_context.sisgau_last_inspection || "Sem registro"}
                   </p>
-                  <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-[#18241B]">
+                  <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-[#18241B]">
                     <div>
                       Contato direto:{" "}
                       <strong>
@@ -429,12 +445,12 @@ export function CopilotView({
                       <span className="font-mono font-bold text-[#1B4332]">
                         [{chunk.chunk_id}]
                       </span>
-                      <span className="font-mono text-[11px] text-[#4A5D4E]">
+                      <span className="font-mono text-xs text-[#4A5D4E]">
                         relevância {(chunk.score * 100).toFixed(0)}% {chunk.cited ? "· Citado" : ""}
                       </span>
                     </div>
                     <p className="mt-1 font-semibold text-[#18241B]">{chunk.titulo}</p>
-                    <p className="text-[11px] text-[#4A5D4E]">{chunk.fonte}</p>
+                    <p className="text-xs text-[#4A5D4E]">{chunk.fonte}</p>
                     <p className="mt-1.5 leading-relaxed text-[#3D4F41]">{chunk.conteudo}</p>
                   </div>
                 ))}

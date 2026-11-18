@@ -286,7 +286,7 @@ export function OperationalMapView({
           <div ref={mapContainerRef} className="h-[680px] w-full" />
 
           {/* Legenda discreta */}
-          <div className="pointer-events-none absolute bottom-3 left-3 z-[400] rounded border border-[#D5E0D1] bg-white/95 px-3.5 py-2.5 text-[11px] text-[#18241B]">
+          <div className="pointer-events-none absolute bottom-3 left-3 z-[400] rounded border border-[#D5E0D1] bg-white/95 px-3.5 py-2.5 text-xs text-[#18241B]">
             <div className="mb-1 font-semibold text-[#1B4332]">
               Exibindo {filteredTrees.length} de {data.trees.length} árvores
             </div>
@@ -333,7 +333,7 @@ export function OperationalMapView({
                         Árvore GeoSampa #{selectedTree.geosampa_id}
                       </h3>
                       <span
-                        className={`rounded border px-2 py-0.5 text-[11px] font-semibold ${
+                        className={`rounded border px-2 py-0.5 text-xs font-semibold ${
                           TRIAGE_BADGE_CLS[selectedTree.v3_triage.consolidated] ??
                           TRIAGE_BADGE_CLS.SEGURO
                         }`}
@@ -358,7 +358,7 @@ export function OperationalMapView({
                 {(selectedTree.v3_triage.has_paralax_divergence || selectedGold) && (
                   <div className="grid gap-2 sm:grid-cols-2">
                     {selectedTree.v3_triage.has_paralax_divergence && (
-                      <div className="flex items-start gap-2 rounded border border-[#FDE68A] bg-[#FFFBEB] p-2.5 text-[11px] leading-snug text-[#92400E]">
+                      <div className="flex items-start gap-2 rounded border border-[#FDE68A] bg-[#FFFBEB] p-2.5 text-xs leading-snug text-[#92400E]">
                         <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                         <div>
                           <strong>Diferença entre ângulos:</strong> frontal{" "}
@@ -371,7 +371,7 @@ export function OperationalMapView({
 
                     {selectedGold && (
                       <div
-                        className={`rounded border border-[#C6DBC0] bg-[#EEF4EC] p-2.5 text-[11px] leading-snug ${
+                        className={`rounded border border-[#C6DBC0] bg-[#EEF4EC] p-2.5 text-xs leading-snug ${
                           selectedTree.v3_triage.has_paralax_divergence ? "" : "sm:col-span-2"
                         }`}
                       >
@@ -403,7 +403,7 @@ export function OperationalMapView({
                     <h4 className="text-xs font-semibold uppercase tracking-wide text-[#4A5D4E]">
                       Ângulos da via ({selectedTree.views.length})
                     </h4>
-                    <span className="text-[11px] text-[#4A5D4E]">
+                    <span className="text-xs text-[#4A5D4E]">
                       Fontes: GeoSampa/SISGAU · Google Street View
                     </span>
                   </div>
@@ -426,7 +426,7 @@ export function OperationalMapView({
                               </span>
                             </span>
                             <span
-                              className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
+                              className={`rounded border px-1.5 py-0.5 text-xs font-semibold ${
                                 TRIAGE_BADGE_CLS[v3.triage] ?? TRIAGE_BADGE_CLS.SEGURO
                               }`}
                             >
@@ -442,7 +442,7 @@ export function OperationalMapView({
                             />
                           )}
 
-                          <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[11px] text-[#4A5D4E]">
+                          <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs text-[#4A5D4E]">
                             <div>
                               Contato:{" "}
                               <strong className="text-[#18241B]">
@@ -478,7 +478,7 @@ export function OperationalMapView({
                               href={view.google_maps_url}
                               target="_blank"
                               rel="noreferrer"
-                              className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-[#1B4332] hover:underline"
+                              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-[#1B4332] hover:underline"
                             >
                               <span>Abrir no Google Street View</span>
                               <ExternalLink className="h-3 w-3" />
@@ -515,7 +515,7 @@ export function OperationalMapView({
                 <div>
                   <label
                     htmlFor="map-search-input"
-                    className="mb-1 block text-[11px] font-medium text-[#4A5D4E]"
+                    className="mb-1 block text-xs font-medium text-[#4A5D4E]"
                   >
                     Buscar árvore ou bairro
                   </label>
@@ -527,7 +527,7 @@ export function OperationalMapView({
                       value={searchId}
                       onChange={(e) => setSearchId(e.target.value)}
                       placeholder="ID ou bairro (ex: #635210)..."
-                      className="w-full rounded border border-[#D5E0D1] bg-[#F6F8F5] py-1.5 pl-8 pr-3 text-xs text-[#18241B] placeholder-[#6B7D70] focus:border-[#2D6A4F] focus:bg-white focus:outline-none"
+                      className="w-full rounded border border-[#D5E0D1] bg-[#F6F8F5] py-1.5 pl-8 pr-3 text-xs text-[#18241B] placeholder-[#6B7D70] focus:border-[#2D6A4F] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]"
                     />
                   </div>
                 </div>
@@ -535,7 +535,7 @@ export function OperationalMapView({
                 <div>
                   <label
                     htmlFor="map-triage-select"
-                    className="mb-1 block text-[11px] font-medium text-[#4A5D4E]"
+                    className="mb-1 block text-xs font-medium text-[#4A5D4E]"
                   >
                     Situação identificada
                   </label>
@@ -543,7 +543,7 @@ export function OperationalMapView({
                     id="map-triage-select"
                     value={triageFilter}
                     onChange={(e) => setTriageFilter(e.target.value)}
-                    className="w-full rounded border border-[#D5E0D1] bg-[#F6F8F5] px-3 py-1.5 text-xs text-[#18241B] focus:border-[#2D6A4F] focus:bg-white focus:outline-none"
+                    className="w-full rounded border border-[#D5E0D1] bg-[#F6F8F5] px-3 py-1.5 text-xs text-[#18241B] focus:border-[#2D6A4F] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]"
                   >
                     <option value="all">Todas as situações</option>
                     <option value="CRITICO">Risco Crítico (Todos)</option>
@@ -558,13 +558,13 @@ export function OperationalMapView({
               {/* Camada do mapa à esquerda · Com Prioridade Climática à direita */}
               <div className="flex flex-wrap items-center justify-between gap-2 border-y border-[#E6ECE3] py-2.5">
                 <div className="flex flex-wrap items-center gap-1">
-                  <span className="mr-1 text-[11px] font-medium text-[#4A5D4E]">Camada:</span>
+                  <span className="mr-1 text-xs font-medium text-[#4A5D4E]">Camada:</span>
                   {(Object.keys(BASE_TILES) as BaseMapKind[]).map((kind) => (
                     <button
                       key={kind}
                       type="button"
                       onClick={() => setBaseMap(kind)}
-                      className={`rounded border px-2 py-1 text-[11px] font-medium transition-colors ${
+                      className={`rounded border px-2 py-1 text-xs font-medium transition-colors ${
                         baseMap === kind
                           ? "border-[#1B4332] bg-[#1B4332] text-white"
                           : "border-[#D5E0D1] bg-[#F6F8F5] text-[#2D4234] hover:bg-[#E7EFE4]"
@@ -578,7 +578,7 @@ export function OperationalMapView({
                 <button
                   type="button"
                   onClick={() => setOnlyGold((v) => !v)}
-                  className={`rounded border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  className={`rounded border px-2.5 py-1 text-xs font-medium transition-colors ${
                     onlyGold
                       ? "border-[#1B4332] bg-[#1B4332] text-white"
                       : "border-[#D5E0D1] bg-white text-[#2D4234] hover:bg-[#EEF4EC]"
@@ -596,12 +596,12 @@ export function OperationalMapView({
                     <button
                       type="button"
                       onClick={() => setRegionFilter("all")}
-                      className="text-[11px] font-medium text-[#1B4332] hover:underline"
+                      className="text-xs font-medium text-[#1B4332] hover:underline"
                     >
                       Ver todas ({data.trees.length})
                     </button>
                   ) : (
-                    <span className="text-[11px] text-[#4A5D4E]">
+                    <span className="text-xs text-[#4A5D4E]">
                       Clique para centralizar e filtrar
                     </span>
                   )}
@@ -618,7 +618,7 @@ export function OperationalMapView({
                     }`}
                   >
                     <span className="font-semibold">Todas as regiões de estudo</span>
-                    <span className="text-[11px] text-[#4A5D4E]">
+                    <span className="text-xs text-[#4A5D4E]">
                       {data.stats.total_trees} árvores avaliadas ·{" "}
                       {data.stats.tree_triage_counts.CRITICO ?? 0} críticas
                     </span>
@@ -646,7 +646,7 @@ export function OperationalMapView({
                             {reg.region_label}
                           </span>
                           <span
-                            className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium ${
+                            className={`shrink-0 rounded border px-1.5 py-0.5 text-xs font-medium ${
                               reg.is_negative_control
                                 ? "border-[#D5E0D1] bg-white text-[#4A5D4E]"
                                 : "border-[#C6DBC0] bg-white text-[#1B4332]"
@@ -656,7 +656,7 @@ export function OperationalMapView({
                           </span>
                         </div>
 
-                        <div className="mt-1.5 grid grid-cols-4 gap-2 text-[11px]">
+                        <div className="mt-1.5 grid grid-cols-4 gap-2 text-xs">
                           <div>
                             <span className="text-[#4A5D4E]">Avaliadas</span>
                             <p className="font-semibold tabular-nums text-[#18241B]">

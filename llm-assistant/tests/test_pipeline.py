@@ -85,6 +85,10 @@ def test_geosampa_inspector_real_tree_lookup() -> None:
     assert rec2 is not None and ctx2 is not None
     assert rec2["triage_v3"] == "CRITICO_CONFIRMADO"
 
+    # CRITICO_CONFIRMADO / DIVERGENCIA_PARALAXE devem entrar nos contadores CRITICO por distrito
+    assert inspector.district_counts["PINHEIROS"]["CRITICO"] > 0
+    assert sum(b["CRITICO"] for b in inspector.district_counts.values()) == 106
+
 
 def test_post_generation_filters_sanitize_sources_and_risk_floor() -> None:
     chunks = [{"chunk_id": "NBR-16246-2"}, {"chunk_id": "ENEL-EMERG-01"}]

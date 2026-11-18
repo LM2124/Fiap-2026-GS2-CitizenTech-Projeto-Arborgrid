@@ -115,6 +115,12 @@ export function App() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F6F8F5] text-[#18241B]">
+      <a
+        href="#conteudo-principal"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-[#1B4332] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
+      >
+        Pular para o conteúdo
+      </a>
       <Navbar
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
@@ -141,7 +147,7 @@ export function App() {
             </button>
           </div>
         ) : data ? (
-          <main className="pb-12">
+          <main id="conteudo-principal" tabIndex={-1} className="pb-12 focus:outline-none">
             {activeTab === "bi" && (
               <HomeBIView
                 data={data}

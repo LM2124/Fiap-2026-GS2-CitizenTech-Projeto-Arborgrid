@@ -39,8 +39,13 @@ class ArborGridInspector:
                 )
                 bucket["total"] += 1
                 triage = self._aggregate_triage(tree)
-                if triage in bucket:
-                    bucket[triage] += 1
+                macro = (
+                    "CRITICO"
+                    if triage in {"CRITICO", "CRITICO_CONFIRMADO", "CRITICO_MONO_VISADA", "DIVERGENCIA_PARALAXE"}
+                    else triage
+                )
+                if macro in bucket:
+                    bucket[macro] += 1
 
     @staticmethod
     def _aggregate_triage(tree: dict[str, Any]) -> str:

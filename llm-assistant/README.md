@@ -231,6 +231,15 @@ uv run python scripts/build_smol_vs_qwen_chart.py
 
 ### Integração em Produção (`webapp/`)
 - O serviço [`webapp/app/services/assistant_service.py`](../webapp/app/services/assistant_service.py) expõe **`POST /api/v1/assistant/ask`** e **`GET /api/v1/assistant/status`**, conectando o `manifest.json` + scores Gold ao `llama-server` (`arborgrid-qwen3-1.7b-q4_k_m.gguf`) na tela [`CopilotView.tsx`](../webapp/frontend/src/views/CopilotView.tsx).
+- **Consistência entre treino e produção:** a cópia [`webapp/data/knowledge_base.jsonl`](../webapp/data/knowledge_base.jsonl) preserva os mesmos `16` `chunk_id`s da base canônica [`base/knowledge_base.jsonl`](base/knowledge_base.jsonl), adaptando apenas o trecho `ARBORGRID-TRIAGEM` e o `SYSTEM_PROMPT` para linguagem cidadã (*"sem códigos internos em caixa alta"* como `CRITICO_MONO_VISADA` na resposta exibida ao morador).
+- **Exemplo real de chamada HTTP à API (`POST /api/v1/assistant/ask`):**
+
+```bash
+curl -sS -X POST http://localhost/api/v1/assistant/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Galho encostando em fio soltando faiscas na calcada. Quem chamar?"}'
+```
+
 - **Privacidade e guarda de fontes:** a API mascara CPF, CNPJ, placa, telefone e e-mail na pergunta antes que chegue ao LLM e antes de ecoá-la de volta ([`webapp/app/privacy.py`](../webapp/app/privacy.py)), e qualquer resposta do LLM cujas fontes não estejam entre os trechos recuperados é descartada em favor do motor determinístico (sem citações fabricadas).
 
 ### Conclusão
