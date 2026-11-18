@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  security-events: write
+  pull-requests: read  # gitleaks-action lista os commits do PR (sem isso: HTTP 403 em todo pull_request)
 
 jobs:
   test-and-secrets-scan:
@@ -83,58 +83,107 @@ jobs:
           severity: "CRITICAL,HIGH"
 
   deploy-to-vm:
-    name: Deploy Automatico VM (Docker Compose)
+    name: Deploy Automatico VM (IAP + Docker Compose)
     needs: container-and-iac-security
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-24.04
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write  # token OIDC para o Workload Identity Federation (sem chave JSON)
+    env:
+      GCP_ZONE: ${{ vars.GCP_ZONE || 'us-central1-a' }}
+      VM_NAME: ${{ vars.GCP_VM_NAME || 'arborgrid-vm' }}
+      VM_USER: ${{ vars.VM_USER || 'ubuntu' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Validate required deploy secrets
+      - name: Validate deploy configuration
         env:
-          VM_HOST: ${{ secrets.VM_HOST || secrets.EC2_HOST }}
-          VM_USER: ${{ secrets.VM_USER || secrets.EC2_USER }}
-          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY || secrets.EC2_SSH_KEY }}
+          GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
+          GCP_DEPLOY_SA: ${{ secrets.GCP_DEPLOY_SA }}
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          VM_KNOWN_HOSTS: ${{ secrets.VM_KNOWN_HOSTS }}
         run: |
-          if [ -z "${VM_HOST:-}" ] || [ -z "${VM_USER:-}" ] || [ -z "${VM_SSH_KEY:-}" ]; then
-            echo "::warning::Secrets VM_HOST/VM_USER/VM_SSH_KEY (ou EC2_*) nao configurados; pulando etapa de deploy remoto."
-            exit 0
+          missing=""
+          for name in GCP_WIF_PROVIDER GCP_DEPLOY_SA VM_SSH_KEY VM_KNOWN_HOSTS; do
+            [ -n "${!name:-}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Secrets de deploy ausentes:$missing (ver infra/ARQUITETURA_CLOUD_DEVSECOPS.md)."
+            exit 1
           fi
-          echo "DEPLOY_READY=true" >> "$GITHUB_ENV"
 
-      - name: Configure SSH and sync codebase + .env
-        if: env.DEPLOY_READY == 'true'
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SA }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure SSH through the IAP tunnel
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_KEY || secrets.EC2_SSH_KEY }}
-          VM_HOST: ${{ secrets.VM_HOST || secrets.EC2_HOST }}
-          VM_USER: ${{ secrets.VM_USER || secrets.EC2_USER }}
-          ARBORGRID_API_TOKEN: ${{ secrets.ARBORGRID_API_TOKEN }}
-          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_KEY }}
+          VM_KNOWN_HOSTS: ${{ secrets.VM_KNOWN_HOSTS }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts
+          # Chave de host fixada (sem ssh-keyscan/TOFU): linhas no formato "arborgrid-vm ssh-ed25519 AAAA..."
+          printf '%s\n' "$VM_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host arborgrid-vm
+            HostName ${VM_NAME}
+            HostKeyAlias arborgrid-vm
+            User ${VM_USER}
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ProxyCommand gcloud compute start-iap-tunnel ${VM_NAME} 22 --listen-on-stdin --zone=${GCP_ZONE} --verbosity=warning
+          EOF
+          chmod 600 ~/.ssh/config
+          ssh arborgrid-vm 'echo "Conexao IAP OK: $(hostname)"'
 
+      - name: Sync codebase to the VM
+        run: |
           rsync -az --delete \
             --exclude '.git' \
             --exclude '.venv' \
+            --exclude 'infra/.env' \
             --exclude 'webapp/frontend/node_modules' \
             --exclude 'arborgrid-vision/models/*.pt' \
             --exclude 'arborgrid-vision/dataset/sp_geosampa_api/images' \
             --exclude 'arborgrid-vision/dataset/sp_geosampa_api/*overlays*' \
             --exclude 'llm-assistant/models/*.gguf' \
-            -e "ssh -i ~/.ssh/deploy_key" \
-            ./ "${VM_USER}@${VM_HOST}:/opt/arborgrid/app/"
+            ./ arborgrid-vm:/opt/arborgrid/app/
 
-          printf 'ARBORGRID_API_TOKEN=%s\nARBORGRID_EXPOSE_MEDIA_URLS=false\nARBORGRID_MEDIA_HOST_DIR=/opt/arborgrid/media\nARBORGRID_LLM_MODELS_DIR=/opt/arborgrid/llm_models\nCOMPOSE_PROFILES=llm\nLLAMA_THREADS=2\nGRAFANA_ADMIN_USER=admin\nGRAFANA_ADMIN_PASSWORD=%s\n' \
-            "$ARBORGRID_API_TOKEN" "$GRAFANA_ADMIN_PASSWORD" | \
-            ssh -i ~/.ssh/deploy_key "${VM_USER}@${VM_HOST}" 'cat > /opt/arborgrid/app/infra/.env && chmod 600 /opt/arborgrid/app/infra/.env'
-
-          ssh -i ~/.ssh/deploy_key "${VM_USER}@${VM_HOST}" 'bash -s' <<'EOF'
+      - name: Rebuild containers and smoke test
+        run: |
+          ssh arborgrid-vm 'bash -s' <<'EOF'
             set -euo pipefail
+            if [ ! -f /opt/arborgrid/app/infra/.env ]; then
+              echo "::error::/opt/arborgrid/app/infra/.env nao existe na VM (provisione com scripts/deploy_vm.py)."
+              exit 1
+            fi
+            # O container roda como UID 10001: midias montadas precisam de leitura/travessia para "outros"
+            sudo chmod -R a+rX /opt/arborgrid/media || true
             cd /opt/arborgrid/app/infra
-            docker compose --env-file .env up -d --build
+            docker compose --env-file .env up -d --build --remove-orphans
             docker image prune -f
+            for i in $(seq 1 20); do
+              if curl -fsS http://127.0.0.1/api/v1/health > /dev/null; then
+                echo "Health check OK apos ${i} tentativa(s)."
+                exit 0
+              fi
+              sleep 3
+            done
+            echo "::error::Health check falhou apos o deploy."
+            docker compose --env-file .env ps
+            exit 1
           EOF

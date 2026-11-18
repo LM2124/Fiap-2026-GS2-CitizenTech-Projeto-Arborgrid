@@ -178,7 +178,9 @@ if [ ! -f /opt/arborgrid/llm_models/arborgrid-qwen3-1.7b-q4_k_m.gguf ]; then
   echo "[aviso] Modelo GGUF nao encontrado em /opt/arborgrid/llm_models/; subindo sem perfil llm (fallback RAG)."
   sed -i 's/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=/' "$ENV_PATH"
 fi
-docker compose --env-file "$ENV_PATH" up -d --build
+# O container roda como UID 10001: midias enviadas do Windows chegam sem leitura/travessia para "outros"
+sudo chmod -R a+rX /opt/arborgrid/media || true
+docker compose --env-file "$ENV_PATH" up -d --build --remove-orphans
 docker compose --env-file "$ENV_PATH" ps
 """
 

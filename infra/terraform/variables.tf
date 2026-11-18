@@ -47,3 +47,21 @@ variable "allowed_ssh_cidr" {
     error_message = "Por seguranca (DevSecOps), allowed_ssh_cidr deve ser um IP/CIDR valido e jamais 0.0.0.0/0."
   }
 }
+
+variable "static_ip_address" {
+  description = "IP externo a reservar como estatico. Use o IP efemero atual da VM para promove-lo sem troca; null aloca um novo endereco."
+  type        = string
+  default     = null
+}
+
+variable "ci_ssh_public_key" {
+  description = "Chave publica SSH dedicada ao deploy do GitHub Actions (par separado da chave administrativa). Vazio desativa."
+  type        = string
+  default     = ""
+}
+
+variable "github_repository" {
+  description = "Repositorio GitHub (owner/nome) autorizado a assumir a Service Account de deploy via Workload Identity Federation"
+  type        = string
+  default     = "LM2124/Fiap-2026-GS2-CitizenTech-Projeto-Arborgrid"
+}

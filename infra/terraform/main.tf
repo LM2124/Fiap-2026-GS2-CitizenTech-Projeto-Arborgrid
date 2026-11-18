@@ -45,6 +45,16 @@ resource "google_compute_firewall" "arborgrid_ssh" {
   target_tags   = ["${var.project_name}-ssh"]
 }
 
+# IP externo estatico: a URL entregue nao muda em stop/start da VM.
+# Com static_ip_address = IP efemero atual, o GCP "promove" o endereco em uso sem troca-lo.
+resource "google_compute_address" "arborgrid_ip" {
+  name         = "${var.project_name}-ip"
+  region       = var.gcp_region
+  address_type = "EXTERNAL"
+  network_tier = "PREMIUM"
+  address      = var.static_ip_address
+}
+
 # Instancia Compute Engine Ubuntu 24.04 LTS com Shielded VM e chave SSH isolada por instancia
 #trivy:ignore:AVD-GCP-0030
 #trivy:ignore:AVD-GCP-0031
@@ -69,14 +79,18 @@ resource "google_compute_instance" "arborgrid_vm" { # nosemgrep
   network_interface {
     network = "default"
     access_config {
-      # Aloca IPv4 publico efemero para acesso ao MVP Web
+      nat_ip = google_compute_address.arborgrid_ip.address
     }
   }
 
+  # Chave administrativa + chave dedicada do CI (revogavel sem afetar o acesso humano)
   metadata = {
     block-project-ssh-keys = "true"
     enable-oslogin         = "false"
-    ssh-keys               = "${var.ssh_user}:${trimspace(var.ssh_public_key)}"
+    ssh-keys = join("\n", compact([
+      "${var.ssh_user}:${trimspace(var.ssh_public_key)}",
+      var.ci_ssh_public_key != "" ? "${var.ssh_user}:${trimspace(var.ci_ssh_public_key)}" : "",
+    ]))
   }
 
   metadata_startup_script = templatefile("${path.module}/user_data.sh.tpl", {

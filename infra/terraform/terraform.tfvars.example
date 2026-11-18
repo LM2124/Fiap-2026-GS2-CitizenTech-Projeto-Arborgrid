@@ -6,3 +6,8 @@ machine_type     = "e2-medium"
 ssh_user         = "ubuntu"
 ssh_public_key   = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... arborgrid-gcp"
 allowed_ssh_cidr = "203.0.113.10/32"
+
+# Deploy automatico (GitHub Actions -> IAP -> VM)
+static_ip_address = "34.0.0.10"  # IP efemero atual da VM (promove sem trocar) ou remova para alocar um novo
+ci_ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... arborgrid-ci"
+github_repository = "LM2124/Fiap-2026-GS2-CitizenTech-Projeto-Arborgrid"
