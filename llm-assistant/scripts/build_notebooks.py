@@ -1,4 +1,4 @@
-"""Gera os 3 notebooks Jupyter reproduzíveis em llm-assistant/notebooks/."""
+"""Gera os 4 notebooks Jupyter reproduzíveis em llm-assistant/notebooks/."""
 
 from __future__ import annotations
 
@@ -107,7 +107,7 @@ def _nb_lora() -> nbf.NotebookNode:
 def _nb_eval() -> nbf.NotebookNode:
     cells = [
         nbf.v4.new_markdown_cell(
-            "# 03 — Placar Comparativo das 3 Configurações, Quantização e Auditoria de Erros\n\n"
+            "# 03 — Placar Comparativo das 3 Configurações, Agente GeoSampa e Auditoria de Erros\n\n"
             "Compara programaticamente no conjunto de teste independente (`avaliacao/test_set.jsonl`, 30 casos):\n"
             "1. **Base (`Qwen 1.7B`) sem contexto**\n"
             "2. **Base + RAG simples** (`top-3`, limiar `0.30`)\n"
@@ -122,7 +122,7 @@ def _nb_eval() -> nbf.NotebookNode:
             "ROOT = Path.cwd().parent if Path.cwd().name == 'notebooks' else Path.cwd()\n"
             "if str(ROOT) not in sys.path:\n"
             "    sys.path.insert(0, str(ROOT))\n\n"
-            "from src.common import DIR_ASSETS, DIR_EVAL\n\n"
+            "from src.common import DIR_ASSETS, DIR_EVAL, load_jsonl\n\n"
             "REEXECUTAR_BENCHMARK = False  # True para reavaliar as 3 configurações na GPU\n"
             "if REEXECUTAR_BENCHMARK or not (DIR_EVAL / 'placar_comparativo.csv').exists():\n"
             "    from scripts.run_benchmarks import main as run_bench\n"
@@ -132,32 +132,31 @@ def _nb_eval() -> nbf.NotebookNode:
             "display(Image(filename=str(DIR_ASSETS / 'placar_comparativo.png')))\n"
             "display(Image(filename=str(DIR_ASSETS / 'placar_comparativo_completo.png')))"
         ),
-        nbf.v4.new_markdown_cell(
-            "### Decisão Arquitetural: Adoção de `LoRA + RAG + Agente`\n\n"
-            "Com o salto de **`26,7%`** (Base) e **`33,3%`** (RAG simples) para **`93,3%`** (`28/30` nos 11 quesitos avaliados), adotamos a arquitetura completa como solução lógica do copiloto e passamos a estudar sua quantização e hardware (`GPU` vs. `CPU`) visando à AWS.\n\n"
-            "## Estudo Exploratório de Modelos (`SmolLM2-360M` → `Qwen 0.6B` → `Qwen 1.7B`), Quantização e Hardware\n\n"
-            "Compara primeiro `SmolLM2-360M` vs. `Qwen 0.6B` vs. `Qwen 1.7B` (justificando o descarte do SmolLM2 e a adoção da família Qwen — ver `EXPLORACAO_MODELOS_E_QUANTIZACAO.md`), e em seguida avalia **`F16` (16 bits)** vs **`Q4_K_M` (4 bits)** via `llama.cpp` (`-c 2048 -np 1`) em **GPU** (`-ngl 99`) e **CPU pura** (`-dev none -ngl 0 -t 2`) "
-            "frente às instâncias EC2 (`t3.small` 2 GiB vs `t3.medium` 4 GiB)."
-        ),
-        nbf.v4.new_code_cell(
-            "if not (DIR_EVAL / 'placar_comparativo_modelos.csv').exists():\n"
-            "    from scripts.build_size_quant_comparison import main as run_comp\n"
-            "    run_comp()\n\n"
-            "if (DIR_ASSETS / 'comparativo_smol360m_vs_qwen.png').exists():\n"
-            "    display(Image(filename=str(DIR_ASSETS / 'comparativo_smol360m_vs_qwen.png')))\n"
-            "df_comp = pd.read_csv(DIR_EVAL / 'placar_comparativo_modelos.csv')\n"
-            "display(df_comp[['modelo_base', 'formato_execucao', 'configuracao', 'tamanho_gguf_mib', 'memoria_execucao_mib', 'acuracia_geral_estrita', 'latencia_media_ms', 'latencia_p95_ms', 'tps_medio']])\n"
-            "display(Image(filename=str(DIR_ASSETS / 'matriz_2x2_memoria_acuracia.png')))\n"
-            "display(Image(filename=str(DIR_ASSETS / 'matriz_2x2_latencia_gpu_cpu.png')))\n"
-            "display(Image(filename=str(DIR_ASSETS / 'matriz_2x2_tps_gpu_cpu.png')))\n"
-            "display(Image(filename=str(DIR_ASSETS / 'comparativo_17b_vs_06b_gguf.png')))"
-        ),
         nbf.v4.new_code_cell(
             "from src.tools import ArborGridInspector\n\n"
             "inspector = ArborGridInspector()\n"
             "for gid in ['629339', '7457', '612162']:\n"
             "    ctx, rec = inspector.maybe_build_tool_context(f'Consulte a árvore GeoSampa {gid}')\n"
             "    print(ctx)"
+        ),
+        nbf.v4.new_code_cell(
+            "questions = {r['id']: r['pergunta'] for r in load_jsonl(DIR_EVAL / 'test_set.jsonl')}\n"
+            "details = json.loads((DIR_EVAL / 'benchmark_detalhes.json').read_text(encoding='utf-8'))['3_rag_lora_agente']\n"
+            "sample_ids = ['T01', 'T07', 'T16', 'T19', 'T25']\n"
+            "rows = []\n"
+            "for item in details:\n"
+            "    if item['id'] in sample_ids:\n"
+            "        p = item['parsed']\n"
+            "        rows.append({\n"
+            "            'id': item['id'],\n"
+            "            'categoria': item['categoria'],\n"
+            "            'pergunta': questions[item['id']],\n"
+            "            'status': p['status'],\n"
+            "            'nivel_risco': p['nivel_risco'],\n"
+            "            'canal': p['telefone_ou_canal'],\n"
+            "            'fontes': ', '.join(p['fontes']),\n"
+            "        })\n"
+            "display(pd.DataFrame(rows))"
         ),
         nbf.v4.new_code_cell(
             "audit_path = DIR_EVAL / 'auditoria_erros_reais.md'\n"
@@ -172,12 +171,60 @@ def _nb_eval() -> nbf.NotebookNode:
     return nb
 
 
+def _nb_quantizacao() -> nbf.NotebookNode:
+    cells = [
+        nbf.v4.new_markdown_cell(
+            "# 04 — Exploração de Modelos (`SmolLM2-360M` vs. `Qwen 0.6B` vs. `1.7B`) e Quantização `Q4_K_M`\n\n"
+            "Documenta a seleção de família/porte de modelo e o estudo de quantização `F16` → `Q4_K_M` via `llama.cpp` "
+            "em **GPU** (`-ngl 99`) e **CPU pura limitada a 2 threads** (`-dev none -ngl 0 -t 2`) "
+            "para fundamentar o deploy econômico na AWS (`t3.medium`, 4 GiB RAM)."
+        ),
+        nbf.v4.new_code_cell(
+            "import sys\n"
+            "from pathlib import Path\n"
+            "import pandas as pd\n"
+            "from IPython.display import Image, display\n\n"
+            "ROOT = Path.cwd().parent if Path.cwd().name == 'notebooks' else Path.cwd()\n"
+            "if str(ROOT) not in sys.path:\n"
+            "    sys.path.insert(0, str(ROOT))\n\n"
+            "from src.common import DIR_ASSETS, DIR_EVAL\n\n"
+            "REEXECUTAR_COMPARATIVOS = False  # True para regerar planilhas e gráficos consolidados\n"
+            "if REEXECUTAR_COMPARATIVOS or not (DIR_EVAL / 'placar_comparativo_modelos.csv').exists():\n"
+            "    from scripts.build_size_quant_comparison import main as run_comp\n"
+            "    from scripts.build_smol_vs_qwen_chart import main as run_smol\n"
+            "    run_comp()\n"
+            "    run_smol()\n\n"
+            "display(Image(filename=str(DIR_ASSETS / 'comparativo_smol360m_vs_qwen.png')))\n"
+            "display(Image(filename=str(DIR_ASSETS / 'exp_1_smol360m_vs_qwen06b.png')))\n"
+            "display(Image(filename=str(DIR_ASSETS / 'exp_2_qwen06b_vs_17b_escala.png')))"
+        ),
+        nbf.v4.new_code_cell(
+            "df_comp = pd.read_csv(DIR_EVAL / 'placar_comparativo_modelos.csv')\n"
+            "display(df_comp[['modelo_base', 'formato_execucao', 'configuracao', 'tamanho_gguf_mib', 'memoria_execucao_mib', 'acuracia_geral_estrita', 'latencia_media_ms', 'latencia_p95_ms', 'tps_medio']])\n"
+            "display(Image(filename=str(DIR_ASSETS / 'exp_3a_quantizacao_cpu_qualidade_memoria.png')))\n"
+            "display(Image(filename=str(DIR_ASSETS / 'exp_3b_quantizacao_cpu_velocidade.png')))\n"
+            "display(Image(filename=str(DIR_ASSETS / 'matriz_2x2_memoria_acuracia.png')))\n"
+            "display(Image(filename=str(DIR_ASSETS / 'matriz_2x2_latencia_gpu_cpu.png')))"
+        ),
+        nbf.v4.new_markdown_cell(
+            "### Decisão Final para Produção na Nuvem (`AWS EC2 t3.medium`)\n"
+            "- **`SmolLM2-360M` descartado:** `20,0%` em 16 bits (`10,0%` em Q4 CPU) e latência pior ou equivalente ao `Qwen 0.6B`.\n"
+            "- **`Qwen 1.7B Q4_K_M` aprovado para produção:** mantém **`93,3%` (`28/30`)** sem perda frente ao `F16` (`2.015,0 MiB` RAM base, `1.056,1 MiB` em disco, `9,30 s` em 2 threads CPU local / `~18,6 s` estimados em vCPU).\n"
+            "- Como o modelo de Visão Computacional (`segformer_v3_int8_dyn_matmul.onnx`) roda no navegador via `onnxruntime-web`, o **`Qwen 1.7B Q4_K_M`** cabe com folga na **`t3.medium` (4 GiB RAM)**."
+        ),
+    ]
+    nb = nbf.v4.new_notebook()
+    nb["cells"] = cells
+    return nb
+
+
 def main() -> None:
     DIR_NB.mkdir(parents=True, exist_ok=True)
     builders = {
         "01_base_e_busca_rag.ipynb": _nb_base_rag,
         "02_treino_lora_qwen3.ipynb": _nb_lora,
         "03_avaliacao_comparativa_e_agente.ipynb": _nb_eval,
+        "04_exploracao_modelos_e_quantizacao.ipynb": _nb_quantizacao,
     }
     for fname, builder in builders.items():
         nb = builder()

@@ -5,6 +5,7 @@
 | Campo | Descrição |
 | :--- | :--- |
 | **Nome do produto** | **ArborGrid SP** |
+| **Integrantes (RM)** | **Lorenzo Gomes Andreata** (`551117`) · **Lucas Moreno Matheus** (`97158`) · **Kayky Oliveira Schunck** (`99756`) |
 | **Cidadão e território** | Moradores, pedestres e equipes de zeladoria/energia em **São Paulo (SP)** — lotes auditados em Pinheiros, Alto da Mooca, Vila Mariana e corredor de controle Av. Paulista |
 | **Problema, em uma frase** | Conflitos não mapeados entre copas de árvores urbanas e fiação aérea de distribuição elétrica causam apagões, risco de choque elétrico e quedas de árvores sem vistoria preventiva |
 | **Proposta de valor** | Combinar dados geoespaciais abertos e visão computacional multi-perspectiva (`1024 px`) com risco climático para priorizar podas preventivas com transparência e controle de falsos positivos |
@@ -73,6 +74,20 @@ Para detalhes completos do contrato e exemplos de payload, consulte [`data-proce
 - **Não versionados por volume/Termos de Uso (opcionais em desenvolvimento):**
   - **Modelo LLM GGUF (`llm-assistant/models/arborgrid-qwen3-1.7b-q4_k_m.gguf`, `~1,0 GiB`):** quando presente nessa pasta, `scripts/start_stack.py` (ou `docker compose --profile llm up -d`) sobe automaticamente o container `llama-server`; quando ausente, o assistente responde pelo motor normativo RAG determinístico sem erros.
   - **Mídias completas do Street View (`arborgrid-vision/dataset/sp_geosampa_api/images/` e `v3_overlays/`):** protegidas pelo `.gitignore`; com `ARBORGRID_EXPOSE_MEDIA_URLS=false` (padrão de `infra/.env.example`), mapa, estatísticas, API Big Data e Análise de Imagem com as amostras e upload de fotos funcionam normalmente.
+
+---
+
+## Exemplos de Prompt e Resposta do Copiloto IA (`llm-assistant/`)
+
+Respostas estruturadas reais registradas pelo pipeline **`Qwen3-1.7B + LoRA + RAG + Agente GeoSampa`** ([`llm-assistant/avaliacao/benchmark_detalhes.json`](llm-assistant/avaliacao/benchmark_detalhes.json), exposto no MVP via `POST /api/v1/assistant/ask`):
+
+| Cenário | Prompt Enviado pelo Usuário | Saída Estruturada (Resumo) |
+| :--- | :--- | :--- |
+| **Emergência elétrica (`T01`)** | *"Tem uma árvore na calçada encostando nos fios e soltando faíscas com cheiro de queimado agora. Quem devo chamar?"* | `status: respondido` · `nivel_risco: emergencia_imediata` · **Enel Emergência (`0800 72 72 196`) e `193`** · `pode_podar_por_conta: false` · Fontes: `SEGURANCA-FIACAO`, `CHANGELOG-2026-ARBOR` |
+| **Poda preventiva sem faísca (`T07`)** | *"A árvore da calçada em frente ao meu prédio cresceu perto dos fios, mas não há faíscas nem curto-circuito. Como pedir poda preventiva em São Paulo?"* | `status: respondido` · `nivel_risco: preventivo_rotina` · **Portal `SP156` (`156`)** · `pode_podar_por_conta: false` · Fontes: `SP156-ROTINA`, `LEI-17794-ART05` |
+| **Sanitização LGPD (`T16`)** | *"Sou morador, CPF 123.456.789-00, meu carro placa ABC1D23 está parado perto da árvore na calçada. Como o ArborGrid lida com privacidade e para onde encaminho pedido de poda?"* | `status: respondido` · `nivel_risco: preventivo_rotina` · **`SP156 (156)` / `Descomplica SP`** · **CPF e placa omitidos na resposta** · Fontes: `SP156-ROTINA`, `LEI-17794-ART05` |
+| **Consulta ao agente GeoSampa (`T19`)** | *"Verifique os dados da árvore GeoSampa 612736 no ArborGrid (distrito e risco de proximidade na margem de vento)."* | `status: respondido` · `PINHEIROS` · Informa **`DIVERGENCIA_PARALAXE`** e **`43086 px`** na margem de vento + orienta `SP156 (156)` · Fontes: `NBR-16246-3`, `ARBORGRID-TRIAGEM`, `SP156-ROTINA` |
+| **Fora de escopo (`T25`)** | *"Qual o valor exato da taxa de boleto em reais para protocolar laudo particular na Subprefeitura de São Paulo?"* | `status: nao_consta` · `nivel_risco: fora_de_escopo` · Recusa fundamentada (`fontes: []`) |
 
 ---
 
