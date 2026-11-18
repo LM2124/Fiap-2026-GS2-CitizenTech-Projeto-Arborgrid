@@ -20,10 +20,25 @@ from pathlib import Path
 
 from airflow.sdk import Variable, dag, task
 
+try:  # Airflow 3 (Task SDK)
+    from airflow.sdk.exceptions import AirflowFailException
+except ImportError:  # pragma: no cover - versoes em que a excecao ainda mora no core
+    from airflow.exceptions import AirflowFailException
+
 log = logging.getLogger(__name__)
 
 CHEGADA = Path(os.environ.get("ARBORGRID_CHEGADA", "/opt/airflow/chegada"))
 FONTES = ["clima", "arvores", "denuncias"]
+# Minimo de linhas JSON esperado por arquivo: clima = 1 por regiao; arvores = 1 por pagina; denuncias >= 1
+MINIMO_LINHAS = {"clima": 4, "arvores": 1, "denuncias": 1}
+
+
+def variavel_obrigatoria(nome: str) -> str:
+    """Le uma Variable do Airflow; se faltar, falha na hora (sem gastar retries com erro de configuracao)."""
+    valor = Variable.get(nome, default=None)
+    if not valor:
+        raise AirflowFailException(f"Variable '{nome}' ausente: cadastre em Admin > Variables do Airflow.")
+    return valor
 
 
 def gravar(registros: list[dict], fonte: str, ds: str) -> str:
@@ -76,33 +91,42 @@ def arborgrid_coleta():
         from arborgrid.fontes import coletar_arvores
         ds = context["ds"]
         # Lidas aqui dentro, e não no topo do arquivo, para não consultar o banco a cada leitura do DAG.
-        url = Variable.get("arborgrid_api_url")
-        token = Variable.get("arborgrid_api_token")
+        url = variavel_obrigatoria("arborgrid_api_url")
+        token = variavel_obrigatoria("arborgrid_api_token")
         return gravar(coletar_arvores(ds, url, token), "arvores", ds)
 
     @task
     def coleta_denuncias(**context) -> str:
         from arborgrid.fontes import gerar_denuncias
         ds = context["ds"]
-        token = Variable.get("arborgrid_app_token")
+        token = variavel_obrigatoria("arborgrid_app_token")
         return gravar(gerar_denuncias(ds, token=token), "denuncias", ds)
 
     @task
     def verifica_arquivos(**context) -> None:
+        """Confere existencia, JSON valido em todas as linhas e minimo de registros por fonte."""
         ds = context["ds"]
         problemas = []
         for fonte in FONTES:
             arquivo = CHEGADA / fonte / f"{fonte}_{ds}.json"
             if not arquivo.exists():
                 problemas.append(f"faltando: {arquivo}")
-            elif arquivo.stat().st_size == 0:
-                problemas.append(f"vazio: {arquivo}")
+                continue
+            linhas = 0
+            with open(arquivo, encoding="utf-8") as f:
+                for numero, linha in enumerate(f, start=1):
+                    try:
+                        json.loads(linha)
+                    except json.JSONDecodeError as exc:
+                        problemas.append(f"JSON invalido em {arquivo}:{numero} ({exc.msg})")
+                        break
+                    linhas += 1
+            if linhas < MINIMO_LINHAS[fonte]:
+                problemas.append(f"{arquivo}: {linhas} linhas (minimo {MINIMO_LINHAS[fonte]})")
             else:
-                with open(arquivo, encoding="utf-8") as f:
-                    linhas = sum(1 for _ in f)
                 log.info("OK %s (%d linhas)", arquivo, linhas)
         if problemas:
-            raise FileNotFoundError("Arquivos do dia com problema: " + "; ".join(problemas))
+            raise ValueError("Arquivos do dia com problema: " + "; ".join(problemas))
 
     [coleta_clima(), coleta_arvores(), coleta_denuncias()] >> verifica_arquivos()
 

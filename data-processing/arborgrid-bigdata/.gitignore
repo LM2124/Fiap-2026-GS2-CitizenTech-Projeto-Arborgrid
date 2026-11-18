@@ -1,0 +1,12 @@
+# Gerados pelo Airflow em Docker (airflow-init / execucao local).
+# O compose monta ${AIRFLOW_PROJ_DIR:-.}/{logs,config,plugins}: cobrimos as duas raizes possiveis.
+logs/
+plugins/
+config/airflow.cfg
+airflow/logs/
+airflow/plugins/
+airflow/config/airflow.cfg
+airflow/.env
+
+# Temporarios da escrita atomica da DAG
+chegada/**/*.tmp

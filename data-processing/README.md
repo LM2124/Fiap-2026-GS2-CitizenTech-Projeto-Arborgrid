@@ -1,15 +1,19 @@
 # ArborGrid — Módulo de Big Data & Data Integration (`data-processing/`)
 
-Diretório reservado ao pipeline de dados (Airflow 3 + Databricks Lakehouse Bronze/Prata/Ouro) e documentação oficial do contrato REST oferecido pela aplicação ArborGrid (`webapp/`).
+Pipeline de dados (Airflow 3 + Databricks Lakehouse Bronze/Prata/Ouro) e documentação oficial do contrato REST oferecido pela aplicação ArborGrid (`webapp/`).
 
-## Estrutura Esperada (Rubrica Big Data)
+## Estrutura
 
 ```text
 data-processing/
-├── README.md        # Contrato de integração e guia de execução
-├── dags/            # DAGs Airflow 3 salvando lotes com data em chegada/
-├── databricks/      # Notebooks e queries SQL (Bronze Auto Loader/COPY INTO, Prata MERGE + qualidade, Ouro dimensional)
-└── amostras/        # Amostras de payloads JSON reais das fontes
+├── README.md                    # Este arquivo: contrato de integração da API ArborGrid
+├── amostras/                    # Payloads de exemplo do contrato (API -> Big Data e Gold -> MVP)
+└── arborgrid-bigdata/           # Pipeline implementado (Requisitos 01-09)
+    ├── dags/                    # DAG arborgrid_coleta (Airflow 3, diária): clima, árvores e denúncias em paralelo + verificação
+    ├── airflow/                 # docker-compose do Airflow (LocalExecutor)
+    ├── chegada/                 # Um arquivo por coleta e por fonte, com a data no nome (JSON Lines)
+    ├── databricks/              # 00 setup · 01 Bronze (Auto Loader) · 02 Prata (qualidade + MERGE) · 03 Ouro (estrela + LGPD) · 04 consultas · 05 contrato MVP
+    └── amostras/                # Amostras das três fontes e o lote Gold exportado no contrato do MVP
 ```
 
 ---
