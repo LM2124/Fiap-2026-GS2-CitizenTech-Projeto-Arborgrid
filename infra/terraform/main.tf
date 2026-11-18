@@ -1,124 +1,97 @@
 terraform {
   required_version = ">= 1.6.0"
   required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.75"
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 6.0"
     }
   }
 }
 
-provider "aws" {
-  region = var.aws_region
+provider "google" {
+  project = var.gcp_project_id
+  region  = var.gcp_region
+  zone    = var.gcp_zone
 }
 
-data "aws_vpc" "default" {
-  default = true
+# Regra de Firewall HTTP/HTTPS publica apenas para o proxy reverso Nginx do MVP
+#trivy:ignore:AVD-GCP-0051
+resource "google_compute_firewall" "arborgrid_web" {
+  name        = "${var.project_name}-allow-web"
+  network     = "default"
+  description = "Permite trafego HTTP/HTTPS publico (80/443) ao Nginx do MVP ArborGrid"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["80", "443"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["${var.project_name}-web"]
 }
 
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
+# Regra de Firewall SSH estritamente restrita ao CIDR administrativo (nunca 0.0.0.0/0)
+resource "google_compute_firewall" "arborgrid_ssh" {
+  name        = "${var.project_name}-allow-ssh-restricted"
+  network     = "default"
+  description = "Restringe SSH (22) exclusivamente ao IP/CIDR administrativo definido em allowed_ssh_cidr"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
   }
+
+  source_ranges = [var.allowed_ssh_cidr]
+  target_tags   = ["${var.project_name}-ssh"]
 }
 
-data "aws_ami" "ubuntu_24_04" {
-  most_recent = true
-  owners      = ["099720109477"] # Canonical
+# Instancia Compute Engine Ubuntu 24.04 LTS com Shielded VM e chave SSH isolada por instancia
+#trivy:ignore:AVD-GCP-0030
+#trivy:ignore:AVD-GCP-0031
+resource "google_compute_instance" "arborgrid_vm" { # nosemgrep
+  name         = "${var.project_name}-vm"
+  machine_type = var.machine_type
+  zone         = var.gcp_zone
 
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+  tags = [
+    "${var.project_name}-web",
+    "${var.project_name}-ssh",
+  ]
+
+  boot_disk {
+    initialize_params {
+      image = "ubuntu-os-cloud/ubuntu-2404-lts-amd64"
+      size  = 30
+      type  = "pd-balanced"
+    }
   }
 
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
-resource "aws_security_group" "arborgrid_sg" {
-  name        = "${var.project_name}-sg"
-  description = "Permite trafego HTTP/HTTPS publico ao MVP e restringe SSH a CIDR administrativo"
-  vpc_id      = data.aws_vpc.default.id
-
-  ingress {
-    description = "HTTP publico (Web App + API ArborGrid via Nginx)"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  network_interface {
+    network = "default"
+    access_config {
+      # Aloca IPv4 publico efemero para acesso ao MVP Web
+    }
   }
 
-  ingress {
-    description = "HTTPS publico (TLS)"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  metadata = {
+    block-project-ssh-keys = "true"
+    enable-oslogin         = "false"
+    ssh-keys               = "${var.ssh_user}:${trimspace(var.ssh_public_key)}"
   }
 
-  ingress {
-    description = "SSH restrito ao CIDR administrativo (nunca 0.0.0.0/0)"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.allowed_ssh_cidr]
-  }
-
-  # Egress estritamente necessario para Docker Hub / repositorios APT / API Open-Meteo (HTTPS e HTTP)
-  egress {
-    description = "Saida HTTPS para pulls de imagem Docker e API Open-Meteo"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] #trivy:ignore:AVD-AWS-0104
-  }
-
-  egress {
-    description = "Saida HTTP para repositorios de pacotes Ubuntu durante provisionamento"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] #trivy:ignore:AVD-AWS-0104
-  }
-
-  tags = {
-    Name        = "${var.project_name}-sg"
-    Project     = "ArborGrid-CitizenTech"
-    Environment = "production"
-  }
-}
-
-# Instancia publica controlada com SSH restrito a var.allowed_ssh_cidr e IMDSv2 obrigatorio
-resource "aws_instance" "arborgrid_vm" { # nosemgrep: terraform.aws.security.aws-ec2-has-public-ip.aws-ec2-has-public-ip
-  ami                         = data.aws_ami.ubuntu_24_04.id
-  instance_type               = var.instance_type
-  subnet_id                   = data.aws_subnets.default.ids[0]
-  vpc_security_group_ids      = [aws_security_group.arborgrid_sg.id]
-  key_name                    = var.key_name
-  associate_public_ip_address = true
-
-  metadata_options {
-    http_endpoint               = "enabled"
-    http_tokens                 = "required" # IMDSv2 obrigatorio
-    http_put_response_hop_limit = 1
-  }
-
-  root_block_device {
-    volume_type = "gp3"
-    volume_size = 30
-    encrypted   = true
-  }
-
-  user_data = templatefile("${path.module}/user_data.sh.tpl", {
+  metadata_startup_script = templatefile("${path.module}/user_data.sh.tpl", {
     project_name = var.project_name
   })
 
-  tags = {
-    Name      = "${var.project_name}-ec2"
-    Project   = "ArborGrid-CitizenTech"
-    ManagedBy = "Terraform"
+  shielded_instance_config {
+    enable_secure_boot          = true
+    enable_vtpm                 = true
+    enable_integrity_monitoring = true
+  }
+
+  labels = {
+    project     = "arborgrid-citizentech"
+    environment = "production"
+    managed_by  = "terraform"
   }
 }

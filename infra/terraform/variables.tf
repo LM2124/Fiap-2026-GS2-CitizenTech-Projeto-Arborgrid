@@ -1,7 +1,18 @@
-variable "aws_region" {
-  description = "Regiao AWS de implantacao (us-east-1 padrao Learner Lab / Free Tier)"
+variable "gcp_project_id" {
+  description = "ID do Projeto no Google Cloud Platform (ex.: meu-projeto-123456)"
   type        = string
-  default     = "us-east-1"
+}
+
+variable "gcp_region" {
+  description = "Regiao GCP de implantacao (us-central1 padrao de menor custo)"
+  type        = string
+  default     = "us-central1"
+}
+
+variable "gcp_zone" {
+  description = "Zona GCP da instancia Compute Engine"
+  type        = string
+  default     = "us-central1-a"
 }
 
 variable "project_name" {
@@ -10,14 +21,20 @@ variable "project_name" {
   default     = "arborgrid-mvp"
 }
 
-variable "instance_type" {
-  description = "Tipo da instancia EC2 para hospedar o Docker Compose (FastAPI + Nginx + llama.cpp + Prometheus + Grafana)"
+variable "machine_type" {
+  description = "Tipo da VM no Compute Engine (e2-medium = 2 vCPU, 4 GB RAM para FastAPI + Nginx + llama.cpp + Prometheus + Grafana)"
   type        = string
-  default     = "t3.medium"
+  default     = "e2-medium"
 }
 
-variable "key_name" {
-  description = "Nome do Key Pair EC2 ja existente na AWS para acesso administrativo SSH"
+variable "ssh_user" {
+  description = "Usuario administrativo Linux configurado na VM"
+  type        = string
+  default     = "ubuntu"
+}
+
+variable "ssh_public_key" {
+  description = "Conteudo da chave publica SSH (ex.: ssh-ed25519 AAAA... gerada com ssh-keygen)"
   type        = string
 }
 

@@ -4,16 +4,16 @@ Documento de referência para a disciplina **Secure DevOps Tools & Cloud Computi
 
 ---
 
-## 1. Diagrama da Arquitetura em Nuvem
+## 1. Diagrama da Arquitetura em Nuvem (Google Cloud Platform)
 
 ```mermaid
 flowchart LR
-    User[Cidadão / Avaliador] -->|HTTP 80| SG[AWS Security Group]
-    Airflow[Airflow 3 / Big Data] -->|Bearer Token HTTPS/HTTP| SG
-    Admin[Engenheiro DevOps] -->|SSH 22 CIDR Restrito| SG
+    User[Cidadão / Avaliador] -->|HTTP 80| FW[GCP VPC Firewall Rules]
+    Airflow[Airflow 3 / Big Data] -->|Bearer Token HTTPS/HTTP| FW
+    Admin[Engenheiro DevOps] -->|SSH 22 CIDR Restrito /32| FW
 
-    subgraph EC2[AWS EC2 t3.medium — Ubuntu 24.04 — Terraform IaC]
-        SG --> Nginx[Nginx Reverse Proxy :80]
+    subgraph GCE[Google Cloud Compute Engine e2-medium — Ubuntu 24.04 — Terraform IaC]
+        FW --> Nginx[Nginx Reverse Proxy :80]
         Nginx --> App[FastAPI WebApp non-root :8000]
         App -->|Chat RAG :8080| Llama[llama.cpp Qwen3-1.7B Q4_K_M]
         Media[(Volume RO /opt/arborgrid/media)] --> App
@@ -28,13 +28,13 @@ flowchart LR
 
 ---
 
-## 2. Matriz de Responsabilidade Compartilhada (AWS vs. Equipe)
+## 2. Matriz de Responsabilidade Compartilhada (Google Cloud vs. Equipe)
 
-| Camada / Controle | Responsável AWS | Responsável Equipe ArborGrid |
+| Camada / Controle | Responsável Google Cloud (GCP) | Responsável Equipe ArborGrid |
 | :--- | :---: | :---: |
-| Infraestrutura física, rede subjacente e hypervisor EC2 | X | |
-| Provisionamento declarativo, regras do Security Group e bloqueio de `0.0.0.0/0` em SSH | | X |
-| Hardening do SO convidado, IMDSv2 obrigatório e criptografia EBS em repouso | | X |
+| Infraestrutura física, rede global, hipervisor Borg/KVM e criptografia padrão em repouso (`pd-balanced`) | X | |
+| Provisionamento declarativo (`Terraform`), regras de Firewall VPC e bloqueio estrito de `0.0.0.0/0` na porta 22 | | X |
+| Hardening da VM (*Shielded VM*: Secure Boot, vTPM, Integrity Monitoring e `block-project-ssh-keys = true`) | | X |
 | Container slim, usuário não-root (`UID 10001`), filesystem `read_only`, drop de capabilities | | X |
 | Gestão de tokens (`ARBORGRID_API_TOKEN`) via GitHub Secrets / `.env` fora do Git | | X |
 | Varredura contínua Gitleaks, Semgrep e Trivy antes do deploy automático | | X |
@@ -45,24 +45,24 @@ flowchart LR
 ## 3. Localização dos Dados e Conformidade LGPD
 
 - **Dados públicos em código/container (`manifest.json`):** coordenadas geográficas oficiais de árvores viárias públicas provenientes do portal GeoSampa (Decreto Municipal SP nº 57.576/2017), datas históricas de vistoria municipal SISGAU e contagens agregadas de pixels (`copa_px`, `wire_px`, `pole_px`). Não contém nome, CPF, telefone, e-mail ou qualquer dado pessoal identificável (PII).
-- **Mídias visuais (`images/` e `v3_overlays/`):** armazenadas fora do histórico Git (protegidas pelo `.gitignore` e `.dockerignore`), montadas como volume somente leitura (`/app/media:ro`) diretamente na EC2 apenas para visualização na auditoria acadêmica, preservando o borramento nativo de rostos/placas e respeitando os Termos de Uso do Google Street View.
+- **Mídias visuais (`images/` e `v3_overlays/`):** armazenadas fora do histórico Git (protegidas pelo `.gitignore` e `.dockerignore`), montadas como volume somente leitura (`/app/media:ro`) na VM apenas quando necessário, preservando o borramento nativo de rostos/placas e respeitando os Termos de Uso do Google Street View.
 - **Identificadores anonimizados:** `pano_id` e eventuais atores operacionais enviados pela camada Gold recebem hash SHA-256 truncado (`pano_id_hash`, `audit_actor_hash`).
-- **Região de hospedagem:** AWS `us-east-1` (ou `sa-east-1` quando fora do Learner Lab), com disco EBS criptografado (`encrypted = true`).
+- **Região de hospedagem:** Google Cloud `us-central1` (Iowa), com discos persistentes `pd-balanced` criptografados automaticamente em repouso por padrão no GCP (`Google-managed encryption keys`).
 
 ---
 
-## 4. Estimativa de Custo Mensal (AWS `us-east-1`)
+## 4. Estimativa de Custo Mensal (Google Cloud `us-central1`)
 
-Valores referenciais *on-demand* (cobertos por créditos do AWS Academy Learner Lab durante sessões ativas):
+Valores referenciais *on-demand* em USD (abatidos diretamente do saldo/créditos pré-pagos da conta Google Cloud):
 
 | Recurso | Especificação | Custo Mensal 24/7 (USD) | Custo por Hora |
 | :--- | :--- | ---: | ---: |
-| Computação EC2 | `1x t3.medium` (2 vCPU, 4 GiB RAM, necessária para `Qwen3-1.7B Q4_K_M`) | ~\$30,37 | \$0,0416/h |
-| Armazenamento EBS | `30 GB gp3` criptografado | ~\$2,40 | \$0,0033/h |
-| IPv4 Público & Tráfego | `1x IPv4` público (`$0,005/h`) + ~10 GB/mês transferência | ~\$4,55 | \$0,0062/h |
-| **Total Estimado** | | **~\$37,32 / mês (730 h)** | **~\$0,051 / hora** |
+| Computação GCE | `1x e2-medium` (2 vCPU compartilhadas, 4 GB RAM para `Qwen3-1.7B Q4_K_M`) | ~\$24,27 | \$0,0332/h |
+| Armazenamento | `30 GB pd-balanced` (SSD balanceado criptografado) | ~\$3,00 | \$0,0041/h |
+| IPv4 Público & Tráfego | `1x IPv4` efêmero em uso (`$0,005/h`) + tráfego de saída moderado | ~\$3,65 | \$0,0050/h |
+| **Total Estimado** | | **~\$30,92 / mês (730 h)** | **~\$0,042 / hora (~R\$ 0,24/h)** |
 
-*Observação:* quando a VM está desligada (`Stopped`) fora dos testes/demonstrações no Learner Lab, a cobrança recai apenas sobre o disco EBS (`30 GB` ≈ `~$2,40/mês`), consumindo fração mínima do orçamento de créditos do laboratório. Para execução enxuta sem inferência neural GGUF (usando *fallback* determinístico RAG), é possível reduzir para `t3.small` (~\$22,13/mês em 30 GB `gp3`).
+*Observação:* manter a stack ativa durante 10 dias corridos para apresentação e correção da banca consome apenas **~\$10,15 USD (~R\$ 58)** do saldo pré-pago, e desligar (`Stop`) a VM fora do horário de avaliação reduz o custo para apenas os `30 GB` de disco (**~\$0,10/dia**).
 
 ---
 

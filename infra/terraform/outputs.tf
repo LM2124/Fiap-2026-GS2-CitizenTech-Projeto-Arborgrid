@@ -1,24 +1,19 @@
-output "instance_id" {
-  description = "ID da instancia EC2 provisionada"
-  value       = aws_instance.arborgrid_vm.id
+output "instance_name" {
+  description = "Nome da instancia Compute Engine provisionada no GCP"
+  value       = google_compute_instance.arborgrid_vm.name
 }
 
 output "public_ip" {
-  description = "IP publico da VM do MVP"
-  value       = aws_instance.arborgrid_vm.public_ip
+  description = "IP publico externo da VM do MVP"
+  value       = google_compute_instance.arborgrid_vm.network_interface[0].access_config[0].nat_ip
 }
 
 output "mvp_public_url" {
   description = "URL publica por IP do Web App ArborGrid"
-  value       = "http://${aws_instance.arborgrid_vm.public_ip}"
-}
-
-output "mvp_aws_dns_url" {
-  description = "URL publica com DNS automatico gerado pela AWS EC2"
-  value       = "http://${aws_instance.arborgrid_vm.public_dns}"
+  value       = "http://${google_compute_instance.arborgrid_vm.network_interface[0].access_config[0].nat_ip}"
 }
 
 output "grafana_ssh_tunnel_command" {
   description = "Comando seguro via SSH tunnel para abrir Grafana (3000) e Prometheus (9090) sem expor portas admin"
-  value       = "ssh -i <SUA_CHAVE.pem> -L 3000:127.0.0.1:3000 -L 9090:127.0.0.1:9090 ubuntu@${aws_instance.arborgrid_vm.public_ip}"
+  value       = "ssh -i ~/.ssh/arborgrid_gcp -L 3000:127.0.0.1:3000 -L 9090:127.0.0.1:9090 ${var.ssh_user}@${google_compute_instance.arborgrid_vm.network_interface[0].access_config[0].nat_ip}"
 }

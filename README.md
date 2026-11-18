@@ -9,10 +9,10 @@
 | **Cidadão e território** | Moradores, pedestres e equipes de zeladoria/energia em **São Paulo (SP)** — lotes auditados em Pinheiros, Alto da Mooca, Vila Mariana e corredor de controle Av. Paulista |
 | **Problema, em uma frase** | Conflitos não mapeados entre copas de árvores urbanas e fiação aérea de distribuição elétrica causam apagões, risco de choque elétrico e quedas de árvores sem vistoria preventiva |
 | **Proposta de valor** | Combinar dados geoespaciais abertos e visão computacional multi-perspectiva (`1024 px`) com risco climático para priorizar podas preventivas com transparência e controle de falsos positivos |
-| **Arquitetura: componentes** | `arborgrid-vision/` (SegFormer-B2 + OpenCV), `webapp/` (FastAPI + React/Leaflet + API REST), `data-processing/` (Airflow 3 + Databricks Medallion), `llm-assistant/` (RAG + Qwen3 LoRA), `infra/` (Terraform AWS + Docker Compose + Prometheus/Grafana) |
+| **Arquitetura: componentes** | `arborgrid-vision/` (SegFormer-B2 + OpenCV), `webapp/` (FastAPI + React/Leaflet + API REST), `data-processing/` (Airflow 3 + Databricks Medallion), `llm-assistant/` (RAG + Qwen3 LoRA), `infra/` (Terraform GCP + Docker Compose + Prometheus/Grafana) |
 | **Fontes de dados** | PMSP GeoSampa WFS (`geoportal:arvore` + SISGAU), Google Street View Static/Metadata API, Open-Meteo API |
 | **Modelos de IA utilizados** | **SegFormer-B2 (1024 px)** *fine-tuned* (V3 Gold + versão quantizada `onnx_int8_dyn_matmul` no navegador) e **Qwen3-1.7B + LoRA (`r=16`)** / base normativa (`llm-assistant/`) |
-| **Pipeline DevSecOps** | `.github/workflows/devsecops.yml` (`pytest`, Gitleaks, Semgrep SAST, Trivy IaC/Imagem e deploy automático EC2) |
+| **Pipeline DevSecOps** | `.github/workflows/devsecops.yml` (`pytest`, Gitleaks, Semgrep SAST, Trivy IaC/Imagem e deploy automático em VM) |
 | **Indicadores de impacto** | Redução de `-56,1%` em pixels falsos de fiação na Av. Paulista (controle subterrâneo) no modelo V3; cobertura multi-ângulo em 271 árvores (`536` vistas) |
 | **ODS conectados** | **ODS 11** (Cidades e comunidades sustentáveis), **ODS 9** (Indústria, inovação e infraestrutura), **ODS 13** (Ação contra a mudança global do clima) |
 
@@ -104,4 +104,4 @@ uv run pytest -v   # ou `.venv/Scripts/pytest -v` (Windows) / `.venv/bin/pytest 
 - [`data-processing/`](data-processing/) — Contrato formal da API e espaço para os DAGs Airflow 3 e notebooks Databricks (`Bronze -> Prata -> Ouro`).
 - [`arborgrid-vision/`](arborgrid-vision/) — Pipeline de Visão Computacional (treinamento, inferência multi-perspectiva, auditoria e quantização).
 - [`llm-assistant/`](llm-assistant/) — Módulo de Inteligência Generativa (RAG + LoRA + benchmarks `Qwen3` e `SmolLM2`).
-- [`infra/`](infra/) — Infraestrutura como Código (`terraform/` AWS EC2, `nginx/`, `docker-compose.yml`, `observability/` Prometheus + Grafana).
+- [`infra/`](infra/) — Infraestrutura como Código (`terraform/` Google Cloud Compute Engine, `nginx/`, `docker-compose.yml`, `observability/` Prometheus + Grafana).

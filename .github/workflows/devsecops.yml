@@ -83,7 +83,7 @@ jobs:
           severity: "CRITICAL,HIGH"
 
   deploy-to-vm:
-    name: Deploy Automatico EC2 (Docker Compose)
+    name: Deploy Automatico VM (Docker Compose)
     needs: container-and-iac-security
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-24.04
@@ -93,12 +93,12 @@ jobs:
 
       - name: Validate required deploy secrets
         env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          VM_HOST: ${{ secrets.VM_HOST || secrets.EC2_HOST }}
+          VM_USER: ${{ secrets.VM_USER || secrets.EC2_USER }}
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY || secrets.EC2_SSH_KEY }}
         run: |
-          if [ -z "${EC2_HOST:-}" ] || [ -z "${EC2_USER:-}" ] || [ -z "${EC2_SSH_KEY:-}" ]; then
-            echo "::warning::Secrets EC2_HOST/EC2_USER/EC2_SSH_KEY nao configurados; pulando etapa de deploy remoto."
+          if [ -z "${VM_HOST:-}" ] || [ -z "${VM_USER:-}" ] || [ -z "${VM_SSH_KEY:-}" ]; then
+            echo "::warning::Secrets VM_HOST/VM_USER/VM_SSH_KEY (ou EC2_*) nao configurados; pulando etapa de deploy remoto."
             exit 0
           fi
           echo "DEPLOY_READY=true" >> "$GITHUB_ENV"
@@ -106,16 +106,16 @@ jobs:
       - name: Configure SSH and sync codebase + .env
         if: env.DEPLOY_READY == 'true'
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_KEY || secrets.EC2_SSH_KEY }}
+          VM_HOST: ${{ secrets.VM_HOST || secrets.EC2_HOST }}
+          VM_USER: ${{ secrets.VM_USER || secrets.EC2_USER }}
           ARBORGRID_API_TOKEN: ${{ secrets.ARBORGRID_API_TOKEN }}
           GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts
 
           rsync -az --delete \
             --exclude '.git' \
@@ -126,13 +126,13 @@ jobs:
             --exclude 'arborgrid-vision/dataset/sp_geosampa_api/*overlays*' \
             --exclude 'llm-assistant/models/*.gguf' \
             -e "ssh -i ~/.ssh/deploy_key" \
-            ./ "${EC2_USER}@${EC2_HOST}:/opt/arborgrid/app/"
+            ./ "${VM_USER}@${VM_HOST}:/opt/arborgrid/app/"
 
           printf 'ARBORGRID_API_TOKEN=%s\nARBORGRID_EXPOSE_MEDIA_URLS=false\nARBORGRID_MEDIA_HOST_DIR=/opt/arborgrid/media\nARBORGRID_LLM_MODELS_DIR=/opt/arborgrid/llm_models\nCOMPOSE_PROFILES=llm\nLLAMA_THREADS=2\nGRAFANA_ADMIN_USER=admin\nGRAFANA_ADMIN_PASSWORD=%s\n' \
             "$ARBORGRID_API_TOKEN" "$GRAFANA_ADMIN_PASSWORD" | \
-            ssh -i ~/.ssh/deploy_key "${EC2_USER}@${EC2_HOST}" 'cat > /opt/arborgrid/app/infra/.env && chmod 600 /opt/arborgrid/app/infra/.env'
+            ssh -i ~/.ssh/deploy_key "${VM_USER}@${VM_HOST}" 'cat > /opt/arborgrid/app/infra/.env && chmod 600 /opt/arborgrid/app/infra/.env'
 
-          ssh -i ~/.ssh/deploy_key "${EC2_USER}@${EC2_HOST}" 'bash -s' <<'EOF'
+          ssh -i ~/.ssh/deploy_key "${VM_USER}@${VM_HOST}" 'bash -s' <<'EOF'
             set -euo pipefail
             cd /opt/arborgrid/app/infra
             docker compose --env-file .env up -d --build
