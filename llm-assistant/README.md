@@ -87,31 +87,67 @@ A recuperação combina similaridade densa (`sentence-transformers/paraphrase-mu
 - Em triagem de risco elétrico e proteção civil, falsos negativos (descartar perguntas legítimas do cidadão) têm custo crítico. Pela curva acima, **`0,30`** é o ponto ótimo que zera a recusa indevida (**`false_refusal_rate = 0,0000`**) mantendo **`Recall@1 = 0,6818`**, **`Recall@3 = 0,9545`** e **`MRR@3 = 0,8030`**.
 - Assim, consultas totalmente fora de domínio são filtradas na própria busca (ex.: previsão do tempo em Pinheiros, `score = 0,2393`), enquanto armadilhas com vocabulário próximo (ex.: taxa de boleto, valor de ART ou outro município) seguem para o LLM fundamentado recusá-las com segurança.
 
+### Retriever em produção (`webapp`)
+No MVP ([`webapp/app/services/assistant_service.py`](../webapp/app/services/assistant_service.py)), para manter a VM de `4 GB` livre para o LLM, a aplicação não carrega `sentence-transformers`: utiliza um *retriever* lexical leve baseado em TF-IDF com dicionário de sinônimos em português e limiar **`0,12`**. Avaliado sobre os mesmos `30` casos de teste:
+
+| Retriever | Limiar | `Recall@1` | `Recall@3` | Recusa indevida (`22` respondíveis) | Bloqueio na busca (`8` `nao_consta`) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Híbrido (`MiniLM-L12-v2 + TF-IDF`, `src/retrieval.py`)** | `0,30` | `0,6818` | `0,9545` | `0/22` (`0,0000`) | — |
+| **Produção (`TF-IDF + sinônimos PT`, `webapp/`)** | `0,12` | **`0,909`** (`20/22`) | **`0,955`** (`21/22`) | `0/22` | `4/8` *(restante recusado pelo modelo)* |
+
+> *Como o dicionário de sinônimos foi ajustado manualmente durante o desenvolvimento, estes números servem como verificação de consistência e não substituem a avaliação principal.*
+
 ---
 
 ## 5. Especialização LoRA (`Qwen 1.7B`), Placar das 3 Configurações e Decisão Arquitetural
 
 ### Configuração de Treinamento (`scripts/train_lora.py`)
 - **Base escolhida:** `Qwen/Qwen3-1.7B` (**Qwen 1.7B**), treinado em precisão original (`bfloat16`) com `enable_thinking=False` na GPU `NVIDIA GeForce RTX 3060 Ti` (`8 GB VRAM`).
-- **Dataset SFT sintético e disjunto do teste:** `360` amostras de treino (`data/sft_train.jsonl`) e `60` de validação (`data/sft_val.jsonl`), utilizando cenários e `chunk_id`s sintéticos (`SYN-*`) para ensinar formato JSON, leitura de `[DADOS_TECNICOS_ARBORGRID]`, recusa fundamentada e sanitização LGPD sem vazamento do conjunto de teste.
+- **Dataset SFT sintético (`360` treino / `60` validação):** amostras em `data/sft_train.jsonl` e `data/sft_val.jsonl`, geradas a partir de *templates* sintéticos majoritariamente com `chunk_id`s `SYN-*` (e os trechos reais `ARBORGRID-TRIAGEM` e `SP156-ROTINA` em `70` amostras cada) para ensinar formato JSON, leitura de `[DADOS_TECNICOS_ARBORGRID]`, recusa fundamentada e sanitização LGPD.
 - **LoRA:** `r = 16`, `lora_alpha = 32`, `lora_dropout = 0,05` em todas as projeções (`q/k/v/o/gate/up/down_proj` — `17.432.576` parâmetros treináveis, `1,0030%` do modelo), 3 épocas, `MAX_LENGTH = 1024`, máscara de perda `-100` sobre o prompt.
+
+#### Auditoria de contaminação treino × teste
+- **Sobreposição de perguntas:** `8` das `30` perguntas de teste possuem paráfrase próxima nos *templates* do SFT (similaridade Jaccard de *tokens* `≥ 0,43`): `T25`, `T29`, `T27`, `T08`, `T14` (`≥ 0,50`) e `T12`, `T09`, `T23` (`≈ 0,43`). Quatro delas são casos `nao_consta` (`T23`, `T25`, `T27`, `T29`).
+- **Sobreposição de `chunk_id`s:** os *chunks* reais `ARBORGRID-TRIAGEM` e `SP156-ROTINA` aparecem em `70` amostras do SFT cada (as demais utilizam IDs `SYN-*`).
+- **Placar restrito aos `22` casos de teste sem sobreposição (acerto estrito):**
+
+  | Configuração | Total (`30`) | Com paráfrase no SFT (`8`) | **Sem sobreposição (`22`)** |
+  | :--- | :---: | :---: | :---: |
+  | Base sem contexto | `8/30` (`26,7%`) | `4/8` | **`4/22` (`18,2%`)** |
+  | RAG simples | `10/30` (`33,3%`) | `4/8` | **`6/22` (`27,3%`)** |
+  | LoRA + RAG + Agente + Validador | `28/30` (`93,3%`) | `8/8` | **`20/22` (`90,9%`)** |
+
+- **Conclusão:** o ganho se mantém no subconjunto limpo (`18,2% → 27,3% → 90,9%`), logo o resultado não é explicado por memorização; a acurácia de `100%` nas recusas, contudo, é parcialmente auxiliada pelos `4` *templates* de recusa vistos no treino.
 
 ![Curva de Aprendizado (Qwen3-1.7B + LoRA r=16)](assets/curva_loss_lora.png)
 
-- **Convergência observada:** a perda de validação (`eval_loss`) caiu continuamente de `0,1330` (época 1, passo 23) para `0,0021` (época 2, passo 46) e **`0,00055`** (época 3, passo 69) em `2776,1 s`, mantendo generalização real (`93,3%` sobre documentos inéditos sem usar `SYN-*` no teste).
+- **Convergência observada:** a perda de validação (`eval_loss`) caiu continuamente de `0,1330` (época 1, passo 23) para `0,0021` (época 2, passo 46) e **`0,00055`** (época 3, passo 69) em `2776,1 s`. Uma perda de validação próxima de zero em um *split* gerado pelos mesmos *templates* mostra que o formato foi aprendido, não que o modelo generaliza; a evidência de generalização está no placar do subconjunto limpo acima (`20/22 = 90,9%`).
 
-### Placar Comparativo das Arquiteturas (`30` casos independentes)
+### Placar Comparativo das Arquiteturas (`30` casos)
 
-Comparação programática sobre o conjunto independente ([`avaliacao/test_set.jsonl`](avaliacao/test_set.jsonl)) — incluindo conformidade de *schema* JSON, risco, canal competente, segurança de poda, citação de fonte, ausência de alucinação de telefone e acerto estrito:
+Comparação programática sobre [`avaliacao/test_set.jsonl`](avaliacao/test_set.jsonl) — incluindo conformidade de *schema* JSON, risco, canal competente, segurança de poda, citação de fonte, ausência de alucinação de telefone e acerto estrito:
 
 ![Placar Comparativo das 3 Configurações](assets/placar_comparativo.png)
 
 > *Variação completa com todos os 11 quesitos avaliados: [`assets/placar_comparativo_completo.png`](assets/placar_comparativo_completo.png) | Dados brutos: [`avaliacao/placar_comparativo.csv`](avaliacao/placar_comparativo.csv) | Execução detalhada em [`03_avaliacao_comparativa_e_agente.ipynb`](notebooks/03_avaliacao_comparativa_e_agente.ipynb).*
 
+#### Ablação do validador (reprocessamento offline das saídas salvas)
+Como a terceira configuração em [`scripts/run_benchmarks.py`](scripts/run_benchmarks.py) altera quatro fatores simultaneamente (adaptador LoRA, ferramenta GeoSampa, injeção de `ARBORGRID-TRIAGEM`/`SP156-ROTINA` e `apply_post_generation_filters`, aplicado apenas à configuração 3), o validador foi reaplicado *offline* sobre as saídas brutas salvas da configuração 2:
+
+| Configuração | Acerto estrito |
+| :--- | :---: |
+| RAG simples | `10/30` (`33,3%`) |
+| RAG simples + Validador (sem LoRA, sem agente) | `12/30` (`40,0%`) |
+| LoRA + RAG + Agente + Validador | `28/30` (`93,3%`) |
+
+O validador isolado explica **`+2` casos**; os **`+16` casos** restantes vêm do adaptador LoRA em conjunto com a ferramenta GeoSampa (separar esses dois fatores exigiria uma quarta execução em GPU, listada como próximo passo).
+
 ### Decisão Arquitetural: Adoção de `LoRA + RAG + Agente`
 1. **Por que descartar o Base zero-shot (`26,7%`):** apesar de respeitar o contrato JSON (`100,0%` de *schema* válido), o **Qwen 1.7B** sem contexto fabrica telefones em **`23,3%`** dos casos, acerta apenas `40,0%` dos órgãos competentes e viola segurança operacional sugerindo poda própria em **`73,3%`** das respostas (`seguranca_poda = 26,7%`).
 2. **Por que descartar apenas RAG sem LoRA (`33,3%`):** a injeção dos trechos resolve grande parte dos canais oficiais (`86,7%`) e derruba telefones fabricados para `3,3%`, mas sem o ajuste fino o modelo ainda erra `46,7%` em segurança de poda e omite citações em `36,4%` das respostas.
-3. **Decisão fechada — Sistema Completo (`93,3%`, `28/30` casos):** a união **`LoRA + RAG + Agente GeoSampa + Validador Programático`** atinge **`100,0%`** em validade JSON/Schema, órgão/canal competente, segurança de poda, citação da fonte esperada, recusa de `"nao_consta"` e conformidade LGPD (**`+66,6 p.p.`** sobre o Base e **`+60,0 p.p.`** sobre o RAG simples).
+3. **Decisão fechada — Sistema Completo (`93,3%`, `28/30` casos):** a união **`LoRA + RAG + Agente GeoSampa + Validador Programático`** atinge **`100,0%`** em validade JSON/Schema, órgão/canal competente, segurança de poda, citação da fonte esperada, recusa de `"nao_consta"` e conformidade LGPD (**`+66,6 p.p.`** sobre o Base, **`+60,0 p.p.`** sobre o RAG simples e **`+53,3 p.p.`** sobre RAG + Validador).
+
+- **Leitura estatística (`n = 30`, intervalos de Wilson 95%):** `Base` `8/30 = 26,7%` `[14,2%; 44,4%]`; `RAG simples` `10/30 = 33,3%` `[19,2%; 51,2%]`; `Sistema Completo` `28/30 = 93,3%` `[78,7%; 98,2%]`. Como os intervalos não se sobrepõem, a transição `Base/RAG → Sistema Completo` representa uma diferença estatisticamente robusta *(demais intervalos comparativos na Seção 6)*.
 
 ---
 
@@ -127,8 +163,9 @@ Conduzimos um estudo em 3 etapas comparando famílias/portes (**`SmolLM2-360M` �
 | **`Qwen 0.6B`** (16b GPU) | 86,7% (`26/30`) | 100,0% | `1.590,6 MiB` | — | `8,47 s` | Validou a família **Qwen** (4,3× mais acurácia que SmolLM2). |
 | **`Qwen 0.6B`** (`Q4_K_M` CPU 2t) | 66,7% (`20/30`) | 100,0% | `896,8 MiB` | `378,3 MiB` | `4,97 s` (`29,3 tok/s`) | Opção ultraleve, porém perde `-20,0 p.p.` ao quantizar para 4 bits. |
 | **`Qwen 1.7B`** (16b GPU) | **93,3%** (`28/30`) | 100,0% | `4.172,0 MiB` | — | `9,20 s` | Teto de confiabilidade (`100%` em canal, poda, citação e recusa). |
-| **`Qwen 1.7B`** (**`Q4_K_M` CPU 2t**) | **93,3%** (`28/30`) | 100,0% | **`2.015,0 MiB`** | **`1.056,1 MiB`** | **`9,30 s`** (`17,3 tok/s`) | **Escolhido para produção:** mantém `100%` da acurácia original sem GPU. |
+| **`Qwen 1.7B`** (**`Q4_K_M` CPU 2t**) | **93,3%** (`28/30`) | 100,0% | **`2.015,0 MiB`** | **`1.056,1 MiB`** | **`9,30 s`** (`17,3 tok/s`) | **Escolhido para produção:** mantém `28/30` (`93,3%`) sem GPU, sem diferença mensurável em `n = 30` (`28/30` nas duas precisões). |
 
+- **Leitura estatística (`n = 30`, intervalos de Wilson 95%):** `28/30 = 93,3%` **`[78,7%; 98,2%]`** (`Qwen 1.7B` 16b e `Q4_K_M`); `26/30 = 86,7%` **`[70,3%; 94,7%]`** (`Qwen 0.6B` 16b); `20/30 = 66,7%` **`[48,8%; 80,8%]`** (`Qwen 0.6B Q4_K_M`); `10/30 = 33,3%` **`[19,2%; 51,2%]`** (`RAG simples`); `8/30 = 26,7%` **`[14,2%; 44,4%]`** (`Base`). A transição `Base/RAG → Sistema Completo` é uma diferença robusta (os intervalos não se sobrepõem), enquanto `Qwen 0.6B × 1.7B` em `16 bits` (`26/30` × `28/30`) não é estatisticamente distinguível neste tamanho de amostra.
 - **Decisão consolidada de produção (`Google Cloud Compute Engine e2-medium`):** como o modelo de Visão Computacional (`segformer_v3_int8_dyn_matmul.onnx`) roda no navegador via `onnxruntime-web`, a instância `e2-medium` (`4 GB` RAM) executa o **`Qwen 1.7B Q4_K_M`** via `llama-server` (`COMPOSE_PROFILES=llm`, `LLAMA_THREADS=2`) ao lado de `webapp/`, `nginx` e `prometheus`/`grafana`, mantendo *fallback* RAG determinístico caso o servidor LLM esteja desligado.
 
 ---
@@ -188,12 +225,13 @@ uv run python scripts/build_smol_vs_qwen_chart.py
 
 ### Notebooks Executados (com Saídas Salvas em `notebooks/`)
 1. [`notebooks/01_base_e_busca_rag.ipynb`](notebooks/01_base_e_busca_rag.ipynb) — Base de 16 trechos, `Recall@1`/`Recall@3` e varredura do limiar `0,30`.
-2. [`notebooks/02_treino_lora_qwen3.ipynb`](notebooks/02_treino_lora_qwen3.ipynb) — Dataset SFT sintético disjunto (`360` treino / `60` val) e curva LoRA `r=16`.
+2. [`notebooks/02_treino_lora_qwen3.ipynb`](notebooks/02_treino_lora_qwen3.ipynb) — Dataset SFT sintético (`360` treino / `60` val) e curva LoRA `r=16`.
 3. [`notebooks/03_avaliacao_comparativa_e_agente.ipynb`](notebooks/03_avaliacao_comparativa_e_agente.ipynb) — Placar das 3 configurações (`26,7% → 33,3% → 93,3%`), agente `ArborGridInspector`, exemplos reais e auditoria de erros.
-4. [`notebooks/04_exploracao_modelos_e_quantizacao.ipynb`](notebooks/04_exploracao_modelos_e_quantizacao.ipynb) — Comparativo `SmolLM2-360M` vs. `Qwen 0.6B` vs. `Qwen 1.7B` e quantização `Q4_K_M` para a instância `t3.medium`.
+4. [`notebooks/04_exploracao_modelos_e_quantizacao.ipynb`](notebooks/04_exploracao_modelos_e_quantizacao.ipynb) — Comparativo `SmolLM2-360M` vs. `Qwen 0.6B` vs. `Qwen 1.7B` e quantização `Q4_K_M` para a instância `e2-medium` (Google Cloud).
 
 ### Integração em Produção (`webapp/`)
 - O serviço [`webapp/app/services/assistant_service.py`](../webapp/app/services/assistant_service.py) expõe **`POST /api/v1/assistant/ask`** e **`GET /api/v1/assistant/status`**, conectando o `manifest.json` + scores Gold ao `llama-server` (`arborgrid-qwen3-1.7b-q4_k_m.gguf`) na tela [`CopilotView.tsx`](../webapp/frontend/src/views/CopilotView.tsx).
+- **Privacidade e guarda de fontes:** a API mascara CPF, CNPJ, placa, telefone e e-mail na pergunta antes que chegue ao LLM e antes de ecoá-la de volta ([`webapp/app/privacy.py`](../webapp/app/privacy.py)), e qualquer resposta do LLM cujas fontes não estejam entre os trechos recuperados é descartada em favor do motor determinístico (sem citações fabricadas).
 
 ### Conclusão
-O módulo `llm-assistant/` comprova que um modelo compacto (`Qwen3-1.7B`) especializado via **LoRA + Busca Híbrida (RAG) + Ferramenta GeoSampa + Validador Programático** eleva a confiabilidade operacional de **`26,7%` (Base)** e **`33,3%` (RAG simples)** para **`93,3%` (`28/30`)**, zerando alucinações de fonte, falhas de *schema* JSON, exposição de dados pessoais (LGPD) e recomendações perigosas de poda própria. Ao quantizá-lo em **`GGUF Q4_K_M`** (`2.015 MiB` de RAM base), o sistema preserva **100% da acurácia original em CPU pura**, permitindo operar dentro de uma única VM econômica na AWS ao lado do MVP Web.
+O módulo `llm-assistant/` comprova que um modelo compacto (`Qwen3-1.7B`) especializado via **LoRA + Busca Híbrida (RAG) + Ferramenta GeoSampa + Validador Programático** eleva a confiabilidade operacional de **`26,7%` (Base)** e **`33,3%` (RAG simples)** para **`93,3%` (`28/30`)**, zerando alucinações de fonte, falhas de *schema* JSON, exposição de dados pessoais (LGPD) e recomendações perigosas de poda própria. Ao quantizá-lo em **`GGUF Q4_K_M`** (`2.015 MiB` de RAM base), o sistema mantém `28/30` (`93,3%`) em CPU pura — sem diferença mensurável em `n = 30` (`28/30` nas duas precisões) —, permitindo operar dentro de uma única VM econômica `e2-medium` no Google Cloud ao lado do MVP Web.

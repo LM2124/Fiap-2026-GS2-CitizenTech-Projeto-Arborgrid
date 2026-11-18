@@ -92,9 +92,20 @@ No notebook autônomo [`colab/Colab_02_Treino_Final_V3_ABC_1024px.ipynb`](colab/
 | **`Modelo B` (+Aug Calibrada)** | `117` imgs · `+HSV ±5%`, `+Rot ±3°` (sem blur) | **`45,13%`** | `92,86%` | `32,46%` (**`96,90%`**) | **`56,82%`** | `8.157,0 px` | `70,0%` (`14/20`) |
 | **`Modelo C (Ouro V3 Final)`** | **`135` imgs** (`+Pacote 3 Hard Negs`) · `+Aug` | **`42,44%`** | **`92,86%`** | `30,95%` (**`96,64%`**) | **`55,42%`** | **`6.495,2 px`** | **`75,0%` (`15/20`)** |
 
+**Detalhamento completo por classe na validação (`8` imagens / `4` árvores):**
+
+| Modelo | Copa IoU / Prec. / Recall | Fiação IoU / Prec. / Recall | Poste IoU / Prec. / Recall | mIoU |
+| :--- | :---: | :---: | :---: | :---: |
+| `V3 A` | `92,84% / 96,04% / 96,53%` | `43,11% / 79,33% / 48,57%` | `33,00% / 82,75% / 35,43%` | `56,32%` |
+| `V3 B` | `92,86% / 95,99% / 96,61%` | `45,13% / 75,33% / 52,96%` | `32,46% / 96,90% / 32,80%` | `56,82%` |
+| **`V3 C (adotado)`** | **`92,86% / 95,80% / 96,80%`** | **`42,44% / 76,58% / 48,77%`** | **`30,95% / 96,64% / 31,29%`** | **`55,42%`** |
+
+> Embora a precisão de postes no `V3 C` seja de `96,64%`, seu IoU é `30,95%` e seu recall é `31,29%`; na fiação, o recall é `48,77%`. Fios e postes são estruturas finas sensíveis a deslocamentos de `1`–`3 px`, com perdas em nível de pixel mitigadas no nível da árvore pelo consenso multi-ângulo e pela margem de vento OpenCV.
+
 ### Decisão Arquitetural: Por que adotar o `Modelo C Ouro V3` em vez do `Modelo B`?
 - Embora as novas augmentations do `Modelo B` tenham alcançado o pico de `IoU Fiação` na validação (`45,13%`), elas elevaram os falsos alarmes no Teste Cego da Paulista para `8.157 px` médios e baixaram o `Zero-FP` para `70,0%`.
-- Ao incluir os `18` *hard negatives* da Paulista (`Modelo C Ouro V3`), aceitamos um recuo controlado de `-2,69 p.p.` no `IoU Fiação` da validação (`42,44%`) para derrubar em **`-20,4%` os pixels falsos médios no teste cego (`8.157 → 6.495 px`)**, preservando `96,64%` de precisão em postes e `92,86%` de IoU em copas.
+- Ao incluir os `18` *hard negatives* da Paulista (`Modelo C Ouro V3`), aceitamos um recuo controlado de `-2,69 p.p.` no `IoU Fiação` da validação (`42,44%`) para derrubar em **`-20,4%` os pixels falsos médios no teste cego (`8.157 → 6.495 px`)**, mantendo `92,86%` de IoU em copas e `96,64%` de precisão em postes (`30,95%` IoU / `31,29%` recall em postes e `48,77%` recall em fiação no nível de pixel).
+- *Nota amostral:* com validação de `8` imagens (`4` árvores) e teste cego de `20` imagens, o `Zero-FP` de `75%` (`15/20`) tem intervalo de Wilson (95%) de `[53%; 89%]`, e a diferença entre `B` (`70%`) e `C` (`75%`) representa apenas `1` imagem.
 - Além disso, na auditoria completa sobre todas as `143` imagens curadas (reproduzível via [`03_avaliacao_v3_auditoria_e_inferencia_campo.ipynb`](03_avaliacao_v3_auditoria_e_inferencia_campo.ipynb)), o `Modelo C V3` obteve `100,00%` de concordância (`iou_wire`) nas `18` imagens de `pacote_3_hard_negatives`, `82,78%` no treino do `pacote_1` e `80,09%` no `pacote_2`. Mesmo quando isolamos os exemplos com maior discrepância absoluta de pixels do dataset, as predições permanecem geometricamente alinhadas aos feixes reais e ao gabarito humano:
 
 ![Maiores Anomalias do Dataset V3 — Alinhamento entre Gabarito Humano e Modelo C V3](assets/exemplo_etapa3_maiores_anomalias_v3.jpg)
@@ -110,7 +121,9 @@ Comparando a inferência completa do `V2 Full` vs. `V3 Ouro` no [`manifest.json`
 | **Pinheiros** *(Aérea)* | `89` | `-5,45%` | `23` (`25,8%`) | `22` (`24,7%`) | `11` (`12,4%`) | `33` (`37,1%`) |
 | **Alto da Mooca** *(Aérea)* | `54` | `-15,75%` | `11` (`20,4%`) | `11` (`20,4%`) | `17` (`31,5%`) | `15` (`27,8%`) |
 | **Vila Mariana / Klabin** *(Aérea)* | `54` | `-13,82%` | `22` (`40,7%`) | `6` (`11,1%`) | `9` (`16,7%`) | `17` (`31,5%`) |
-| **Av. Paulista** *(100% Subterrânea)* | `74` | **`-56,11%`** | `3` (`4,1%`) *(cruzamentos)* | `6` (`8,1%`) | `5` (`6,8%`) | **`60` (`81,1%`)** |
+| **Av. Paulista** *(100% Subterrânea)* | `74` (`65` inéditas) | **`-41,82%`** *(65 inéditas)* / `-56,11%` *(74 total)* | `3` (`4,1%`) *(cruzamentos)* | `6` (`8,1%`) | `5` (`6,8%`) | **`51/65` (`78,5%`)** inéditas / `60/74` (`81,1%`) total |
+
+> **Sobreposição treino × campo:** na Av. Paulista, `9` das `74` árvores integram o `pacote_3_hard_negatives` de treino (IDs `36, 39, 43, 4565, 4728, 5692, 5695, 651875, 7204`), onde o `V3` zerou `144.149 → 0 px` (memorização); nas `65` árvores inéditas (`129` vistas), a queda foi de `442.616 → 257.508 px` (`-41,82%`) e `78,5%` (`51/65`) como `SEGURO` (vs. `46/65 = 70,8%` no `V2`). Em Pinheiros, `71` das `89` árvores têm `dataset_role = train_curated` (taxas refletem triagem sobre árvores vistas no treino); Alto da Mooca e Vila Mariana (`54` árvores cada) são `inference_only` sem gabarito humano.
 
 ---
 
@@ -118,11 +131,11 @@ Comparando a inferência completa do `V2 Full` vs. `V3 Ouro` no [`manifest.json`
 
 Como o servidor de nuvem do ecossistema precisa rodar `webapp/`, `nginx`, `prometheus`/`grafana` e o copiloto `llm-assistant/` (`Qwen 1.7B Q4_K_M`, `2.015 MiB` base) sem GPU dedicada, avaliamos se seria possível compactar o `SegFormer-B2 V3 (1024×1024)` para CPU ou se o melhor caminho seria executá-lo **no navegador via Web**.
 
-Implementamos [`04_quantizacao_onnx_e_benchmark_cpu.ipynb`](04_quantizacao_onnx_e_benchmark_cpu.ipynb) executando cada variante em subprocesso isolado limitado a `2 threads` de CPU, medindo tamanho bruto e Gzip (custo de download Web), pico de RAM RSS (`psutil`), latência (`28` imagens = `8` validação + `20` teste cego Paulista), IoU, `Zero-FP` e concordância do veredito final do motor morfológico V3:
+Implementamos [`04_quantizacao_onnx_e_benchmark_cpu.ipynb`](04_quantizacao_onnx_e_benchmark_cpu.ipynb) executando cada variante em subprocesso isolado limitado a `2 threads` de CPU, medindo tamanho bruto e Gzip (custo de download Web), pico de RAM RSS (`psutil`), latência (`28` imagens = `8` validação + `20` teste cego Paulista), IoU, `Zero-FP` e concordância da triagem final do motor morfológico V3 **em relação ao modelo `FP32` original** (não acurácia contra gabarito humano):
 
 ![Etapa 4 — Quantização e Exportação SegFormer-B2 V3 (CPU 2 Threads)](assets/etapa4_quantizacao_segformer_v3.png)
 
-| Variante (`SegFormer-B2 V3 1024×1024`) | Escopo de Quantização | Disco | Gzip Web | Pico RAM RSS | Latência Média (P95) | mIoU Val | IoU Fiação | Zero-FP Paulista | Concordância Triagem |
+| Variante (`SegFormer-B2 V3 1024×1024`) | Escopo de Quantização | Disco | Gzip Web | Pico RAM RSS | Latência Média (P95) | mIoU Val | IoU Fiação | Zero-FP Paulista | Concordância vs. FP32 |
 | :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `pytorch_fp32` | Pesos `FP32` originais | `104,5 MiB` | `96,9 MiB` | `3.310 MiB` | `4,40s` (`4,47s`) | `55,41%` | `42,44%` | `75,0%` (`15/20`) | `100,0%` (`28/28`) |
 | `onnx_fp32` | Grafo ONNX opset 17 `FP32` | `104,6 MiB` | `96,9 MiB` | `5.235 MiB` | `2,73s` (`2,77s`) | `55,41%` | `42,44%` | `75,0%` (`15/20`) | `100,0%` (`28/28`) |
@@ -136,7 +149,7 @@ Implementamos [`04_quantizacao_onnx_e_benchmark_cpu.ipynb`](04_quantizacao_onnx_
 1. **Por que `onnx_int8_dynamic` (completo) falhou em latência (`26,64s`):** ao quantizar também camadas convolucionais do `Mix-FFN` e `OverlapPatchEmbed`, o ONNX Runtime em CPU gera nós `ConvInteger` com perda severa de paralelismo/vetorização — ficando `9,8×` mais lento que `onnx_fp32` (`26,64s` vs. `2,73s`) e mudando `1` triagem (`PROXIMIDADE → CRITICO`).
 2. **Por que `onnx_int8_static_qdq` falhou em fiação e falsos alarmes:** o *clipping* estático `MinMax` em `QUInt8` achata gradientes sutis de cabos sub-pixel: `IoU Fiação` cai `42,44% → 40,41%`, o `Zero-FP` da Paulista despenca `75,0% → 55,0%` (`11/20`) e `2` triagens divergem (incluindo falso positivo `SEGURO → PROXIMIDADE` na Paulista). Além disso, seu pico de `2.654 MiB` RSS em CPU ainda inviabiliza rodar o modelo na mesma instância ao lado do `Qwen 1.7B Q4_K_M` (`2.015 MiB` base).
 3. **Por que vencemos com `onnx_int8_dyn_matmul` na Web:**
-   - Restringir a quantização dinâmica `QInt8` às camadas lineares e de atenção (`op_types_to_quantize=["MatMul", "Gemm"]`), mantendo as convoluções em `FP32`, reduz o arquivo pela metade (`51,8 MiB` em disco / `43,9 MiB` via Gzip), entrega a **menor latência em CPU `2t` (`2,48s`, `-43,6%` vs. PyTorch)**, registra `56,28%` mIoU, `42,55%` IoU Fiação, `75,0%` Zero-FP e **`100,0%` (`28/28`) de concordância de triagem**.
+   - Restringir a quantização dinâmica `QInt8` às camadas lineares e de atenção (`op_types_to_quantize=["MatMul", "Gemm"]`), mantendo as convoluções em `FP32`, reduz o arquivo pela metade (`51,8 MiB` em disco / `43,9 MiB` via Gzip), entrega a **menor latência em CPU `2t` (`2,48s`, `-43,6%` vs. PyTorch)**, registra `56,28%` mIoU, `42,55%` IoU Fiação, `75,0%` Zero-FP e **`100,0%` (`28/28`) de concordância de triagem com o modelo `FP32`**.
    - **Decisão fechada:** hospedar `segformer_v3_int8_dyn_matmul.onnx` (`43,9 MiB` comprimido) como ativo estático para execução cliente no navegador (`onnxruntime-web`), liberando `100%` da RAM da VM na nuvem para a API e o assistente `Qwen`. Como alternativa caso haja GPU/WebGPU no cliente, `onnx_fp16` (`48,3 MiB` Gzip, `100,0%` de concordância) preserva pesos em meia precisão nativa.
 
 ---
@@ -156,5 +169,5 @@ Implementamos [`04_quantizacao_onnx_e_benchmark_cpu.ipynb`](04_quantizacao_onnx_
 | **`PRB-009`** | Desalinhamento no polígono amostral da Av. Paulista. | Bbox ortogonal com buffer estreito omitia faces adjacentes. | Polígono orientado ao eixo viário (`420 m` totais cobrindo Rua São Carlos do Pinhal e Al. Santos). |
 | **`PRB-010`** | Sobreposição de *hover* dos polígonos nos cliques das árvores no mapa. | Eventos SVG capturados pela camada vetorial do setor. | Polígonos territoriais com `interactive: false` e `fill: false` + painel lateral retrátil. |
 | **`PRB-011`** | Panoramas internos do Metrô Paulista/Consolação (`#2139`, `#2135`) no dataset. | Coordenada da árvore coincidia com trajeto pedestre subterráneo (*Trekker*). | Quarentena e descarte dos espécimes internos do manifesto oficial. |
-| **`PRB-012`** | Falsos positivos em frisos metálicos e brises da Av. Paulista no `V2`. | Dataset `100%` composto por vias com rede aérea induzia viés positivo. | **Pacote 3 (`18` Hard Negatives)** zerando alucinações e reduzindo `wire_px` da Paulista em `-56,11%`. |
+| **`PRB-012`** | Falsos positivos em frisos metálicos e brises da Av. Paulista no `V2`. | Dataset `100%` composto por vias com rede aérea induzia viés positivo. | **Pacote 3 (`18` Hard Negatives)** reduzindo `wire_px` nas `65` árvores inéditas da Paulista em `-41,82%` (`-56,11%` incluindo as `9` árvores de treino). |
 | **`PRB-013`** | Quantização dinâmica INT8 completa em ONNX `9,8×` mais lenta (`26,64s` CPU `2t`). | Nós `ConvInteger` de convoluções têm baixo desempenho no `CPUExecutionProvider` ORT. | Quantização seletiva em **`MatMul`/`Gemm` (`onnx_int8_dyn_matmul`)**: **`2,48s` CPU** e `100%` triagem. |

@@ -6,15 +6,22 @@
 | :--- | :--- |
 | **Nome do produto** | **ArborGrid SP** |
 | **Integrantes (RM)** | **Lorenzo Gomes Andreata** (`551117`) · **Lucas Moreno Matheus** (`97158`) · **Kayky Oliveira Schunck** (`99756`) |
+| **URL do MVP e repositório** | http://34.41.193.154 (Web App) · http://34.41.193.154/docs (API Swagger) · https://github.com/LM2124/Fiap-2026-GS2-CitizenTech-Projeto-Arborgrid |
 | **Cidadão e território** | Moradores, pedestres e equipes de zeladoria/energia em **São Paulo (SP)** — lotes auditados em Pinheiros, Alto da Mooca, Vila Mariana e corredor de controle Av. Paulista |
 | **Problema, em uma frase** | Conflitos não mapeados entre copas de árvores urbanas e fiação aérea de distribuição elétrica causam apagões, risco de choque elétrico e quedas de árvores sem vistoria preventiva |
 | **Proposta de valor** | Combinar dados geoespaciais abertos e visão computacional multi-perspectiva (`1024 px`) com risco climático para priorizar podas preventivas com transparência e controle de falsos positivos |
 | **Arquitetura: componentes** | `arborgrid-vision/` (SegFormer-B2 + OpenCV), `webapp/` (FastAPI + React/Leaflet + API REST), `data-processing/` (Airflow 3 + Databricks Medallion), `llm-assistant/` (RAG + Qwen3 LoRA), `infra/` (Terraform GCP + Docker Compose + Prometheus/Grafana) |
 | **Fontes de dados** | PMSP GeoSampa WFS (`geoportal:arvore` + SISGAU), Google Street View Static/Metadata API, Open-Meteo API |
 | **Modelos de IA utilizados** | **SegFormer-B2 (1024 px)** *fine-tuned* (V3 Gold + versão quantizada `onnx_int8_dyn_matmul` no navegador) e **Qwen3-1.7B + LoRA (`r=16`)** / base normativa (`llm-assistant/`) |
-| **Pipeline DevSecOps** | `.github/workflows/devsecops.yml` (`pytest`, Gitleaks, Semgrep SAST, Trivy IaC/Imagem e deploy automático em VM) |
-| **Indicadores de impacto** | Redução de `-56,1%` em pixels falsos de fiação na Av. Paulista (controle subterrâneo) no modelo V3; cobertura multi-ângulo em 271 árvores (`536` vistas) |
+| **Pipeline DevSecOps** | `.github/workflows/devsecops.yml` (`pytest`, Gitleaks, Semgrep SAST, Trivy IaC/Imagem e deploy automático na VM via túnel IAP + Workload Identity Federation, sem chave de nuvem e com a porta 22 fechada para a internet) |
+| **Indicadores de impacto** | **Linha de base:** `88,2%` das `271` árvores auditadas sem vistoria SISGAU recente · **Técnicos:** `-41,8%` de pixels falsos de fiação na Av. Paulista nas `65` árvores fora do treino; assistente com `93,3%` de acerto estrito (`90,9%` nos `22` casos sem sobreposição com o treino) · **Impacto a medir no piloto:** interrupções atribuídas à vegetação por `1.000` árvores auditadas; tempo entre triagem crítica e poda; `%` de árvores críticas sem vistoria que passam a ter vistoria |
 | **ODS conectados** | **ODS 11** (Cidades e comunidades sustentáveis), **ODS 9** (Indústria, inovação e infraestrutura), **ODS 13** (Ação contra a mudança global do clima) |
+
+### Contribuição para os ODS
+
+- **ODS 11 (Metas 11.5 e 11.7 — redução de pessoas afetadas e de perdas por desastres; preservação de áreas verdes urbanas):** o ArborGrid SP prioriza a poda preventiva direcionada antes da ocorrência de quedas ou choques, substituindo a supressão emergencial após acidentes pela conservação segura da arborização viária. A contribuição é medida pelo percentual de árvores críticas sem vistoria SISGAU prévia que passam a receber vistoria e pelo tempo entre a triagem crítica e a poda.
+- **ODS 9 (Meta 9.1 — infraestrutura confiável e resiliente):** ao cruzar proximidade copa–fiação por múltiplos ângulos e expor os alertas via API para as equipes de zeladoria e energia, o sistema apoia a manutenção programada da rede elétrica de distribuição para reduzir apagões. A contribuição é medida pela taxa de interrupções atribuídas à vegetação por `1.000` árvores auditadas no piloto.
+- **ODS 13 (Meta 13.1 — resiliência a riscos climáticos):** o módulo Big Data/Ouro integra previsões de rajadas de vento e chuva via Open-Meteo ao risco físico das copas, elevando a prioridade de árvores expostas a eventos extremos. A contribuição é medida pela antecipação do atendimento de árvores críticas em setores com maior severidade climática.
 
 ---
 
@@ -95,8 +102,26 @@ Respostas estruturadas reais registradas pelo pipeline **`Qwen3-1.7B + LoRA + RA
 
 ```bash
 cd webapp
-uv run pytest -v   # ou `.venv/Scripts/pytest -v` (Windows) / `.venv/bin/pytest -v` (Linux/macOS)
+
+# Windows:
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements-dev.txt
+pytest -v
+
+# Linux / macOS:
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+pytest -v
 ```
+
+| Módulo | Como instalar | Como testar / rodar |
+| :--- | :--- | :--- |
+| `webapp/` | `pip install -r requirements-dev.txt` (em venv) | `pytest -v` |
+| `llm-assistant/` | `uv sync --group dev` | `uv run pytest -v` |
+| `arborgrid-vision/` | `uv sync` | Notebooks `01`–`05` / `scripts/run_operational_pipeline.py` |
+| `infra/` | `python scripts/start_stack.py` | Docker Compose |
 
 - [`webapp/`](webapp/) — Aplicação Web (FastAPI + frontend React/Vite/Tailwind/Leaflet + `onnxruntime-web` + API `/api/v1/*` + Prometheus `/metrics` + `tests/test_api.py`).
 - [`scripts/start_stack.py`](scripts/start_stack.py) — Script único para subir Docker (ou API local), configurar `infra/.env` e exibir credenciais locais.

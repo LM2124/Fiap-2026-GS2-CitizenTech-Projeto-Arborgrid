@@ -83,7 +83,7 @@ def _nb_lora() -> nbf.NotebookNode:
             "display(pd.Series([r['familia'] for r in train_rows]).value_counts().rename('qtd_treino'))"
         ),
         nbf.v4.new_code_cell(
-            "REEXECUTAR_TREINO = False  # True para retreinar o adaptador LoRA r=16 na GPU (~2 min)\n\n"
+            "REEXECUTAR_TREINO = False  # True para retreinar o adaptador LoRA r=16 na GPU (~46 min na RTX 3060 Ti)\n\n"
             "if REEXECUTAR_TREINO or not (DIR_ADAPTERS / 'lora_arborgrid_r16' / 'adapter_config.json').exists():\n"
             "    from scripts.train_lora import main as run_train\n"
             "    run_train()\n\n"
@@ -177,7 +177,7 @@ def _nb_quantizacao() -> nbf.NotebookNode:
             "# 04 — Exploração de Modelos (`SmolLM2-360M` vs. `Qwen 0.6B` vs. `1.7B`) e Quantização `Q4_K_M`\n\n"
             "Documenta a seleção de família/porte de modelo e o estudo de quantização `F16` → `Q4_K_M` via `llama.cpp` "
             "em **GPU** (`-ngl 99`) e **CPU pura limitada a 2 threads** (`-dev none -ngl 0 -t 2`) "
-            "para fundamentar o deploy econômico na AWS (`t3.medium`, 4 GiB RAM)."
+            "para fundamentar o deploy econômico no Google Cloud Compute Engine (`e2-medium`, 4 GB RAM)."
         ),
         nbf.v4.new_code_cell(
             "import sys\n"
@@ -207,10 +207,10 @@ def _nb_quantizacao() -> nbf.NotebookNode:
             "display(Image(filename=str(DIR_ASSETS / 'matriz_2x2_latencia_gpu_cpu.png')))"
         ),
         nbf.v4.new_markdown_cell(
-            "### Decisão Final para Produção na Nuvem (`AWS EC2 t3.medium`)\n"
+            "### Decisão Final para Produção na Nuvem (`Google Cloud Compute Engine e2-medium`)\n"
             "- **`SmolLM2-360M` descartado:** `20,0%` em 16 bits (`10,0%` em Q4 CPU) e latência pior ou equivalente ao `Qwen 0.6B`.\n"
-            "- **`Qwen 1.7B Q4_K_M` aprovado para produção:** mantém **`93,3%` (`28/30`)** sem perda frente ao `F16` (`2.015,0 MiB` RAM base, `1.056,1 MiB` em disco, `9,30 s` em 2 threads CPU local / `~18,6 s` estimados em vCPU).\n"
-            "- Como o modelo de Visão Computacional (`segformer_v3_int8_dyn_matmul.onnx`) roda no navegador via `onnxruntime-web`, o **`Qwen 1.7B Q4_K_M`** cabe com folga na **`t3.medium` (4 GiB RAM)**."
+            "- **`Qwen 1.7B Q4_K_M` aprovado para produção:** mantém **`93,3%` (`28/30`)** sem diferença mensurável em `n = 30` frente ao `F16` (`2.015,0 MiB` RAM base, `1.056,1 MiB` em disco, `9,30 s` em 2 threads CPU local / `~18,6 s` estimados em vCPU).\n"
+            "- Como o modelo de Visão Computacional (`segformer_v3_int8_dyn_matmul.onnx`) roda no navegador via `onnxruntime-web`, o **`Qwen 1.7B Q4_K_M`** cabe com folga na **`e2-medium` (4 GB RAM)**."
         ),
     ]
     nb = nbf.v4.new_notebook()

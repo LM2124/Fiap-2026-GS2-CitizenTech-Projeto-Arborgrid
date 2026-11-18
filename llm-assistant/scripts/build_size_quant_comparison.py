@@ -98,8 +98,8 @@ def _row_from_gguf_json(
     }
 
 
-def _plot_ec2_sizing_and_cost(mem_matrix: dict[str, Any], out_path: Path) -> None:
-    """Compara consumo de disco/RAM em CPU contra tetos EC2 e topologia 2x small vs 1x medium."""
+def _plot_vm_sizing_and_cost(mem_matrix: dict[str, Any], out_path: Path) -> None:
+    """Compara consumo de disco/RAM em CPU contra tetos GCE e topologia 2x e2-small vs 1x e2-medium."""
     plt.rcParams.update({"figure.dpi": 140})
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13.6, 5.2), gridspec_kw={"width_ratios": [1.25, 1.0]})
 
@@ -117,13 +117,13 @@ def _plot_ec2_sizing_and_cost(mem_matrix: dict[str, Any], out_path: Path) -> Non
     w = 0.36
     bd = ax1.bar(xm - w / 2, disk_vals, w, label="Arquivo em disco (MiB)", color="#457b9d")
     br = ax1.bar(xm + w / 2, rss_vals, w, label="RAM Base em CPU pura (MiB)", color="#e76f51")
-    ax1.axhline(2048, color="#b5179e", linestyle=":", linewidth=1.7, label="EC2 t3.small (2.048 MiB RAM)")
-    ax1.axhline(4096, color="#264653", linestyle="--", linewidth=1.7, label="EC2 t3.medium (4.096 MiB RAM)")
+    ax1.axhline(2048, color="#b5179e", linestyle=":", linewidth=1.7, label="GCE e2-small (2.048 MiB RAM)")
+    ax1.axhline(4096, color="#264653", linestyle="--", linewidth=1.7, label="GCE e2-medium (4.096 MiB RAM)")
     ax1.set_xticks(xm)
     ax1.set_xticklabels(labels, fontsize=9.2)
     ax1.set_ylim(0, 5250)
     ax1.set_ylabel("Armazenamento / RAM (MiB)")
-    ax1.set_title("Envelope de Memória em CPU Pura vs. Limite EC2")
+    ax1.set_title("Envelope de Memória em CPU Pura vs. Limite da VM (GCE)")
     ax1.grid(axis="y", linestyle="--", alpha=0.35)
     ax1.legend(loc="upper left", fontsize=8.0, framealpha=0.95)
 
@@ -132,23 +132,23 @@ def _plot_ec2_sizing_and_cost(mem_matrix: dict[str, Any], out_path: Path) -> Non
             h = bar.get_height()
             ax1.text(bar.get_x() + bar.get_width() / 2, h + 70, f"{h:.0f}", ha="center", va="bottom", fontsize=8.2)
 
-    topos = ["2× t3.small\n(2 GiB cada)", "1× t3.medium\n(4 GiB contíguos)"]
+    topos = ["2× e2-small\n(2 GB cada)", "1× e2-medium\n(4 GB contíguos)"]
     yt = np.arange(len(topos))
-    # Tarifa us-east-1 Linux On-Demand: 0.0208/h * 730 = 15.18/mês por small -> 30.37/mês; medium = 0.0416/h = 30.37/mês
-    compute_usd = [30.37, 30.37]
+    # Tarifa us-central1 on-demand: e2-small 0,016751 US$/h × 730 = 12,23/mês -> 2× = 24,46; e2-medium 0,033503 US$/h × 730 = 24,46/mês
+    compute_usd = [24.46, 24.46]
     colors_topo = ["#d62728", "#2ca02c"]
     ax2.barh(yt, compute_usd, height=0.44, color=colors_topo, alpha=0.88)
     ax2.set_yticks(yt)
     ax2.set_yticklabels(topos, fontsize=9.8, fontweight="bold")
     ax2.invert_yaxis()
-    ax2.set_xlim(0, 56)
-    ax2.set_xlabel("Custo Mensal de Computação EC2 (US$/mês, us-east-1)")
-    ax2.set_title("Decisão AWS: 2× t3.small vs. 1× t3.medium")
+    ax2.set_xlim(0, 46)
+    ax2.set_xlabel("Custo Mensal de Computação GCE (US$/mês, us-central1)")
+    ax2.set_title("Decisão GCP: 2× e2-small vs. 1× e2-medium")
     ax2.grid(axis="x", linestyle="--", alpha=0.35)
 
     notes = [
-        "US$ 30,37/mês\n(2× EBS + latência de rede\n+ 1.7B Q4 estoura 2 GiB)",
-        "US$ 30,37/mês\n(1× EBS + 0 ms rede local\n+ folga para LLM + stack)",
+        "US$ 24,46/mês\n(2× Persistent Disk + latência de rede\n+ 1.7B Q4 estoura 2 GB)",
+        "US$ 24,46/mês\n(1× Persistent Disk + 0 ms rede local\n+ folga para LLM + stack)",
     ]
     for idx, (cost, note) in enumerate(zip(compute_usd, notes)):
         ax2.text(cost + 0.9, idx, note, va="center", ha="left", fontsize=8.4, fontweight="bold", color="#1b1b1b")
@@ -331,7 +331,7 @@ def main() -> None:
     df.to_csv(out_csv, index=False, encoding="utf-8")
 
     out_png = DIR_ASSETS / "comparativo_17b_vs_06b_gguf.png"
-    _plot_ec2_sizing_and_cost(mem_matrix, out_png)
+    _plot_vm_sizing_and_cost(mem_matrix, out_png)
 
     out_mat = DIR_ASSETS / "matriz_2x2_memoria_acuracia.png"
     _plot_matrices(df, out_mat)

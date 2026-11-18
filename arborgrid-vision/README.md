@@ -6,7 +6,14 @@ Módulo de auditoria preventiva de conflitos entre a arborização viária de S�
 
 ## 1. Integrantes e Conexão com o Ecossistema ArborGrid SP
 
-- **Grupo:** Equipe CitizenTech 4ES (FIAP Global Solution 2026.2 — *Applied Computer Vision*).
+- **Disciplina:** *Applied Computer Vision* — FIAP Global Solution 2026.2 (Equipe CitizenTech 4ES).
+
+| RM | Integrante |
+| :---: | :--- |
+| `551117` | Lorenzo Gomes Andreata |
+| `97158` | Lucas Moreno Matheus |
+| `99756` | Kayky Oliveira Schunck |
+
 - **Conexão com o MVP ([`../README.md`](../README.md)):** gera o manifesto operacional georreferenciado ([`dataset/sp_geosampa_api/manifest.json`](dataset/sp_geosampa_api/manifest.json)) e a triagem multi-perspectiva (`CRITICO_CONFIRMADO`, `DIVERGENCIA_PARALAXE`, `PROXIMIDADE`, `SEGURO`) consumidos pelo backend/mapa em [`webapp/`](../webapp/), pelo copiloto técnico (`ArborGridInspector`) em [`llm-assistant/`](../llm-assistant/) e pelos pipelines territoriais em [`data-processing/`](../data-processing/).
 
 ---
@@ -71,11 +78,21 @@ O dataset consolidado cobre `143` fotografias curadas manualmente no `X-AnyLabel
 | `V3 Modelo B` (+Aug Segura) | `117` imgs (+`HSV ±5%`, `rot ±3°`) | `45,13%` | `92,86%` | `96,90%` | `56,82%` | `70,0%` (`8.157 px` FP) |
 | **`V3 Modelo C (Ouro Final)`** | **`135` imgs** (`+Pacote 3 Hard Neg.`) | **`42,44%`** | **`92,86%`** | **`96,64%`** | **`55,42%`** | **`75,0%` (`6.495 px` FP)** |
 
+### Métricas por classe na validação (IoU, precisão e recall)
+
+| Modelo | Copa IoU / Prec. / Recall | Fiação IoU / Prec. / Recall | Poste IoU / Prec. / Recall | mIoU |
+| :--- | :---: | :---: | :---: | :---: |
+| `V3 A` | `92,84% / 96,04% / 96,53%` | `43,11% / 79,33% / 48,57%` | `33,00% / 82,75% / 35,43%` | `56,32%` |
+| `V3 B` | `92,86% / 95,99% / 96,61%` | `45,13% / 75,33% / 52,96%` | `32,46% / 96,90% / 32,80%` | `56,82%` |
+| **`V3 C (adotado)`** | **`92,86% / 95,80% / 96,80%`** | **`42,44% / 76,58% / 48,77%`** | **`30,95% / 96,64% / 31,29%`** | **`55,42%`** |
+
+Fios elétricos são estruturas finas, cujo IoU por pixel é altamente sensível a deslocamentos de `1`–`3 px`; além disso, o recall de `48,8%` em fiação (`48,77%`) e `31,3%` em postes (`31,29%`) indica omissões em nível de pixel, que o sistema mitiga no nível da árvore por meio do consenso multi-visada e da margem de balanço ao vento em OpenCV. Como próximos passos de avaliação, planeja-se adotar IoU com tolerância espacial (`±2 px`) e uma matriz de confusão no nível da árvore comparando a triagem derivada das máscaras de gabarito com a triagem das máscaras preditas.
+
 ### Impacto Empírico em Campo (`271` árvores · `536` vistas)
 
 ![Etapa 3 (Campo) — Redução de Fiação Falsa e Triagem por Território](assets/etapa3_territorios_v2_vs_v3_paulista.png)
 
-- Ao treinar com o Pacote 3 (`Hard Negative Mining`), o **`Modelo C V3`** reduziu os pixels falsamente segmentados como fiação na Av. Paulista (`74` árvores) em **`-56,11%`** (`586.765 → 257.508 px`), classificando `81,1%` (`60/74`) como `SEGURO` e isolando apenas `3` críticos confirmados (`4,1%`) nos cruzamentos com vias transversais de rede aérea — contra `20,4%` (Mooca), `25,8%` (Pinheiros) e `40,7%` (Vila Mariana).
+- Nas `65` árvores da Av. Paulista nunca vistas no treinamento (`129` vistas), o **`Modelo C V3`** reduziu os pixels falsamente segmentados como fiação em **`-41,82%`** frente ao `V2` (`442.616 → 257.508 px`) e classificou **`78,5%`** (`51/65`) como `SEGURO` (contra `46/65 = 70,8%` no `V2`). Considerando todas as `74` árvores do corredor — incluindo as `9` árvores do Pacote 3 de *hard negatives* usadas no treino do `V3`, nas quais os falsos pixels caíram de `144.149` para `0` por memorização —, o total da Paulista marca `-56,11%` (`586.765 → 257.508 px`) e `81,1%` (`60/74`) como `SEGURO`. Os casos críticos do `V3` na Paulista permanecem em `3` `CRITICO_CONFIRMADO` (`4,1%`) nos cruzamentos com vias transversais de rede aérea — contra `20,4%` (Mooca), `25,8%` (Pinheiros) e `40,7%` (Vila Mariana).
 
 ---
 
@@ -94,11 +111,24 @@ Avaliamos `6` variantes do `SegFormer-B2 V3 (1024×1024)` em subprocessos isolad
 | `onnx_int8_dynamic` | `segformer_v3_int8_dynamic.onnx` | `26,9 MiB` | `18,7 MiB` | `4.371 MiB` | `26,64s` | `56,66%` | `42,40%` | `75,0%` | `96,4%` (`27/28`) |
 | `onnx_int8_static_qdq` | `segformer_v3_int8_static_qdq.onnx` | `27,4 MiB` | `18,6 MiB` | `2.654 MiB` | `5,94s` | `54,25%` | `40,41%` | `55,0%` | `92,9%` (`26/28`) |
 
-- **Decisão arquitetural:** mesmo a opção mais enxuta em RAM (`onnx_int8_static_qdq`, `2.654 MiB` RSS) degrada o Zero-FP da Paulista (`75,0% → 55,0%`) e disputa memória na VM com o `Qwen 1.7B Q4_K_M` (`2.015 MiB` base). Por isso adotamos **`onnx_int8_dyn_matmul`** (`51,8 MiB` / `43,9 MiB` Gzip, `2,48s`, `100,0%` de concordância de triagem) para execução sob demanda no navegador (`onnxruntime-web`), preservando `100%` da RAM da VM para a API e o LLM.
+- **Decisão arquitetural:** mesmo a opção mais enxuta em RAM (`onnx_int8_static_qdq`, `2.654 MiB` RSS) degrada o Zero-FP da Paulista (`75,0% → 55,0%`) e disputa memória na VM com o `Qwen 1.7B Q4_K_M` (`2.015 MiB` base). Por isso adotamos **`onnx_int8_dyn_matmul`** (`51,8 MiB` / `43,9 MiB` Gzip, `2,48s`, `100,0%` (`28/28`) de concordância da triagem final em relação ao modelo `FP32` — e não acurácia contra gabarito humano) para execução sob demanda no navegador (`onnxruntime-web`), preservando `100%` da RAM da VM para a API e o LLM.
 
 ---
 
-## 6. Estrutura e Reprodução
+## 6. Limitações, Viés e Sobreposição Treino × Campo
+
+- **Sobreposição treino × campo na Av. Paulista:** as `9` árvores de `pacote_3_hard_negatives` (IDs `36, 39, 43, 4565, 4728, 5692, 5695, 651875, 7204`), usadas no treinamento do `V3`, integram o lote de `74` árvores da Av. Paulista no manifesto. Nessas `9` árvores o `V3` zerou `144.149 → 0 px` (memorização do treino); portanto, a métrica isenta de vazamento corresponde às `65` árvores inéditas (`129` vistas): `-41,82%` em pixels falsos de fiação e `78,5%` (`51/65`) classificadas como `SEGURO`.
+- **Sobreposição em Pinheiros e ausência de gabarito em outros bairros:** no manifesto operacional, `71` das `89` árvores de Pinheiros possuem `dataset_role = train_curated`. Assim, as taxas territoriais de Pinheiros (como `25,8%` de casos críticos) descrevem a triagem do modelo sobre árvores que participaram do treino. Alto da Mooca (`54` árvores) e Vila Mariana (`54` árvores) são `inference_only` sem rótulos de verdade terrestre, logo suas taxas refletem a saída do modelo em campo, não acurácia validada.
+- **Amostras reduzidas de validação e teste cego:** a validação fixa conta com `8` imagens (`4` árvores) e o teste cego negativo da Paulista com `20` imagens. A taxa `Zero-FP` de `75%` (`15/20`) possui intervalo de confiança de Wilson (95%) de `[53%; 89%]`, e a diferença entre os modelos `B` (`70%`) e `C` (`75%`) equivale a apenas `1` imagem.
+- **Viés geográfico:** os dados rotulados de rede aérea vêm exclusivamente de Pinheiros (somados aos `9` *hard negatives* da Av. Paulista). Bairros periféricos — onde a fiação aérea tende a ser mais densa e irregular — não estão representados no treinamento. Como plano de evolução, prevê-se rotular uma amostra representativa de distritos periféricos antes de qualquer expansão do sistema.
+
+### Segmentação semântica × detecção de objetos
+
+Embora o escopo acadêmico solicite detecção de objetos, escolheu-se segmentação semântica em nível de pixel porque fios elétricos são estruturas finas e diagonais que caixas delimitadoras (*bounding boxes*) não representam sem englobar fundo espúrio e gerar interseções falsas com copas. Quando necessário para integração ou comparação, caixas delimitadoras por objeto podem ser derivadas diretamente das máscaras preditas via componentes conexos.
+
+---
+
+## 7. Estrutura e Reprodução
 
 O módulo adota uma arquitetura **Dual-Track MLOps**, separando a **Trilha de Pesquisa Científica (Notebooks Numerados)** da **Trilha de Operação Contínua (CLI Declarativa Idempotente)**:
 

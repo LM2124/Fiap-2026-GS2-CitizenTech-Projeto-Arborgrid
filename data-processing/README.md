@@ -40,6 +40,8 @@ Consultáveis via `GET /api/v1/inspections/available-dates`:
 - `2026-11-12` — Vila Mariana
 - `2026-11-13` — Avenida Paulista (Controle Negativo - rede subterrânea)
 
+> `captured_at` é uma partição operacional **sintética** (gerada de forma determinística por região) para simular coletas diárias incrementais; a data real da imagem está em `streetview_capture_month`.
+
 **Campos garantidos por item (`items[]`):**
 - `detection_id`: identificador único e determinístico (`arb-<sha256_16>`)
 - `image_id`: identificador base da fotografia
