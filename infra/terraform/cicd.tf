@@ -27,6 +27,17 @@ resource "google_project_service" "cicd" {
   disable_on_destroy = false
 }
 
+# Uma API recem-ativada pode negar acesso por 1 a 2 minutos ate propagar. Os recursos que
+# dependem dela esperam aqui, para o apply passar de primeira num projeto novo. Ativar uma
+# API nova na lista recria a espera.
+resource "time_sleep" "apis_propagation" {
+  create_duration = "90s"
+  triggers = {
+    apis = join(",", sort(tolist(local.cicd_apis)))
+  }
+  depends_on = [google_project_service.cicd]
+}
+
 # Unica entrada SSH: a faixa fixa do IAP (usada pelo CI e pelo acesso administrativo)
 resource "google_compute_firewall" "arborgrid_ssh_iap" {
   name        = "${var.project_name}-allow-ssh-iap"
@@ -64,7 +75,7 @@ resource "google_iap_tunnel_instance_iam_member" "cicd_tunnel" {
   role     = "roles/iap.tunnelResourceAccessor"
   member   = "serviceAccount:${google_service_account.cicd.email}"
 
-  depends_on = [google_project_service.cicd]
+  depends_on = [time_sleep.apis_propagation]
 }
 
 # OS Login com sudo apenas NESTA VM (docker e rsync para /opt exigem root)
@@ -97,7 +108,7 @@ resource "google_iam_workload_identity_pool" "github" {
   display_name              = "GitHub Actions"
   description               = "Tokens OIDC do GitHub Actions para o deploy do ArborGrid"
 
-  depends_on = [google_project_service.cicd]
+  depends_on = [time_sleep.apis_propagation]
 }
 
 # Aceita apenas tokens do repositorio configurado, na branch main
@@ -135,7 +146,7 @@ resource "google_iap_tunnel_instance_iam_member" "admin_tunnel" {
   role     = "roles/iap.tunnelResourceAccessor"
   member   = each.value
 
-  depends_on = [google_project_service.cicd]
+  depends_on = [time_sleep.apis_propagation]
 }
 
 resource "google_compute_instance_iam_member" "admin_os_admin_login" {

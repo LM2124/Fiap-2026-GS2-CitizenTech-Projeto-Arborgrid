@@ -127,8 +127,10 @@ Manter a stack 10 dias para a apresentação e a correção custa **~\$34,40**; 
 ## 7. Reprodução do Zero
 
 ```bash
-# 0. Bootstrap do projeto (uma vez): APIs que o provider precisa antes do primeiro apply
-gcloud services enable cloudresourcemanager.googleapis.com serviceusage.googleapis.com compute.googleapis.com
+# 0. Bootstrap do projeto (uma vez): ativa todas as APIs antes do primeiro apply. O provider precisa
+#    da Resource Manager e da Service Usage para comecar; as demais o Terraform tambem declara, mas
+#    ativa-las aqui evita a janela de propagacao (o Terraform ainda espera 90 s via time_sleep).
+gcloud services enable cloudresourcemanager.googleapis.com serviceusage.googleapis.com compute.googleapis.com   artifactregistry.googleapis.com iap.googleapis.com iam.googleapis.com iamcredentials.googleapis.com   oslogin.googleapis.com sts.googleapis.com
 #    SA do Terraform com papéis mínimos: Compute Admin, Service Account Admin, Service Account User,
 #    Project IAM Admin, Workload Identity Pool Admin, IAP Policy Admin, Service Usage Admin,
 #    Artifact Registry Admin; e Storage Object Admin no bucket de estado.

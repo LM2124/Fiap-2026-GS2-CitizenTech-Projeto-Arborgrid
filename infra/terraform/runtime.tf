@@ -26,7 +26,7 @@ resource "google_artifact_registry_repository" "arborgrid" {
     }
   }
 
-  depends_on = [google_project_service.cicd]
+  depends_on = [time_sleep.apis_propagation]
 }
 
 # Service account da VM: no lugar da conta padrao do Compute Engine (que tem papel de Editor)
