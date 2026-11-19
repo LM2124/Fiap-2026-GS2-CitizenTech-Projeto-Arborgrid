@@ -29,12 +29,6 @@
   cursor: grabbing !important;
 }
 
-.arbor-area-label {
-  background: transparent;
-  border: none;
-  pointer-events: none;
-}
-
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
   background: #ffffff;

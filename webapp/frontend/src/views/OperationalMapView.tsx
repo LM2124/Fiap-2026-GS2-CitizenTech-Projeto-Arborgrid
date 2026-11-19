@@ -33,6 +33,29 @@ interface OperationalMapViewProps {
 
 type BaseMapKind = "topo" | "street" | "satellite";
 
+// O bbox do catálogo é a área de busca; algumas árvores ficam rente à borda e o
+// ícone do marcador passa dela. Expande para conter todas as árvores da área e
+// soma uma folga visual (~70 m).
+function studyAreaBounds(
+  regionKey: string,
+  bbox: number[],
+  trees: TreeRecord[],
+): [[number, number], [number, number]] {
+  let [minLon, minLat, maxLon, maxLat] = bbox;
+  for (const tree of trees) {
+    if (tree.region_key !== regionKey) continue;
+    if (tree.tree_lon < minLon) minLon = tree.tree_lon;
+    if (tree.tree_lon > maxLon) maxLon = tree.tree_lon;
+    if (tree.tree_lat < minLat) minLat = tree.tree_lat;
+    if (tree.tree_lat > maxLat) maxLat = tree.tree_lat;
+  }
+  const margin = 0.0006;
+  return [
+    [minLat - margin, minLon - margin],
+    [maxLat + margin, maxLon + margin],
+  ];
+}
+
 const TRIAGE_COLORS: Record<string, string> = {
   CRITICO: "#dc2626",
   PROXIMIDADE: "#d97706",
@@ -282,15 +305,12 @@ export function OperationalMapView({
         map.setView([selectedTree.tree_lat, selectedTree.tree_lon], 17, { animate: true });
       } else if (regionFilter !== "all") {
         const cat = data.regions_catalog[regionFilter];
-        if (cat?.bbox) {
-          const [minLon, minLat, maxLon, maxLat] = cat.bbox;
-          map.fitBounds(
-            [
-              [minLat, minLon],
-              [maxLat, maxLon],
-            ],
-            { padding: [24, 24] },
-          );
+        if (cat?.bbox && cat.bbox.length === 4) {
+          // Folga extra embaixo para a legenda (canto inferior esquerdo) não cobrir árvores.
+          map.fitBounds(studyAreaBounds(regionFilter, cat.bbox, data.trees), {
+            paddingTopLeft: [24, 24],
+            paddingBottomRight: [24, 72],
+          });
         }
       } else if (unionBounds) {
         map.fitBounds(unionBounds, { padding: [24, 24] });
@@ -298,7 +318,7 @@ export function OperationalMapView({
     }, 60);
 
     return () => window.clearTimeout(timer);
-  }, [selectedTree, regionFilter, unionBounds, data.regions_catalog]);
+  }, [selectedTree, regionFilter, unionBounds, data.regions_catalog, data.trees]);
 
   // Atualiza zonas demarcadas e marcadores filtrados
   useEffect(() => {
@@ -309,7 +329,6 @@ export function OperationalMapView({
 
     for (const [regionKey, cat] of Object.entries(data.regions_catalog)) {
       if (regionFilter !== "all" && regionFilter !== regionKey) continue;
-      let labelLatLng: [number, number] | null = null;
       if (cat.corridor_polygon && cat.corridor_polygon.length > 0) {
         L.polygon(cat.corridor_polygon, {
           color: "#1B4332",
@@ -320,24 +339,9 @@ export function OperationalMapView({
           interactive: false,
           className: "arbor-study-area",
         }).addTo(group);
-        let maxLat = -Infinity;
-        let minLon = Infinity;
-        let maxLon = -Infinity;
-        for (const [lat, lon] of cat.corridor_polygon) {
-          if (lat > maxLat) maxLat = lat;
-          if (lon < minLon) minLon = lon;
-          if (lon > maxLon) maxLon = lon;
-        }
-        if (Number.isFinite(maxLat) && Number.isFinite(minLon)) {
-          labelLatLng = [maxLat, (minLon + maxLon) / 2];
-        }
       } else if (cat.bbox && cat.bbox.length === 4) {
-        const [minLon, minLat, maxLon, maxLat] = cat.bbox;
         L.rectangle(
-          [
-            [minLat, minLon],
-            [maxLat, maxLon],
-          ],
+          studyAreaBounds(regionKey, cat.bbox, data.trees),
           {
             color: "#1B4332",
             weight: 2,
@@ -348,21 +352,6 @@ export function OperationalMapView({
             className: "arbor-study-area",
           },
         ).addTo(group);
-        labelLatLng = [maxLat, (minLon + maxLon) / 2];
-      }
-
-      if (labelLatLng) {
-        const shortName = cat.label.split("(")[0].trim();
-        L.marker(labelLatLng, {
-          interactive: false,
-          keyboard: false,
-          icon: L.divIcon({
-            className: "arbor-area-label",
-            html: `<div style="transform:translate(-50%,-100%);margin-top:-6px;white-space:nowrap;border:1px solid #C6DBC0;background:rgba(255,255,255,0.92);color:#1B4332;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;box-shadow:0 1px 3px rgba(24,36,27,0.08);pointer-events:none;">${shortName}</div>`,
-            iconSize: [0, 0],
-            iconAnchor: [0, 0],
-          }),
-        }).addTo(group);
       }
     }
 
@@ -387,7 +376,7 @@ export function OperationalMapView({
       });
       marker.addTo(group);
     }
-  }, [filteredTrees, data.gold_scores_by_tree, data.regions_catalog, regionFilter]);
+  }, [filteredTrees, data.trees, data.gold_scores_by_tree, data.regions_catalog, regionFilter]);
 
   const selectedGold = selectedTree ? data.gold_scores_by_tree[selectedTree.geosampa_id] : undefined;
 

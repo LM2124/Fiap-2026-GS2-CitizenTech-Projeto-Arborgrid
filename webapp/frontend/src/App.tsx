@@ -195,10 +195,7 @@ export function App() {
               />
             )}
             {activeTab === "visao" && (
-              <VisionLabView
-                trees={data.trees}
-                onSendToAssistant={handleSendFromVision}
-              />
+              <VisionLabView onSendToAssistant={handleSendFromVision} />
             )}
             {activeTab === "assistente" && (
               <CopilotView
