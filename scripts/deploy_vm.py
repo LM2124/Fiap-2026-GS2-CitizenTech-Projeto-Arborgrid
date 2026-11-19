@@ -128,9 +128,12 @@ def _deploy(
     use_worktree: bool,
     expose_media: bool,
     reset_env: bool,
+    domain: str,
 ) -> None:
     if not SAFE_HOST_RE.match(user):
         raise SystemExit(f"[erro] Usuario SSH invalido: {user}")
+    if not SAFE_HOST_RE.match(domain):
+        raise SystemExit(f"[erro] Dominio invalido: {domain}")
 
     archive_bytes = _build_archive_bytes(use_worktree=use_worktree)
     size_mib = len(archive_bytes) / (1024 * 1024)
@@ -157,6 +160,9 @@ if [ ! -f "$ENV_PATH" ] || [ "{reset_flag}" = "1" ]; then
   cat > "$ENV_PATH" <<'ENVEOF'
 ARBORGRID_API_TOKEN={api_token}
 ARBORGRID_EXPOSE_MEDIA_URLS={expose_str}
+ARBORGRID_ALLOW_DEMO_SEED=false
+ARBORGRID_DOMAIN={domain}
+ARBORGRID_LLM_TIMEOUT_SECONDS=110
 ARBORGRID_MEDIA_HOST_DIR=/opt/arborgrid/media
 ARBORGRID_LLM_MODELS_DIR=/opt/arborgrid/llm_models
 COMPOSE_PROFILES=llm
@@ -181,7 +187,7 @@ fi
 # O container roda como UID 10001: midias enviadas do Windows chegam sem leitura/travessia para "outros"
 sudo chmod -R a+rX /opt/arborgrid/media || true
 docker compose --env-file "$ENV_PATH" up -d --build --remove-orphans
-docker compose --env-file "$ENV_PATH" restart nginx prometheus grafana  # bind mounts de arquivo presos ao inode antigo
+docker compose --env-file "$ENV_PATH" restart nginx caddy prometheus grafana  # bind mounts de arquivo presos ao inode antigo
 docker compose --env-file "$ENV_PATH" ps
 """
 
@@ -221,6 +227,11 @@ def main() -> None:
         action="store_true",
         help="Recria /opt/arborgrid/app/infra/.env na VM com novos tokens",
     )
+    parser.add_argument(
+        "--domain",
+        default="arborgrid.duckdns.org",
+        help="Dominio publico (HTTPS pelo Caddy) gravado em ARBORGRID_DOMAIN ao criar um novo .env",
+    )
     parser.add_argument("--tunnel", action="store_true", help="Abre tunel SSH para Grafana e Prometheus")
     parser.add_argument("--grafana-port", type=int, default=13000, help="Porta local para Grafana (padrao: 13000)")
     parser.add_argument("--prom-port", type=int, default=19090, help="Porta local para Prometheus (padrao: 19090)")
@@ -240,6 +251,7 @@ def main() -> None:
         use_worktree=args.worktree,
         expose_media=args.expose_media,
         reset_env=args.reset_env,
+        domain=args.domain,
     )
 
 

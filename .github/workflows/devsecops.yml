@@ -185,8 +185,8 @@ jobs:
             cd /opt/arborgrid/app/infra
             docker compose --env-file .env up -d --build --remove-orphans
             # Bind mounts de arquivo unico ficam presos ao inode antigo quando o rsync troca o arquivo:
-            # sem restart, nginx/prometheus seguem com a config anterior mesmo apos o deploy
-            docker compose --env-file .env restart nginx prometheus grafana
+            # sem restart, nginx/caddy/prometheus seguem com a config anterior mesmo apos o deploy
+            docker compose --env-file .env restart nginx caddy prometheus grafana
             docker image prune -f
             for i in $(seq 1 20); do
               if curl -fsS http://127.0.0.1/api/v1/health > /dev/null; then

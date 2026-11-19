@@ -33,9 +33,11 @@ jobs:
       - name: Check credential mode
         env:
           INPUT_URL: ${{ inputs.target_url }}
+          MVP_PUBLIC_URL: ${{ vars.MVP_PUBLIC_URL }}
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
-          if [ -z "${INPUT_URL:-}" ] && [ -n "${GCP_SA_KEY:-}" ]; then
+          # Com dominio fixo (vars.MVP_PUBLIC_URL, ex.: https://arborgrid.duckdns.org) nao ha por que consultar o GCP
+          if [ -z "${INPUT_URL:-}" ] && [ -z "${MVP_PUBLIC_URL:-}" ] && [ -n "${GCP_SA_KEY:-}" ]; then
             echo "USE_GCP_LOOKUP=true" >> "$GITHUB_ENV"
           else
             echo "USE_GCP_LOOKUP=false" >> "$GITHUB_ENV"
@@ -55,6 +57,7 @@ jobs:
       - name: Resolve target MVP URL and build _site/index.html
         env:
           INPUT_URL: ${{ inputs.target_url }}
+          MVP_PUBLIC_URL: ${{ vars.MVP_PUBLIC_URL }}
           SECRET_HOST: ${{ secrets.VM_HOST || secrets.EC2_HOST }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           GCP_ZONE: ${{ vars.GCP_ZONE || 'us-central1-a' }}
@@ -65,6 +68,8 @@ jobs:
           TARGET=""
           if [ -n "${INPUT_URL:-}" ]; then
             TARGET="${INPUT_URL}"
+          elif [ -n "${MVP_PUBLIC_URL:-}" ]; then
+            TARGET="${MVP_PUBLIC_URL}"
           elif [ "${GCP_AUTH_OK:-}" = "success" ]; then
             EFFECTIVE_PROJECT="${GCP_PROJECT_ID:-${GCLOUD_PROJECT:-}}"
             PROJECT_ARG=""

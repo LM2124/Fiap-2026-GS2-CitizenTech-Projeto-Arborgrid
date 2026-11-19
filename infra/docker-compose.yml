@@ -56,6 +56,7 @@ services:
       ARBORGRID_REQUIRE_AUTH: "true"
       ARBORGRID_EXPOSE_MEDIA_URLS: ${ARBORGRID_EXPOSE_MEDIA_URLS:-false}
       ARBORGRID_ALLOW_DEMO_SEED: ${ARBORGRID_ALLOW_DEMO_SEED:-true}
+      ARBORGRID_LLM_TIMEOUT_SECONDS: ${ARBORGRID_LLM_TIMEOUT_SECONDS:-110}
       ARBORGRID_LLM_API_URL: ${ARBORGRID_LLM_API_URL:-http://llama-server:8080/v1/chat/completions}
     volumes:
       - ${ARBORGRID_MEDIA_HOST_DIR:-../arborgrid-vision/dataset/sp_geosampa_api}:/app/media:ro
@@ -76,10 +77,29 @@ services:
     depends_on:
       webapp:
         condition: service_healthy
-    ports:
-      - "80:80"
+    # Sem porta publicada: so o Caddy (TLS) fala com o Nginx, pela rede interna
+    expose:
+      - "80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - arborgrid-net
+
+  caddy:
+    image: caddy:2.8.4-alpine
+    container_name: arborgrid-caddy
+    restart: unless-stopped
+    depends_on:
+      - nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      ARBORGRID_DOMAIN: ${ARBORGRID_DOMAIN:?Defina ARBORGRID_DOMAIN no .env, por exemplo arborgrid.duckdns.org}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     networks:
       - arborgrid-net
 
@@ -121,6 +141,8 @@ services:
 volumes:
   arborgrid_state:
   grafana_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   arborgrid-net:
