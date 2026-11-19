@@ -90,7 +90,7 @@ services:
       - arborgrid-net
 
   caddy:
-    image: caddy:2.8.4-alpine
+    image: caddy:2.11.9-alpine
     container_name: arborgrid-caddy
     restart: unless-stopped
     depends_on:
