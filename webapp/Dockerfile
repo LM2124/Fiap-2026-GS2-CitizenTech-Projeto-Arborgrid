@@ -11,7 +11,7 @@ RUN npm run build
 
 
 # 2. Dependencias Python num venv isolado
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /build
 RUN python -m venv /opt/venv
@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir --upgrade pip==24.3.1 \
 
 
 # 3. Runtime enxuto
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
