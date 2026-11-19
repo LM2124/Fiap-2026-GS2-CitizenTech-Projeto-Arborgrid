@@ -10,6 +10,8 @@ export interface V3ViewAnalysis {
   pole_px: number;
   contact_direct_px: number;
   wind_buffer_px: number;
+  contact_points?: number;
+  wire_contact_pct?: number;
   v3_overlay_file?: string;
 }
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, ExternalLink, RefreshCw } from "lucide-react";
 import { Navbar, type AppTab } from "./components/Navbar";
 import {
   fetchBootstrap,
@@ -8,6 +8,7 @@ import {
   seedGoldDemo,
 } from "./services/api";
 import type { MapBootstrapPayload } from "./types/arborgrid";
+import { APP_LABELS } from "./utils/labels";
 import { ensureOnnxSession } from "./utils/visionOrt";
 import { CopilotView } from "./views/CopilotView";
 import { HomeBIView } from "./views/HomeBIView";
@@ -250,9 +251,20 @@ export function App() {
           <p>
             <strong className="font-semibold text-[#18241B]">ArborGrid SP</strong> — Projeto acadêmico FIAP Global Solution 2026 (CitizenTech).
           </p>
-          <p>
-            Fontes externas: Cadastro GeoSampa / SISGAU (PMSP), imagens de rua Google Street View, clima Open-Meteo e cartografia Esri.
-          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <p>
+              Fontes externas: cadastro de árvores da Prefeitura (GeoSampa) e histórico de vistorias (SISGAU), imagens de rua (Google Street View), previsão do tempo (Open-Meteo) e mapas (Esri).
+            </p>
+            <a
+              href="/docs"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 font-medium text-[#1B4332] hover:underline"
+            >
+              <span>{APP_LABELS.apiDocs}</span>
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+          </div>
         </div>
       </footer>
     </div>

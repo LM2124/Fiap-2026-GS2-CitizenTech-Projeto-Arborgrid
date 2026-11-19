@@ -23,6 +23,53 @@ export const MACRO_TRIAGE_SHORT_LABELS: Record<string, string> = {
   SEGURO: "Sem Conflito",
 };
 
+// Escolhidas a dedo na folha de contato dos overlays: fio visivel entrando na copa, uma ou mais por regiao
+export const HERO_TREE_IDS: string[] = ["634136", "631957", "28403", "236872", "224481"];
+
+export interface PriorityTierStyle {
+  badge: string;
+  card: string;
+  title: string;
+  icon: string;
+  bar: string;
+}
+
+export const PRIORITY_TIER_STYLES: Record<string, PriorityTierStyle> = {
+  URGENTE: {
+    badge: "bg-[#FEF2F2] text-[#991B1B] border-[#FECACA]",
+    card: "border-[#FECACA] bg-[#FEF2F2]",
+    title: "text-[#991B1B]",
+    icon: "text-[#991B1B]",
+    bar: "bg-[#dc2626]",
+  },
+  ALTA: {
+    badge: "bg-[#FFF7ED] text-[#9A3412] border-[#FED7AA]",
+    card: "border-[#FED7AA] bg-[#FFF7ED]",
+    title: "text-[#9A3412]",
+    icon: "text-[#C2410C]",
+    bar: "bg-[#ea580c]",
+  },
+  MEDIA: {
+    badge: "bg-[#FFFBEB] text-[#92400E] border-[#FDE68A]",
+    card: "border-[#FDE68A] bg-[#FFFBEB]",
+    title: "text-[#92400E]",
+    icon: "text-[#92400E]",
+    bar: "bg-[#d97706]",
+  },
+  BAIXA: {
+    badge: "bg-[#EEF4EC] text-[#1B4332] border-[#C6DBC0]",
+    card: "border-[#C6DBC0] bg-[#EEF4EC]",
+    title: "text-[#1B4332]",
+    icon: "text-[#2D6A4F]",
+    bar: "bg-[#2D6A4F]",
+  },
+};
+
+export function getPriorityTierStyle(tier?: string | null): PriorityTierStyle {
+  const key = (tier ?? "BAIXA").trim().toUpperCase();
+  return PRIORITY_TIER_STYLES[key] ?? PRIORITY_TIER_STYLES.BAIXA;
+}
+
 export const PRIORITY_TIER_LABELS: Record<string, string> = {
   URGENTE: "Urgente",
   ALTA: "Alta",

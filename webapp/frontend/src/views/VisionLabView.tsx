@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { AlertTriangle, Loader2, Play, Upload } from "lucide-react";
+import { AlertTriangle, Loader2, Play, Sparkles, Upload } from "lucide-react";
 import { fetchVisionSamples, formatFriendlyError } from "../services/api";
 import type { TreeRecord, VisionSampleItem, VisionSamplesPayload } from "../types/arborgrid";
 import {
@@ -69,7 +69,7 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
     copa: true,
     fiacao: true,
     vento: false,
-    opacity: 0.42,
+    opacity: 0.2,
     borderThickness: 2,
   });
 
@@ -121,7 +121,7 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
               });
           }
         } else {
-          setModelLoadError("Modelo de análise visual indisponível no servidor.");
+          setModelLoadError("Ferramenta de análise visual indisponível no servidor.");
         }
       })
       .catch((err) => setErrorMsg(formatFriendlyError(err)));
@@ -215,7 +215,7 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
 
   const handleRunInference = async () => {
     if (!meta?.model_available) {
-      setErrorMsg("Modelo de análise visual não disponível no servidor.");
+      setErrorMsg("Ferramenta de análise visual indisponível no servidor.");
       return;
     }
     if (!loadedImageRef.current) {
@@ -274,9 +274,9 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
   const summaryInfo = result ? TRIAGE_EXPLANATION[result.triage] : null;
 
   return (
-    <div className="mx-auto max-w-[1680px] space-y-4 px-4 py-4 sm:px-8">
+    <div className="mx-auto max-w-[1680px] space-y-3 px-4 py-3.5 sm:px-8">
       {/* Cabeçalho compacto fundido com aviso de IA Responsável */}
-      <div className="rounded-md border border-[#D5E0D1] bg-white px-5 py-3">
+      <div className="rounded-md border border-[#D5E0D1] bg-white px-4 py-2.5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-lg font-bold text-[#18241B] sm:text-xl">
@@ -331,14 +331,14 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-12">
-        {/* Coluna Esquerda: Amostras + Upload + Botão Analisar + Camadas */}
-        <div className="min-w-0 space-y-3 lg:col-span-4">
-          <div className="rounded-md border border-[#D5E0D1] bg-white p-4">
+        {/* Coluna Esquerda: Amostras + Upload + Camadas */}
+        <div className="min-w-0 space-y-2.5 lg:col-span-4">
+          <div className="rounded-md border border-[#D5E0D1] bg-white p-3">
             <h2 className="text-sm font-semibold text-[#18241B]">
               1. Escolha um exemplo ou envie sua foto
             </h2>
 
-            <div className="mt-2.5 grid min-h-[180px] grid-cols-2 gap-2">
+            <div className="mt-2 grid min-h-[200px] grid-cols-2 gap-2">
               {meta?.samples.map((s) => {
                 const active = selectedSample?.id === s.id;
                 return (
@@ -346,16 +346,16 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
                     key={s.id}
                     type="button"
                     onClick={() => handleSelectSample(s)}
-                    className={`overflow-hidden rounded border text-left transition-colors ${
+                    className={`flex flex-col overflow-hidden rounded border text-left transition-colors ${
                       active
-                        ? "border-[#1B4332] bg-[#EEF4EC]"
+                        ? "border-[#1B4332] bg-[#EEF4EC] ring-1 ring-[#1B4332]"
                         : "border-[#D5E0D1] bg-[#FAFBF9] hover:border-[#2D6A4F]"
                     }`}
                   >
                     <img
                       src={s.image_url}
-                      alt={`Amostra Street View árvore GeoSampa #${s.geosampa_id} (${s.region_label})`}
-                      className="h-14 w-full object-cover"
+                      alt={`Foto Street View da árvore #${s.geosampa_id} (${s.region_label})`}
+                      className="aspect-[16/10] w-full object-cover"
                     />
                     <div className="px-2 py-1.5">
                       <div className="flex items-center justify-between gap-1">
@@ -363,7 +363,7 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
                           #{s.geosampa_id}
                         </span>
                         <span
-                          className={`rounded border px-1 py-0.5 text-[11px] font-semibold ${
+                          className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold ${
                             BADGE_CLASS[s.reference_v3.triage] ?? BADGE_CLASS.SEGURO
                           }`}
                         >
@@ -379,14 +379,14 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
               })}
             </div>
 
-            <div className="mt-3 border-t border-[#E6ECE3] pt-3">
+            <div className="mt-2 border-t border-[#E6ECE3] pt-2">
               <label
                 htmlFor="vision-file-upload"
                 onDragEnter={handleDragOver}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded border border-dashed px-3 py-2.5 text-center text-[13px] transition-colors ${
+                className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded border border-dashed px-3 py-1.5 text-center text-[13px] transition-colors ${
                   isDragging
                     ? "border-[#1B4332] bg-[#E7EFE4] text-[#18241B]"
                     : "border-[#2D6A4F] bg-[#F6F8F5] text-[#1B4332] hover:bg-[#EEF4EC]"
@@ -414,66 +414,52 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
             </div>
           </div>
 
-          {/* Botão Analisar Foto posicionado acima da dobra em 720p */}
-          <div className="space-y-3 rounded-md border border-[#D5E0D1] bg-white p-4">
-            <button
-              type="button"
-              disabled={running || !activeImageSrc}
-              onClick={handleRunInference}
-              className="flex w-full items-center justify-center gap-2 rounded bg-[#1B4332] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#143325] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {running ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Play className="h-4 w-4" />
-              )}
-              <span className="tabular-nums">
-                {running ? `Analisando… ${inferenceElapsedSec} s` : "2. Analisar foto"}
-              </span>
-            </button>
-
-            <div aria-live="polite" className="space-y-2.5">
-              {running && (
-                <div className="rounded border border-[#C6DBC0] bg-[#EEF4EC] px-3 py-2 text-[13px] text-[#1B4332]">
-                  <div className="flex items-center gap-2 font-semibold">
-                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
-                    <span className="tabular-nums">
-                      Identificando galhos e fiação… {inferenceElapsedSec} s
-                    </span>
+          {/* Progresso / Erros + Controles de camadas */}
+          <div className="space-y-2.5 rounded-md border border-[#D5E0D1] bg-white p-3.5">
+            {(running || (!sessionReady && loadingText) || errorMsg) && (
+              <div aria-live="polite" className="space-y-2">
+                {running && (
+                  <div className="rounded border border-[#C6DBC0] bg-[#EEF4EC] px-3 py-2 text-[13px] text-[#1B4332]">
+                    <div className="flex items-center gap-2 font-semibold">
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                      <span className="tabular-nums">
+                        Identificando galhos e fiação… {inferenceElapsedSec} s
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-[#3D4F41]">
+                      O processamento ocorre no navegador e costuma levar cerca de 15 s.
+                    </p>
                   </div>
-                  <p className="mt-0.5 text-xs text-[#3D4F41]">
-                    O processamento ocorre no navegador e costuma levar cerca de 15 s.
-                  </p>
-                </div>
-              )}
+                )}
 
-              {!running && !sessionReady && loadingText && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-2 text-[13px] text-[#2D4234]">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1B4332]" />
-                      <span>{loadingText}</span>
-                    </span>
-                    <span className="tabular-nums">{progressPct}%</span>
+                {!running && !sessionReady && loadingText && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2 text-[13px] text-[#2D4234]">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1B4332]" />
+                        <span>{loadingText}</span>
+                      </span>
+                      <span className="tabular-nums">{progressPct}%</span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded bg-[#E6ECE3]">
+                      <div
+                        className="h-full bg-[#2D6A4F] transition-all duration-200"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded bg-[#E6ECE3]">
-                    <div
-                      className="h-full bg-[#2D6A4F] transition-all duration-200"
-                      style={{ width: `${progressPct}%` }}
-                    />
+                )}
+
+                {errorMsg && (
+                  <div className="flex items-start gap-2 rounded border border-[#FECACA] bg-[#FEF2F2] p-3 text-[13px] text-[#991B1B]">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{errorMsg}</span>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            )}
 
-              {errorMsg && (
-                <div className="flex items-start gap-2 rounded border border-[#FECACA] bg-[#FEF2F2] p-3 text-[13px] text-[#991B1B]">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3 border-t border-[#E6ECE3] pt-3">
+            <div className="space-y-2.5">
               <span className="block text-[13px] font-semibold text-[#18241B]">
                 Camadas sobre a foto
               </span>
@@ -594,9 +580,10 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
                 <button
                   type="button"
                   onClick={handleAskIntegratedAssistant}
-                  className="shrink-0 rounded bg-[#1B4332] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#143325]"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded bg-[#1B4332] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#143325]"
                 >
-                  Consultar assistente
+                  <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>Consultar assistente</span>
                 </button>
               </div>
 
@@ -628,27 +615,40 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
               </div>
             </div>
           ) : (
-            <div className="rounded-md border border-[#D5E0D1] bg-white px-4 py-3 text-[13px] text-[#4A5D4E]">
-              {selectedSample ? (
-                <>
-                  Clique em <strong className="text-[#18241B]">2. Analisar foto</strong> para
-                  executar a análise visual nesta imagem (referência cadastrada:{" "}
-                  <strong className="text-[#18241B]">
-                    {formatMacroTriageShort(selectedSample.reference_v3.triage)}
-                  </strong>{" "}
-                  ·{" "}
-                  {formatRelativePct(
-                    selectedSample.reference_v3.contact_direct_px,
-                    selectedSample.reference_v3.copa_px,
-                  )}{" "}
-                  da copa em contato direto).
-                </>
-              ) : (
-                <>
-                  Clique em <strong className="text-[#18241B]">2. Analisar foto</strong> para
-                  identificar galhos, cabos elétricos e eventuais contatos na foto enviada.
-                </>
-              )}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#D5E0D1] bg-white px-4 py-2.5 text-[13px] text-[#4A5D4E]">
+              <div className="min-w-0 flex-1">
+                {selectedSample ? (
+                  <>
+                    Clique em <strong className="text-[#18241B]">2. Analisar foto</strong> para
+                    executar a análise visual nesta imagem (situação registrada no levantamento:{" "}
+                    <strong className="text-[#18241B]">
+                      {formatMacroTriageShort(selectedSample.reference_v3.triage)}
+                    </strong>
+                    ).
+                  </>
+                ) : (
+                  <>
+                    Clique em <strong className="text-[#18241B]">2. Analisar foto</strong> para
+                    identificar galhos, cabos elétricos e eventuais contatos na foto enviada.
+                  </>
+                )}
+              </div>
+
+              <button
+                type="button"
+                disabled={running || !activeImageSrc}
+                onClick={handleRunInference}
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded bg-[#1B4332] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#143325] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {running ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Play className="h-4 w-4" aria-hidden="true" />
+                )}
+                <span className="tabular-nums">
+                  {running ? `Analisando… ${inferenceElapsedSec} s` : "2. Analisar foto"}
+                </span>
+              </button>
             </div>
           )}
 
@@ -666,7 +666,7 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
                 {selectedSample ? (
                   <>
                     <strong className="font-semibold text-[#18241B]">
-                      Árvore GeoSampa #{selectedSample.geosampa_id}
+                      Árvore #{selectedSample.geosampa_id}
                     </strong>{" "}
                     · {selectedSample.region_label}
                   </>
@@ -684,10 +684,10 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
               </span>
             </div>
 
-            <div className="relative flex min-h-[280px] items-center justify-center overflow-hidden rounded border border-[#E6ECE3] bg-[#F6F8F5]">
+            <div className="relative flex min-h-[320px] max-h-[calc(100vh-320px)] items-center justify-center overflow-hidden rounded border border-[#E6ECE3] bg-[#F6F8F5]">
               <canvas
                 ref={canvasRef}
-                className="max-h-[380px] w-auto max-w-full object-contain xl:max-h-[430px]"
+                className="max-h-[calc(100vh-320px)] w-auto max-w-full object-contain"
               />
               {running && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-[1px]">

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Loader2, RotateCcw, Send, X } from "lucide-react";
+import { AlertCircle, Loader2, RotateCcw, Send, Sparkles, X } from "lucide-react";
 import { askAssistant, fetchAssistantStatus, formatFriendlyError } from "../services/api";
 import {
   ANALYSIS_GRID_PIXELS,
@@ -417,16 +417,21 @@ export function CopilotView({
                           {riskMeta.label}
                         </span>
                         <span
-                          className={`rounded border px-2 py-0.5 text-[13px] font-medium ${
+                          className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[13px] font-medium ${
                             isLlmMode
                               ? "border-[#C6DBC0] bg-[#EEF4EC] text-[#1B4332]"
                               : "border-[#D5E0D1] bg-[#F6F8F5] text-[#4A5D4E]"
                           }`}
                         >
-                          {modeLabel}
-                          {resp?.latency_ms !== undefined
-                            ? ` · ${formatDurationSeconds(resp.latency_ms)}`
-                            : ""}
+                          {isLlmMode && (
+                            <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          )}
+                          <span>
+                            {modeLabel}
+                            {resp?.latency_ms !== undefined
+                              ? ` · ${formatDurationSeconds(resp.latency_ms)}`
+                              : ""}
+                          </span>
                         </span>
                       </div>
 
@@ -505,7 +510,7 @@ export function CopilotView({
                   <span className="tabular-nums">Analisando… {elapsedSec} s</span>
                 </div>
                 <p className="mt-1 pl-6 text-[#4A5D4E]">
-                  O modelo de IA roda em CPU; a resposta pode levar até 2 minutos.
+                  Consultando as normas e preparando a resposta. Pode levar até 2 minutos.
                 </p>
               </div>
             )}
@@ -545,7 +550,7 @@ export function CopilotView({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               aria-label="Pergunta para o assistente"
-              placeholder="Pergunte sobre poda, fiação caída, SP156, Enel ou informe um número GeoSampa..."
+              placeholder="Pergunte sobre poda, fiação caída, SP156, Enel ou informe o número da árvore..."
               className="min-w-0 flex-1 rounded border border-[#D5E0D1] bg-[#F6F8F5] px-3.5 py-2 text-sm text-[#18241B] placeholder-[#4A5D4E] focus:border-[#2D6A4F] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]"
             />
             <button
@@ -594,7 +599,7 @@ export function CopilotView({
                 <div className="rounded border border-[#C6DBC0] bg-[#EEF4EC] p-3.5 text-[13px]">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-mono font-bold text-[#1B4332]">
-                      GeoSampa #{activeEvidence.tree_context.geosampa_id}
+                      Árvore #{activeEvidence.tree_context.geosampa_id} (GeoSampa)
                     </span>
                     <span className="rounded border border-[#C6DBC0] bg-white px-2 py-0.5 text-xs font-semibold text-[#18241B]">
                       {formatTriageLabel(activeEvidence.tree_context.triage_consolidated)}
@@ -602,7 +607,7 @@ export function CopilotView({
                   </div>
                   <p className="mt-1 text-[#3D4F41]">
                     {formatDistrictName(activeEvidence.tree_context.distrito)} · Subprefeitura{" "}
-                    {formatDistrictName(activeEvidence.tree_context.subprefeitura)} · SISGAU:{" "}
+                    {formatDistrictName(activeEvidence.tree_context.subprefeitura)} · Última vistoria (SISGAU):{" "}
                     {formatDatePtBr(activeEvidence.tree_context.sisgau_last_inspection)}
                   </p>
                   <div className="mt-2 grid grid-cols-3 gap-2 text-[13px] tabular-nums text-[#18241B]">

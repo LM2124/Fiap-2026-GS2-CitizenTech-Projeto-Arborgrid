@@ -59,8 +59,24 @@
   animation: pulse-ring 2.4s cubic-bezier(0.24, 0, 0.38, 1) infinite;
 }
 
+@keyframes arborFadeIn {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.hero-crossfade {
+  animation: arborFadeIn 350ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .parallax-ring {
+    animation: none;
+  }
+  .hero-crossfade {
     animation: none;
   }
   .animate-spin {

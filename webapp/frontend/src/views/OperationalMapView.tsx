@@ -1,18 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
-import { AlertCircle, CloudRain, ExternalLink, RotateCcw, Search, Wind, X } from "lucide-react";
-import { CroppedOverlayImage } from "../components/CroppedOverlayImage";
-import type { MapBootstrapPayload, TreeRecord } from "../types/arborgrid";
 import {
-  ANALYSIS_GRID_PIXELS,
+  AlertCircle,
+  CloudRain,
+  ExternalLink,
+  RotateCcw,
+  Search,
+  Sparkles,
+  Wind,
+  X,
+} from "lucide-react";
+import { OverlayPhoto } from "../components/OverlayPhoto";
+import type { MapBootstrapPayload, TreeRecord, V3ViewAnalysis } from "../types/arborgrid";
+import {
   APP_LABELS,
   formatDatePtBr,
   formatDistrictName,
   formatMacroTriageShort,
   formatNumberPtBr,
+  formatPercentPtBr,
   formatPriorityTier,
-  formatRelativePct,
   formatTriageLabel,
+  getPriorityTierStyle,
 } from "../utils/labels";
 
 interface OperationalMapViewProps {
@@ -101,6 +110,32 @@ function createTreeMarkerIcon(tree: TreeRecord, goldTier?: string): L.DivIcon {
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   });
+}
+
+function getPhotoStats(v3: V3ViewAnalysis): { primary: string; secondary: string | null } | null {
+  if (typeof v3.wire_px !== "number") return null;
+  if (v3.wire_px === 0) {
+    return { primary: "Sem fiação visível nesta foto", secondary: null };
+  }
+  if (typeof v3.contact_points !== "number") {
+    return null;
+  }
+  if (v3.contact_points === 0) {
+    return { primary: "Fiação visível, sem galhos encostando", secondary: null };
+  }
+  // O percentual separa melhor os casos (ex.: 98% numa árvore crítica x 5% numa proximidade);
+  // a contagem junta pedaços próximos do mesmo fio e entra como detalhe.
+  const zones =
+    v3.contact_points === 1
+      ? "em 1 trecho de contato"
+      : `em ${v3.contact_points.toLocaleString("pt-BR")} trechos de contato`;
+  if (typeof v3.wire_contact_pct !== "number") {
+    return { primary: `Galhos encostando na fiação ${zones}`, secondary: null };
+  }
+  return {
+    primary: `${formatPercentPtBr(v3.wire_contact_pct, 0)} da fiação visível passa pela copa`,
+    secondary: zones.charAt(0).toUpperCase() + zones.slice(1),
+  };
 }
 
 export function OperationalMapView({
@@ -435,7 +470,7 @@ export function OperationalMapView({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="font-mono text-base font-bold text-[#18241B]">
-                        Árvore GeoSampa #{selectedTree.geosampa_id}
+                        Árvore #{selectedTree.geosampa_id}
                       </h2>
                       <span
                         className={`rounded border px-2 py-0.5 text-[13px] font-semibold ${
@@ -448,11 +483,8 @@ export function OperationalMapView({
                     </div>
                     <p className="mt-1 text-[13px] text-[#4A5D4E]">
                       {formatDistrictName(selectedTree.distrito)} · Subprefeitura{" "}
-                      {formatDistrictName(selectedTree.subprefeitura)} · Coords{" "}
-                      <span className="font-mono tabular-nums text-[#18241B]">
-                        {selectedTree.tree_lat.toFixed(5)}, {selectedTree.tree_lon.toFixed(5)}
-                      </span>{" "}
-                      · SISGAU:{" "}
+                      {formatDistrictName(selectedTree.subprefeitura)} · Última vistoria da Prefeitura
+                      (SISGAU):{" "}
                       <strong className="font-medium text-[#92400E]">
                         {formatDatePtBr(selectedTree.sisgau_last_inspection)}
                       </strong>
@@ -465,7 +497,7 @@ export function OperationalMapView({
                   <div className="grid gap-2 sm:grid-cols-2">
                     {selectedTree.v3_triage.has_paralax_divergence && (
                       <div className="flex items-start gap-2 rounded border border-[#FDE68A] bg-[#FFFBEB] p-2.5 text-[13px] leading-snug text-[#92400E]">
-                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                         <div>
                           <strong>{APP_LABELS.parallaxLabel}:</strong> frontal{" "}
                           <strong>{formatMacroTriageShort(selectedTree.v3_triage.front_triage)}</strong>{" "}
@@ -475,60 +507,76 @@ export function OperationalMapView({
                       </div>
                     )}
 
-                    {selectedGold && (
-                      <div
-                        className={`rounded border border-[#C6DBC0] bg-[#EEF4EC] p-2.5 text-[13px] leading-snug ${
-                          selectedTree.v3_triage.has_paralax_divergence ? "" : "sm:col-span-2"
-                        }`}
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-semibold tabular-nums text-[#1B4332]">
-                            Prioridade climática (
-                            {formatNumberPtBr(selectedGold.composite_risk_score, 1)}/100 ·{" "}
-                            {formatPriorityTier(selectedGold.priority_tier)})
-                          </span>
-                          <span className="inline-flex items-center gap-2 tabular-nums text-[#3D4F41]">
-                            <span className="inline-flex items-center gap-1">
-                              <Wind className="h-3.5 w-3.5 text-[#2D6A4F]" />{" "}
-                              {selectedGold.wind_gust_kmh !== null &&
-                              selectedGold.wind_gust_kmh !== undefined
-                                ? `${formatNumberPtBr(selectedGold.wind_gust_kmh, 1)} km/h`
-                                : "—"}
-                            </span>
-                            <span className="inline-flex items-center gap-1">
-                              <CloudRain className="h-3.5 w-3.5 text-[#2D6A4F]" />{" "}
-                              {selectedGold.precipitation_mm !== null &&
-                              selectedGold.precipitation_mm !== undefined
-                                ? `${formatNumberPtBr(selectedGold.precipitation_mm, 1)} mm`
-                                : "—"}
-                            </span>
-                          </span>
-                        </div>
-                        <p className="mt-1 text-[#18241B]">{selectedGold.recommended_action}</p>
-                      </div>
-                    )}
+                    {selectedGold &&
+                      (() => {
+                        const tierStyle = getPriorityTierStyle(selectedGold.priority_tier);
+                        return (
+                          <div
+                            className={`rounded border p-2.5 text-[13px] leading-snug ${tierStyle.card} ${
+                              selectedTree.v3_triage.has_paralax_divergence ? "" : "sm:col-span-2"
+                            }`}
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className={`font-semibold tabular-nums ${tierStyle.title}`}>
+                                Prioridade climática (
+                                {formatNumberPtBr(selectedGold.composite_risk_score, 1)}/100 ·{" "}
+                                {formatPriorityTier(selectedGold.priority_tier)})
+                              </span>
+                              <span className="inline-flex items-center gap-2 tabular-nums text-[#3D4F41]">
+                                <span className="inline-flex items-center gap-1">
+                                  <Wind className={`h-3.5 w-3.5 ${tierStyle.icon}`} aria-hidden="true" />{" "}
+                                  {selectedGold.wind_gust_kmh !== null &&
+                                  selectedGold.wind_gust_kmh !== undefined
+                                    ? `${formatNumberPtBr(selectedGold.wind_gust_kmh, 1)} km/h`
+                                    : "—"}
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <CloudRain
+                                    className={`h-3.5 w-3.5 ${tierStyle.icon}`}
+                                    aria-hidden="true"
+                                  />{" "}
+                                  {selectedGold.precipitation_mm !== null &&
+                                  selectedGold.precipitation_mm !== undefined
+                                    ? `${formatNumberPtBr(selectedGold.precipitation_mm, 1)} mm`
+                                    : "—"}
+                                </span>
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[#18241B]">{selectedGold.recommended_action}</p>
+                          </div>
+                        );
+                      })()}
                   </div>
                 )}
 
-                {/* Fotos analisadas lado a lado com recorte da tarja de debug */}
+                {/* Fotos analisadas lado a lado com alternância para foto original */}
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="text-[13px] font-semibold text-[#4A5D4E]">
                       Ângulos da via ({selectedTree.views.length})
                     </h3>
                     <span className="text-xs text-[#4A5D4E]">
-                      Fontes: GeoSampa/SISGAU · Google Street View
+                      Fontes: cadastro da Prefeitura (GeoSampa/SISGAU) · Google Street View
                     </span>
                   </div>
+
+                  {selectedTree.views.some(
+                    (v) => Boolean(v.overlay_url) && Boolean(v.image_url) && v.image_url !== v.overlay_url,
+                  ) && (
+                    <p className="hidden text-[11px] text-[#4A5D4E] [@media(hover:hover)]:block">
+                      Passe o mouse sobre as fotos para ver a original
+                    </p>
+                  )}
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {selectedTree.views.map((view, idx) => {
                       const v3 = view.v3_analysis;
                       const angleLabel =
                         view.perspective === "center_front" ? "Ângulo frontal" : "Ângulo lateral";
+                      const photoStats = getPhotoStats(v3);
                       return (
                         <div
-                          key={`${view.perspective}-${idx}`}
+                          key={`${selectedTree.geosampa_id}-${view.perspective}-${idx}`}
                           className="flex flex-col rounded border border-[#D5E0D1] bg-[#FAFBF9] p-2.5 text-[13px]"
                         >
                           <div className="mb-2 flex items-center justify-between gap-1">
@@ -547,43 +595,26 @@ export function OperationalMapView({
                             </span>
                           </div>
 
-                          {view.overlay_url && (
-                            <CroppedOverlayImage
-                              src={view.overlay_url}
-                              alt={`Análise visual árvore ${selectedTree.geosampa_id} ${angleLabel}`}
+                          {(view.overlay_url || view.image_url) && (
+                            <OverlayPhoto
+                              key={`${selectedTree.geosampa_id}-${view.perspective}-${view.overlay_url ?? view.image_url ?? idx}`}
+                              overlayUrl={view.overlay_url}
+                              imageUrl={view.image_url}
+                              overlayAlt={`Foto com marcações da árvore #${selectedTree.geosampa_id} — ${angleLabel}`}
+                              originalAlt={`Foto original sem marcações da árvore #${selectedTree.geosampa_id} — ${angleLabel}`}
                             />
                           )}
 
-                          <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[13px] tabular-nums text-[#4A5D4E]">
-                            <div>
-                              Contato:{" "}
-                              <strong className="text-[#18241B]">
-                                {formatRelativePct(v3.contact_direct_px, v3.copa_px)}
-                              </strong>{" "}
-                              copa
+                          {photoStats && (
+                            <div className="mt-2 space-y-0.5 text-[13px] text-[#3D4F41]">
+                              <p className="font-medium text-[#18241B]">{photoStats.primary}</p>
+                              {photoStats.secondary && (
+                                <p className="text-xs tabular-nums text-[#4A5D4E]">
+                                  {photoStats.secondary}
+                                </p>
+                              )}
                             </div>
-                            <div>
-                              Vento:{" "}
-                              <strong className="text-[#18241B]">
-                                {formatRelativePct(v3.wind_buffer_px, v3.copa_px)}
-                              </strong>{" "}
-                              copa
-                            </div>
-                            <div>
-                              Fiação:{" "}
-                              <strong className="text-[#18241B]">
-                                {formatRelativePct(v3.wire_px, ANALYSIS_GRID_PIXELS)}
-                              </strong>{" "}
-                              foto
-                            </div>
-                            <div>
-                              Copa:{" "}
-                              <strong className="text-[#18241B]">
-                                {formatRelativePct(v3.copa_px, ANALYSIS_GRID_PIXELS)}
-                              </strong>{" "}
-                              foto
-                            </div>
-                          </div>
+                          )}
 
                           {view.google_maps_url && (
                             <a
@@ -593,7 +624,7 @@ export function OperationalMapView({
                               className="mt-2 inline-flex items-center gap-1 text-[13px] font-medium text-[#1B4332] hover:underline"
                             >
                               <span>Abrir no Google Street View</span>
-                              <ExternalLink className="h-3.5 w-3.5" />
+                              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                             </a>
                           )}
                         </div>
@@ -606,9 +637,10 @@ export function OperationalMapView({
               <button
                 type="button"
                 onClick={() => onConsultAssistant(selectedTree.geosampa_id)}
-                className="flex w-full items-center justify-center rounded bg-[#1B4332] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#143325]"
+                className="flex w-full items-center justify-center gap-1.5 rounded bg-[#1B4332] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#143325]"
               >
-                Consultar assistente sobre esta árvore
+                <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>Perguntar ao assistente</span>
               </button>
             </div>
           ) : (

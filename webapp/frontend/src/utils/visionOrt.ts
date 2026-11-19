@@ -139,7 +139,7 @@ export async function ensureOnnxSession(
       if (!buffer) {
         const response = await fetch(modelUrl);
         if (!response.ok) {
-          throw new Error(`Falha ao preparar análise visual (HTTP ${response.status}).`);
+          throw new Error("Não foi possível preparar a análise visual. Tente novamente.");
         }
 
         const totalBytes = Number(response.headers.get("content-length") || 54289646);
@@ -364,7 +364,7 @@ export async function runOnnxInference(
   offscreen.width = IMGSZ;
   offscreen.height = IMGSZ;
   const ctx = offscreen.getContext("2d", { willReadFrequently: true });
-  if (!ctx) throw new Error("Contexto 2D indisponível no navegador.");
+  if (!ctx) throw new Error("Seu navegador não conseguiu processar a imagem.");
   ctx.drawImage(imageEl, 0, 0, IMGSZ, IMGSZ);
   const rgba = ctx.getImageData(0, 0, IMGSZ, IMGSZ).data;
 

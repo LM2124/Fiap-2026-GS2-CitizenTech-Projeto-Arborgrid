@@ -1,15 +1,26 @@
-import { useMemo, useRef, useState } from "react";
-import { ArrowRight, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
-import { CroppedOverlayImage } from "../components/CroppedOverlayImage";
+import { useEffect, useMemo, useRef, useState, type FocusEvent } from "react";
+import {
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  Pause,
+  Play,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
+import { OverlayPhoto } from "../components/OverlayPhoto";
 import type { AppTab } from "../components/Navbar";
-import type { GoldRiskRecord, MapBootstrapPayload } from "../types/arborgrid";
+import type { GoldRiskRecord, MapBootstrapPayload, TreeRecord } from "../types/arborgrid";
 import {
   APP_LABELS,
+  HERO_TREE_IDS,
   formatDatePtBr,
   formatDistrictName,
   formatNumberPtBr,
   formatPercentPtBr,
   formatPriorityTier,
+  formatTriageLabel,
+  getPriorityTierStyle,
 } from "../utils/labels";
 
 interface HomeBIViewProps {
@@ -21,23 +32,46 @@ interface HomeBIViewProps {
   onSeedGold: () => Promise<void>;
 }
 
-const PRIORITY_BADGE: Record<string, string> = {
-  URGENTE: "bg-[#FEF2F2] text-[#991B1B] border-[#FECACA]",
-  ALTA: "bg-[#FFFBEB] text-[#92400E] border-[#FDE68A]",
-  MEDIA: "bg-[#EEF4EC] text-[#1B4332] border-[#C6DBC0]",
-  BAIXA: "bg-[#F4F7F4] text-[#4A5D4E] border-[#DCE5D8]",
-};
+function hasTwoOverlays(tree: TreeRecord): boolean {
+  return tree.views.filter((v) => Boolean(v.overlay_url)).length >= 2;
+}
 
-const PRIORITY_BAR_COLOR: Record<string, string> = {
-  URGENTE: "bg-[#dc2626]",
-  ALTA: "bg-[#d97706]",
-  MEDIA: "bg-[#2D6A4F]",
-  BAIXA: "bg-[#6B7D70]",
-};
+function sumContactPoints(tree: TreeRecord): number {
+  return tree.views.reduce((acc, v) => acc + (v.v3_analysis.contact_points ?? 0), 0);
+}
+
+function sumContactDirectArea(tree: TreeRecord): number {
+  return tree.views.reduce((acc, v) => acc + (v.v3_analysis.contact_direct_px ?? 0), 0);
+}
+
+function selectHeroTrees(trees: TreeRecord[]): TreeRecord[] {
+  const byId = new Map(trees.map((t) => [t.geosampa_id, t]));
+  const curated = HERO_TREE_IDS.map((id) => byId.get(id)).filter(
+    (t): t is TreeRecord => Boolean(t && hasTwoOverlays(t)),
+  );
+  if (curated.length > 0) {
+    return curated;
+  }
+
+  const confirmedCritical = trees
+    .filter((t) => t.v3_triage.raw_consolidated === "CRITICO_CONFIRMADO" && hasTwoOverlays(t))
+    .sort((a, b) => {
+      const diffPoints = sumContactPoints(b) - sumContactPoints(a);
+      if (diffPoints !== 0) return diffPoints;
+      return sumContactDirectArea(b) - sumContactDirectArea(a);
+    })
+    .slice(0, 5);
+
+  if (confirmedCritical.length > 0) {
+    return confirmedCritical;
+  }
+
+  return trees.filter(hasTwoOverlays).slice(0, 5);
+}
 
 function ScoreBar({ score, tier }: { score: number; tier: string }) {
   const clamped = Math.min(100, Math.max(0, score));
-  const barColor = PRIORITY_BAR_COLOR[tier] ?? PRIORITY_BAR_COLOR.BAIXA;
+  const barColor = getPriorityTierStyle(tier).bar;
   return (
     <div className="flex items-center justify-end gap-2">
       <div
@@ -58,6 +92,16 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
   const [showAllGold, setShowAllGold] = useState(false);
   const goldSectionRef = useRef<HTMLElement | null>(null);
 
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(() =>
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  const [userPaused, setUserPaused] = useState<boolean>(() => prefersReducedMotion);
+  const [isHeroHovered, setIsHeroHovered] = useState(false);
+  const [isHeroFocused, setIsHeroFocused] = useState(false);
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
+
   const { stats, gold_records, trees } = data;
   const demoSeedEnabled = data.features?.demo_seed_enabled === true;
 
@@ -77,33 +121,58 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
 
   const paulistaRow = stats.district_breakdown.find((d) => d.is_negative_control);
 
-  // Seleciona árvore crítica confirmada nos dois ângulos com overlays disponíveis para o hero
-  const heroEvidenceTree = useMemo(() => {
-    const hasTwoOverlays = (t: (typeof trees)[number]) =>
-      t.views.filter((v) => Boolean(v.overlay_url)).length >= 2;
+  const heroTrees = useMemo(() => selectHeroTrees(trees), [trees]);
+  const safeHeroIndex = heroTrees.length > 0 ? activeHeroIndex % heroTrees.length : 0;
+  const currentHeroTree = heroTrees[safeHeroIndex] ?? null;
 
-    const topGoldId = gold_records[0]?.geosampa_id;
-    if (topGoldId) {
-      const fromGold = trees.find(
-        (t) =>
-          t.geosampa_id === topGoldId &&
-          t.v3_triage.raw_consolidated === "CRITICO_CONFIRMADO" &&
-          hasTwoOverlays(t),
-      );
-      if (fromGold) return fromGold;
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onChange = (e: MediaQueryListEvent) => {
+      setPrefersReducedMotion(e.matches);
+      if (e.matches) {
+        setUserPaused(true);
+      }
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  const shouldAutoRotate =
+    heroTrees.length > 1 &&
+    !userPaused &&
+    !prefersReducedMotion &&
+    !isHeroHovered &&
+    !isHeroFocused;
+
+  useEffect(() => {
+    if (!shouldAutoRotate) return;
+    const timer = window.setInterval(() => {
+      setActiveHeroIndex((prev) => (prev + 1) % heroTrees.length);
+    }, 8000);
+    return () => window.clearInterval(timer);
+  }, [shouldAutoRotate, heroTrees.length]);
+
+  // Pré-carrega as fotos (com marcações e originais) da próxima árvore em rotação
+  useEffect(() => {
+    if (heroTrees.length <= 1) return;
+    const nextTree = heroTrees[(safeHeroIndex + 1) % heroTrees.length];
+    if (!nextTree) return;
+    const nextViews = nextTree.views.filter((v) => Boolean(v.overlay_url)).slice(0, 2);
+    for (const v of nextViews) {
+      if (v.overlay_url) {
+        const imgOverlay = new Image();
+        imgOverlay.src = v.overlay_url;
+      }
+      if (v.image_url) {
+        const imgOriginal = new Image();
+        imgOriginal.src = v.image_url;
+      }
     }
+  }, [heroTrees, safeHeroIndex]);
 
-    return (
-      trees.find(
-        (t) => t.v3_triage.raw_consolidated === "CRITICO_CONFIRMADO" && hasTwoOverlays(t),
-      ) ??
-      trees.find((t) => hasTwoOverlays(t)) ??
-      null
-    );
-  }, [trees, gold_records]);
-
-  const heroOverlayViews = heroEvidenceTree
-    ? heroEvidenceTree.views.filter((v) => Boolean(v.overlay_url)).slice(0, 2)
+  const heroOverlayViews = currentHeroTree
+    ? currentHeroTree.views.filter((v) => Boolean(v.overlay_url)).slice(0, 2)
     : [];
 
   const isDemoBatch =
@@ -128,12 +197,26 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
     }
   };
 
+  const heroHasOriginal = heroOverlayViews.some(
+    (v) => Boolean(v.image_url) && v.image_url !== v.overlay_url,
+  );
+
   return (
-    <div className="mx-auto max-w-[1680px] space-y-8 px-4 py-6 sm:px-8">
+    <div className="mx-auto max-w-[1680px] space-y-6 px-4 py-5 sm:px-8">
       {/* 1. Hero com a evidência e indicadores principais (Cartão com borda/sombra) */}
-      <section className="rounded-md border border-[#D5E0D1] bg-white p-5 shadow-sm sm:p-7">
-        <div className="grid gap-6 lg:grid-cols-12 lg:items-center">
-          <div className="space-y-4 lg:col-span-7">
+      <section
+        onMouseEnter={() => setIsHeroHovered(true)}
+        onMouseLeave={() => setIsHeroHovered(false)}
+        onFocus={() => setIsHeroFocused(true)}
+        onBlur={(e: FocusEvent<HTMLElement>) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+            setIsHeroFocused(false);
+          }
+        }}
+        className="rounded-md border border-[#D5E0D1] bg-white p-5 shadow-sm sm:p-6"
+      >
+        <div className="grid gap-5 lg:grid-cols-12 lg:items-center">
+          <div className="space-y-3.5 lg:col-span-7">
             <p className="text-[13px] font-semibold text-[#2D6A4F]">
               Inteligência urbana · São Paulo
             </p>
@@ -157,7 +240,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                 className="inline-flex items-center gap-2 rounded bg-[#1B4332] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#143325]"
               >
                 <span>Abrir Mapa de Vistorias</span>
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </button>
               <button
                 type="button"
@@ -169,58 +252,132 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
               <button
                 type="button"
                 onClick={() => onNavigate("assistente")}
-                className="inline-flex items-center gap-2 rounded border border-[#D5E0D1] bg-[#F6F8F5] px-4 py-2.5 text-sm font-medium text-[#2D4234] transition-colors hover:bg-[#E7EFE4]"
+                className="inline-flex items-center gap-1.5 rounded border border-[#2D6A4F] bg-white px-4 py-2.5 text-sm font-medium text-[#1B4332] transition-colors hover:bg-[#EEF4EC]"
               >
+                <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span>Abrir {APP_LABELS.assistantTab}</span>
               </button>
             </div>
           </div>
 
-          {/* Evidência visual à direita: duas fotos com tarja de debug cortada */}
-          {heroEvidenceTree && heroOverlayViews.length >= 2 && (
-            <div className="rounded-md border border-[#E6ECE3] bg-[#FAFBF9] p-3.5 lg:col-span-5">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <span className="rounded border border-[#FECACA] bg-[#FEF2F2] px-2 py-0.5 text-xs font-semibold text-[#991B1B]">
-                  Crítico confirmado nos dois ângulos
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onNavigate("mapa", { geosampaId: heroEvidenceTree.geosampa_id })}
-                  className="text-xs font-semibold text-[#1B4332] hover:underline"
-                >
-                  Árvore #{heroEvidenceTree.geosampa_id} ·{" "}
-                  {formatDistrictName(heroEvidenceTree.distrito)}
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                {heroOverlayViews.map((view, idx) => {
-                  const angleLabel =
-                    view.perspective === "center_front" ? "Ângulo frontal" : "Ângulo lateral";
-                  return (
-                    <div key={`${view.perspective}-${idx}`} className="space-y-1">
-                      {view.overlay_url && (
-                        <CroppedOverlayImage
-                          src={view.overlay_url}
-                          alt={`Árvore #${heroEvidenceTree.geosampa_id} — ${angleLabel}`}
+          {/* Evidência visual à direita: rotação de árvores com hover para ver foto original */}
+          {currentHeroTree && heroOverlayViews.length >= 2 && (
+            <div className="rounded-md border border-[#E6ECE3] bg-[#FAFBF9] p-3 lg:col-span-5">
+              <div
+                key={currentHeroTree.geosampa_id}
+                className={prefersReducedMotion ? "" : "hero-crossfade"}
+              >
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <span className="rounded border border-[#FECACA] bg-[#FEF2F2] px-2 py-0.5 text-xs font-semibold text-[#991B1B]">
+                    {formatTriageLabel(currentHeroTree.v3_triage.raw_consolidated)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate("mapa", { geosampaId: currentHeroTree.geosampa_id })}
+                    className="text-xs font-semibold text-[#1B4332] hover:underline"
+                  >
+                    Árvore #{currentHeroTree.geosampa_id} ·{" "}
+                    {formatDistrictName(currentHeroTree.distrito)}
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {heroOverlayViews.map((view, idx) => {
+                    const angleLabel =
+                      view.perspective === "center_front" ? "Ângulo frontal" : "Ângulo lateral";
+                    return (
+                      <div key={`${currentHeroTree.geosampa_id}-${view.perspective}-${idx}`} className="space-y-1">
+                        <OverlayPhoto
+                          overlayUrl={view.overlay_url}
+                          imageUrl={view.image_url}
+                          overlayAlt={`Foto com marcações da árvore #${currentHeroTree.geosampa_id} — ${angleLabel}`}
+                          originalAlt={`Foto original sem marcações da árvore #${currentHeroTree.geosampa_id} — ${angleLabel}`}
                         />
-                      )}
-                      <p className="text-xs font-medium text-[#4A5D4E]">{angleLabel}</p>
-                    </div>
-                  );
-                })}
+                        <p className="text-xs font-medium text-[#4A5D4E]">{angleLabel}</p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+
+              {(heroHasOriginal || heroTrees.length > 1) && (
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[#E6ECE3] pt-2">
+                  {heroHasOriginal ? (
+                    <p className="hidden text-[11px] text-[#4A5D4E] [@media(hover:hover)]:block">
+                      Passe o mouse sobre as fotos para ver a original
+                    </p>
+                  ) : (
+                    <span />
+                  )}
+
+                  {heroTrees.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        aria-pressed={userPaused}
+                        aria-label={
+                          userPaused
+                            ? "Continuar troca automática de árvores"
+                            : "Pausar troca automática de árvores"
+                        }
+                        onClick={() => setUserPaused((v) => !v)}
+                        className="inline-flex min-h-[26px] items-center gap-1 rounded border border-[#D5E0D1] bg-white px-2 py-0.5 text-[11px] font-medium text-[#1B4332] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC]"
+                      >
+                        {userPaused ? (
+                          <>
+                            <Play className="h-3 w-3 shrink-0" aria-hidden="true" />
+                            <span>Continuar</span>
+                          </>
+                        ) : (
+                          <>
+                            <Pause className="h-3 w-3 shrink-0" aria-hidden="true" />
+                            <span>Pausar</span>
+                          </>
+                        )}
+                      </button>
+
+                      <div
+                        role="group"
+                        aria-label="Escolher árvore em destaque"
+                        className="flex items-center gap-0.5"
+                      >
+                        {heroTrees.map((tree, idx) => {
+                          const isCurrent = idx === safeHeroIndex;
+                          return (
+                            <button
+                              key={tree.geosampa_id}
+                              type="button"
+                              aria-current={isCurrent ? "true" : undefined}
+                              aria-label={`Mostrar árvore #${tree.geosampa_id} (${idx + 1} de ${heroTrees.length})`}
+                              onClick={() => setActiveHeroIndex(idx)}
+                              className="inline-flex h-6 min-w-[20px] items-center justify-center rounded-full px-0.5 hover:bg-[#E7EFE4]"
+                            >
+                              <span
+                                aria-hidden="true"
+                                className={`block h-2 rounded-full transition-all ${
+                                  isCurrent ? "w-4 bg-[#1B4332]" : "w-2 bg-[#B7C9B4]"
+                                }`}
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* 3 indicadores objetivos com dados reais da API */}
-        <div className="mt-6 grid gap-4 border-t border-[#E6ECE3] pt-5 sm:grid-cols-3">
+        <div className="mt-4 grid gap-4 border-t border-[#E6ECE3] pt-4 sm:grid-cols-3">
           <div>
             <p className="text-2xl font-bold tabular-nums text-[#991B1B]">{neverInspectedPct}</p>
             <p className="text-sm font-semibold text-[#18241B]">Sem vistoria registrada</p>
             <p className="text-[13px] text-[#4A5D4E]">
               {stats.sisgau_never_inspected_count.toLocaleString("pt-BR")} de{" "}
-              {stats.total_trees.toLocaleString("pt-BR")} árvores sem histórico no SISGAU
+              {stats.total_trees.toLocaleString("pt-BR")} árvores sem histórico de vistoria da
+              Prefeitura (SISGAU)
             </p>
           </div>
           <div>
@@ -243,16 +400,16 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
           </div>
         </div>
 
-        {/* Top 3 do Gold acima da dobra em 1920x1080 */}
+        {/* Top 3 do Gold acima da dobra em 1280x720 e 1920x1080 */}
         {topThreeGold.length > 0 && (
-          <div className="mt-5 border-t border-[#E6ECE3] pt-4">
+          <div className="mt-4 border-t border-[#E6ECE3] pt-3.5">
             <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-baseline gap-2">
                 <h2 className="text-sm font-bold text-[#18241B]">
                   Top 3 da fila de prioridade climática
                 </h2>
                 <span className="text-xs text-[#4A5D4E]">
-                  {isDemoBatch ? "Cenário de demonstração" : "Lote ativo"}
+                  {isDemoBatch ? "Cenário de demonstração" : "Monitoramento ativo"}
                   {weatherObservedLabel ? ` · Clima de ${weatherObservedLabel}` : ""}
                 </span>
               </div>
@@ -279,7 +436,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                       </span>
                       <span
                         className={`rounded border px-1.5 py-0.5 text-xs font-semibold ${
-                          PRIORITY_BADGE[rec.priority_tier] ?? PRIORITY_BADGE.BAIXA
+                          getPriorityTierStyle(rec.priority_tier).badge
                         }`}
                       >
                         {formatPriorityTier(rec.priority_tier)}
@@ -331,14 +488,14 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                 <>
                   Cenário de demonstração baseado em condição climática de{" "}
                   <strong className="font-semibold text-[#18241B]">
-                    {weatherObservedLabel ?? "data registrada no lote"}
+                    {weatherObservedLabel ?? "última leitura climática"}
                   </strong>{" "}
-                  (Open-Meteo), aplicando valores de referência de vento e chuva por faixa de
+                  (serviço meteorológico Open-Meteo), aplicando valores de referência de vento e chuva por faixa de
                   prioridade para ordenar vistorias de 0 a 100.
                 </>
               ) : (
                 <>
-                  Combina a proximidade dos galhos com a fiação e dados climáticos do Open-Meteo
+                  Combina a proximidade dos galhos com a fiação e dados climáticos do serviço Open-Meteo
                   {weatherObservedLabel ? ` (${weatherObservedLabel})` : ""} para gerar o índice de
                   prioridade de 0 a 100.
                 </>
@@ -432,7 +589,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                       <td className="px-3 py-3">
                         <span
                           className={`inline-block rounded border px-2 py-0.5 text-xs font-semibold ${
-                            PRIORITY_BADGE[rec.priority_tier] ?? PRIORITY_BADGE.BAIXA
+                            getPriorityTierStyle(rec.priority_tier).badge
                           }`}
                         >
                           {formatPriorityTier(rec.priority_tier)}
@@ -465,9 +622,10 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                           <button
                             type="button"
                             onClick={() => onNavigate("assistente", { geosampaId: rec.geosampa_id })}
-                            className="rounded border border-[#2D6A4F] px-2.5 py-1 text-xs font-semibold text-[#1B4332] hover:bg-[#EEF4EC]"
+                            className="inline-flex items-center gap-1.5 rounded border border-[#2D6A4F] px-2.5 py-1 text-xs font-semibold text-[#1B4332] hover:bg-[#EEF4EC]"
                           >
-                            Perguntar ao assistente
+                            <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                            <span>Perguntar ao assistente</span>
                           </button>
                         </div>
                       </td>
@@ -499,7 +657,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
               <tr className="border-b border-[#D5E0D1] text-[13px] text-[#4A5D4E]">
                 <th className="py-2.5 pr-4 font-semibold">Região / recorte</th>
                 <th className="px-3 py-2.5 font-semibold">Rede elétrica</th>
-                <th className="px-3 py-2.5 text-right font-semibold">Cadastro GeoSampa</th>
+                <th className="px-3 py-2.5 text-right font-semibold">Cadastro da Prefeitura (GeoSampa)</th>
                 <th className="px-3 py-2.5 text-right font-semibold">Amostra avaliada</th>
                 <th className="px-3 py-2.5 text-right font-semibold">Risco crítico</th>
                 <th className="px-3 py-2.5 text-right font-semibold">
@@ -584,9 +742,9 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
             <ul className="space-y-2.5 text-sm leading-relaxed text-[#3D4F41]">
               <li>
                 <strong className="font-semibold text-[#18241B]">
-                  GeoSampa / SISGAU (Prefeitura de São Paulo):
+                  GeoSampa e SISGAU (Prefeitura de São Paulo):
                 </strong>{" "}
-                coordenadas oficiais e histórico de vistorias. Nos 4 trechos selecionados, o cadastro
+                cadastro público de localização das árvores (GeoSampa) e histórico oficial de vistorias (SISGAU). Nos 4 trechos selecionados, o cadastro
                 soma mais de 8 mil árvores; na amostra avaliada,{" "}
                 <strong>
                   {neverInspectedPct} ({stats.sisgau_never_inspected_count} de {stats.total_trees})
@@ -599,8 +757,8 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                 para observar a copa da árvore em relação aos cabos.
               </li>
               <li>
-                <strong className="font-semibold text-[#18241B]">Open-Meteo:</strong> dados
-                meteorológicos de rajadas de vento (km/h) e volume de chuva (mm) por coordenada.
+                <strong className="font-semibold text-[#18241B]">Open-Meteo:</strong> serviço de dados
+                meteorológicos com previsão e leitura de rajadas de vento (km/h) e volume de chuva (mm) por região.
               </li>
               <li>
                 <strong className="font-semibold text-[#18241B]">Normas e canais oficiais:</strong>{" "}
@@ -646,8 +804,8 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                   Controle negativo na Av. Paulista:
                 </strong>{" "}
                 {paulistaRow
-                  ? `na Av. Paulista, onde a rede é subterrânea, o modelo apontou ${formatPercentPtBr(paulistaRow.critical_rate_pct)} como críticas (esperado: 0,0%). Nas 65 árvores que o modelo nunca viu no treino, a versão atual reduziu os falsos alertas de fiação em 41,8%, mantendo ${paulistaRow.seguro} de ${paulistaRow.total_trees} árvores classificadas como sem conflito.`
-                  : "na Av. Paulista, onde a rede é subterrânea, a versão atual do modelo reduziu em 41,8% os falsos alertas de fiação nas 65 árvores que nunca viu no treino."}
+                  ? `na Av. Paulista, onde a fiação é subterrânea (não há cabos aéreos), o sistema indicou ${formatPercentPtBr(paulistaRow.critical_rate_pct)} de alertas (o esperado é 0,0%). Em um teste de validação com 65 árvores inéditas da via, os ajustes mais recentes reduziram esses falsos alertas de fiação em 41,8%, classificando corretamente ${paulistaRow.seguro} de ${paulistaRow.total_trees} árvores como sem conflito.`
+                  : "na Av. Paulista, onde a fiação é subterrânea, os ajustes mais recentes reduziram em 41,8% os falsos alertas de fiação em 65 árvores usadas como teste de controle."}
               </li>
             </ul>
           </div>
