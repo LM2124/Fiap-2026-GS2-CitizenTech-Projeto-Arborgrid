@@ -62,7 +62,7 @@ Acesse `http://127.0.0.1:8000` e `http://127.0.0.1:8000/docs` (nesse modo local,
 
 ## Guia Rápido para Integração Big Data (`Airflow / Databricks`)
 
-Para detalhes completos do contrato e exemplos de payload, consulte [`data-processing/README.md`](data-processing/README.md).
+Para detalhes completos do contrato e exemplos de payload, consulte [`data-processing/CONTRATO_API.md`](data-processing/CONTRATO_API.md).
 
 - **Autenticação:** enviar `Authorization: Bearer <ARBORGRID_API_TOKEN>` (valor gerado automaticamente em `infra/.env` ou impresso ao subir com `scripts/start_stack.py`).
 - **Ingestão incremental (Airflow / Bronze -> Prata):**
@@ -127,7 +127,7 @@ pytest -v
 - [`webapp/`](webapp/) — Aplicação Web (FastAPI + frontend React/Vite/Tailwind/Leaflet + `onnxruntime-web` + API `/api/v1/*` + Prometheus `/metrics` + `tests/test_api.py`).
 - [`scripts/start_stack.py`](scripts/start_stack.py) — Script único para subir Docker (ou API local), configurar `infra/.env` e exibir credenciais locais.
 - [`.vscode/`](.vscode/) — Atalhos compartilhados de execução/debug (`F5` / `Ctrl+Shift+B`).
-- [`data-processing/`](data-processing/) — Contrato formal da API e espaço para os DAGs Airflow 3 e notebooks Databricks (`Bronze -> Prata -> Ouro`).
+- [`data-processing/`](data-processing/) — Pipeline de Big Data: DAG do Airflow 3, notebooks Databricks (`Bronze -> Prata -> Ouro`), amostras e o contrato da API ([`CONTRATO_API.md`](data-processing/CONTRATO_API.md)).
 - [`arborgrid-vision/`](arborgrid-vision/) — Pipeline de Visão Computacional (treinamento, inferência multi-perspectiva, auditoria e quantização).
 - [`llm-assistant/`](llm-assistant/) — Módulo de Inteligência Generativa (RAG + LoRA + benchmarks `Qwen3` e `SmolLM2`).
 - [`infra/`](infra/) — Infraestrutura como Código (`terraform/` Google Cloud Compute Engine, `nginx/`, `docker-compose.yml`, `observability/` Prometheus + Grafana).
