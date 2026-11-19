@@ -108,7 +108,7 @@ services:
       - arborgrid-net
 
   prometheus:
-    image: prom/prometheus:v2.55.1
+    image: prom/prometheus:v3.16.0
     container_name: arborgrid-prometheus
     restart: unless-stopped
     command:
