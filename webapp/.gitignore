@@ -6,6 +6,7 @@ __pycache__/
 .coverage
 htmlcov/
 frontend/node_modules/
+# Runtime WASM do ONNX: copiado do node_modules pelo prebuild (scripts/copy-ort.mjs)
 frontend/public/ort/
 *.tsbuildinfo
 

@@ -47,6 +47,9 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           npm run build
+          # O runtime do ONNX (Analise de Imagem) precisa estar no build; sem ele o navegador recebe o index.html
+          test -s ../app/static/ort/ort-wasm-simd-threaded.mjs
+          test -s ../app/static/ort/ort-wasm-simd-threaded.wasm
 
       - name: Setup Python 3.12
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
