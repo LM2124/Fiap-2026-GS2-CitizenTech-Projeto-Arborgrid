@@ -111,9 +111,9 @@ Variables usadas: `arborgrid_api_url`, `arborgrid_api_token`, `arborgrid_app_tok
 
 | Camada | Notebook | O que faz | Resultado |
 |---|---|---|---|
-| Setup | `00_setup` | Cria o schema `workspace.gs` e o Volume `chegada`; lista os uploads do Volume por dia (prova dos 2 lotes) | — |
-| **Bronze** | `01_bronze` | Auto Loader (`cloudFiles`, `availableNow`) com checkpoint: ingestão **incremental**, dado bruto + `arquivo_origem` + `carregado_em`; as contagens de cada etapa ficam em `bronze_auditoria` | 2º lote somou só os arquivos novos; 3ª execução não duplicou nada |
-| **Prata** | `02_prata` | `from_json` + `explode` das listas, tipagem, fuso `America/Sao_Paulo`, deduplicação (`ROW_NUMBER`), **11 regras de qualidade**, `MERGE` idempotente e a fila de revisão `prata_arvores_revisao` para as fotos barradas pela A4 | 505 vistas de árvores, 960 horas de clima, 62 denúncias; 2º MERGE = 0 alterações |
+| Setup | `00_setup` | Cria o schema `workspace.gs` e o Volume `chegada` | — |
+| **Bronze** | `01_bronze` | Auto Loader (`cloudFiles`, `availableNow`) com checkpoint: ingestão **incremental**, dado bruto + `arquivo_origem` + `carregado_em` | 2º lote somou só os arquivos novos; 3ª execução não duplicou nada |
+| **Prata** | `02_prata` | `from_json` + `explode` das listas, tipagem, fuso `America/Sao_Paulo`, deduplicação (`ROW_NUMBER`), **11 regras de qualidade**, `MERGE` idempotente e a fila de revisão `prata_arvores_revisao` para as fotos barradas pela A4 | 505 vistas de árvores, 960 horas de clima, 62 denúncias; 2º MERGE = 0 alterações; fila de revisão com 31 fotos de 9 árvores |
 | **Ouro** | `03_ouro` | Modelo estrela, score de risco, LGPD e 10 checagens de integridade | 10/10 checagens verdadeiras |
 | Consultas | `04_consultas` | P1–P5 | ver seção 3 |
 | Contrato | `05_contrato_mvp` | View para o MVP + exportação do lote | 262 árvores exportadas |
