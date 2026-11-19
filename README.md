@@ -1,133 +1,97 @@
-# ArborGrid SP — Auditoria Preventiva entre Arborização Viária e Rede Elétrica
+# ArborGrid SP
 
-## Ficha Técnica do MVP (FIAP Global Solution 2026.2 — CitizenTech 4ES)
+**Onde podar antes da tempestade.** O ArborGrid SP cruza o cadastro de árvores da Prefeitura de São Paulo com fotos de rua analisadas por visão computacional e com a previsão do tempo, e aponta quais árvores encostadas na fiação precisam de poda primeiro e qual canal oficial acionar.
+
+- **MVP no ar:** https://arborgrid.duckdns.org
+- **API (Swagger):** https://arborgrid.duckdns.org/docs
+
+![Tela inicial do ArborGrid SP: 239 de 271 árvores sem vistoria registrada, com a árvore #634136 analisada nos dois ângulos](docs/img/inicio.jpg)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/img/fila-de-prioridade.jpg" alt="Fila de prioridade com as três árvores mais urgentes e a tabela de 262 árvores com vento e chuva previstos"><br><sub>Fila de prioridade: risco da foto, tempo sem vistoria e vento previsto para 48 horas.</sub></td>
+    <td width="50%"><img src="docs/img/mapa.jpg" alt="Mapa de vistorias com as árvores de Pinheiros coloridas por situação"><br><sub>Mapa de vistorias: cada ponto é uma árvore, colorida pelo que as fotos mostraram.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/img/analise-de-imagem.jpg" alt="Análise de imagem marcando copa e fiação numa foto de Pinheiros, com resultado Risco crítico"><br><sub>Análise de imagem: o modelo roda no navegador e a foto não sai do aparelho.</sub></td>
+    <td width="50%"><img src="docs/img/assistente.jpg" alt="Assistente respondendo como pedir poda preventiva pelo SP156, com as normas citadas"><br><sub>Assistente: responde com o canal oficial e cita as normas usadas.</sub></td>
+  </tr>
+</table>
+
+## Ficha Técnica do MVP
 
 | Campo | Descrição |
 | :--- | :--- |
-| **Nome do produto** | **ArborGrid SP** |
-| **Integrantes (RM)** | **Lorenzo Gomes Andreata** (`551117`) · **Lucas Moreno Matheus** (`97158`) · **Kayky Oliveira Schunck** (`99756`) |
-| **URL do MVP e repositório** | https://arborgrid.duckdns.org (Web App, HTTPS) · https://arborgrid.duckdns.org/docs (API Swagger) · https://github.com/LM2124/Fiap-2026-GS2-CitizenTech-Projeto-Arborgrid |
-| **Cidadão e território** | Moradores, pedestres e equipes de zeladoria/energia em **São Paulo (SP)** — lotes auditados em Pinheiros, Alto da Mooca, Vila Mariana e corredor de controle Av. Paulista |
-| **Problema, em uma frase** | Conflitos não mapeados entre copas de árvores urbanas e fiação aérea de distribuição elétrica causam apagões, risco de choque elétrico e quedas de árvores sem vistoria preventiva |
-| **Proposta de valor** | Combinar dados geoespaciais abertos e visão computacional multi-perspectiva (`1024 px`) com risco climático para priorizar podas preventivas com transparência e controle de falsos positivos |
-| **Arquitetura: componentes** | `arborgrid-vision/` (SegFormer-B2 + OpenCV), `webapp/` (FastAPI + React/Leaflet + API REST), `data-processing/` (Airflow 3 + Databricks Medallion), `llm-assistant/` (RAG + Qwen3 LoRA), `infra/` (Terraform GCP + Docker Compose + Prometheus/Grafana) |
-| **Fontes de dados** | PMSP GeoSampa WFS (`geoportal:arvore` + SISGAU), Google Street View Static/Metadata API, Open-Meteo API |
-| **Modelos de IA utilizados** | **SegFormer-B2 (1024 px)** *fine-tuned* (V3 Gold + versão quantizada `onnx_int8_dyn_matmul` no navegador) e **Qwen3-1.7B + LoRA (`r=16`)** / base normativa (`llm-assistant/`) |
-| **Pipeline DevSecOps** | [`.github/workflows/devsecops.yml`](.github/workflows/devsecops.yml): Gitleaks, build do frontend, `pytest`, Semgrep e Trivy (IaC e imagem) barram o deploy; a imagem é construída e escaneada uma vez, publicada no Artifact Registry e a VM executa aquele digest. Sem segredos de longa duração: Workload Identity Federation no CI, OS Login com chave efêmera pelo IAP (porta 22 só para o IAP) e Terraform por impersonação com estado em GCS. Actions fixadas por SHA, Dependabot e ruleset na `main`. Detalhes em [`infra/ARQUITETURA_CLOUD_DEVSECOPS.md`](infra/ARQUITETURA_CLOUD_DEVSECOPS.md) |
-| **Indicadores de impacto** | **Linha de base:** `88,2%` das `271` árvores auditadas sem vistoria SISGAU recente · **Técnicos:** `-41,8%` de pixels falsos de fiação na Av. Paulista nas `65` árvores fora do treino; assistente com `93,3%` de acerto estrito (`90,9%` nos `22` casos sem sobreposição com o treino) · **Impacto a medir no piloto:** interrupções atribuídas à vegetação por `1.000` árvores auditadas; tempo entre triagem crítica e poda; `%` de árvores críticas sem vistoria que passam a ter vistoria |
-| **ODS conectados** | **ODS 11** (Cidades e comunidades sustentáveis), **ODS 9** (Indústria, inovação e infraestrutura), **ODS 13** (Ação contra a mudança global do clima) |
+| **Nome do produto** | ArborGrid SP |
+| **Integrantes (RM)** | Kayky Oliveira Schunck (`99756`)<br>Lorenzo Gomes Andreata (`551117`)<br>Lucas Moreno Matheus (`97158`) |
+| **Cidadão e território** | Moradores, pedestres e equipes de zeladoria e de energia de São Paulo (SP). Piloto em quatro áreas: Pinheiros, Alto da Mooca e Vila Mariana, com fiação aérea, e a Av. Paulista, com fiação subterrânea, usada para comparação. |
+| **Problema, em uma frase** | Galhos encostados na fiação aérea causam apagões, risco de choque e quedas de árvores, e a maioria dessas árvores nunca teve vistoria registrada pela Prefeitura. |
+| **Proposta de valor** | Priorizar a poda preventiva antes da tempestade, com transparência sobre o que as fotos mostraram e menos alarmes falsos, juntando dados abertos, fotos de rua em dois ângulos e a previsão de vento. |
+| **Arquitetura: componentes** | [`webapp/`](webapp/): FastAPI + React/Leaflet e API REST<br>[`arborgrid-vision/`](arborgrid-vision/): SegFormer-B2 + OpenCV<br>[`llm-assistant/`](llm-assistant/): busca híbrida (RAG) + Qwen3 com LoRA + agente GeoSampa<br>[`data-processing/`](data-processing/): Airflow 3 + Databricks (Bronze, Prata e Ouro)<br>[`infra/`](infra/): Terraform no Google Cloud, Docker Compose, Prometheus e Grafana |
+| **Fontes de dados** | GeoSampa da Prefeitura de SP (cadastro de árvores e histórico de vistorias do SISGAU)<br>Google Street View (fotos de rua)<br>Open-Meteo (previsão de vento e chuva)<br>Normas municipais e técnicas, como a Lei 17.794/2022 e a NBR 16246, na base do assistente |
+| **Modelos de IA utilizados** | **SegFormer-B2 (1024 px)** ajustado em três ciclos, quantizado em ONNX INT8 para rodar no navegador<br>**Qwen3-1.7B + LoRA (`r=16`)**, servido em GGUF Q4_K_M pelo llama.cpp |
+| **URL do MVP e repositório** | https://arborgrid.duckdns.org<br>https://github.com/LM2124/Fiap-2026-GS2-CitizenTech-Projeto-Arborgrid |
+| **Indicadores de impacto** | **Linha de base:** 88,2% das 271 árvores auditadas sem vistoria registrada no SISGAU.<br>**Técnicos:** 41,8% menos pixels falsos de fiação na Av. Paulista, em 65 árvores fora do treino; assistente com 93,3% de acerto estrito (90,9% nos 22 casos sem sobreposição com o treino).<br>**A medir no piloto:** interrupções atribuídas à vegetação a cada 1.000 árvores auditadas; tempo entre a triagem crítica e a poda; percentual de árvores críticas sem vistoria que passam a ser vistoriadas. |
+| **ODS conectados** | ODS 11 (Cidades e comunidades sustentáveis), ODS 9 (Indústria, inovação e infraestrutura) e ODS 13 (Ação contra a mudança global do clima) |
 
 ### Contribuição para os ODS
 
-- **ODS 11 (Metas 11.5 e 11.7 — redução de pessoas afetadas e de perdas por desastres; preservação de áreas verdes urbanas):** o ArborGrid SP prioriza a poda preventiva direcionada antes da ocorrência de quedas ou choques, substituindo a supressão emergencial após acidentes pela conservação segura da arborização viária. A contribuição é medida pelo percentual de árvores críticas sem vistoria SISGAU prévia que passam a receber vistoria e pelo tempo entre a triagem crítica e a poda.
-- **ODS 9 (Meta 9.1 — infraestrutura confiável e resiliente):** ao cruzar proximidade copa–fiação por múltiplos ângulos e expor os alertas via API para as equipes de zeladoria e energia, o sistema apoia a manutenção programada da rede elétrica de distribuição para reduzir apagões. A contribuição é medida pela taxa de interrupções atribuídas à vegetação por `1.000` árvores auditadas no piloto.
-- **ODS 13 (Meta 13.1 — resiliência a riscos climáticos):** o módulo Big Data/Ouro integra previsões de rajadas de vento e chuva via Open-Meteo ao risco físico das copas, elevando a prioridade de árvores expostas a eventos extremos. A contribuição é medida pela antecipação do atendimento de árvores críticas em setores com maior severidade climática.
+- **ODS 11 (metas 11.5 e 11.7):** a poda preventiva direcionada entra antes da queda ou do choque, no lugar da supressão de emergência depois do acidente, e conserva a arborização. Medido pelo percentual de árvores críticas sem vistoria que passam a ser vistoriadas e pelo tempo entre a triagem crítica e a poda.
+- **ODS 9 (meta 9.1):** cruzar a proximidade entre copa e fiação em mais de um ângulo e entregar os alertas por API às equipes de zeladoria e de energia apoia a manutenção programada da rede. Medido pelas interrupções atribuídas à vegetação a cada 1.000 árvores auditadas.
+- **ODS 13 (meta 13.1):** a previsão de rajadas e chuva do Open-Meteo eleva a prioridade das árvores expostas a eventos extremos. Medido pela antecipação do atendimento das árvores críticas nas áreas de maior severidade climática.
 
----
+## Onde está cada disciplina
 
-## Início Rápido (após clonar o repositório)
-
-Você pode subir toda a aplicação com **1 atalho no VS Code** ou **1 comando no terminal** usando [`scripts/start_stack.py`](scripts/start_stack.py).
-
-### Opção 1 — Atalho no VS Code (Recomendado)
-1. Abra a pasta raiz do repositório no VS Code (`File > Open Folder`).
-2. Pressione **`F5`** (ou **`Ctrl+Shift+B`**) para rodar **`ArborGrid: Subir Stack Completa (Docker)`**.
-3. Na primeira execução, o script cria automaticamente `infra/.env` com tokens locais aleatórios, constrói e sobe os containers e exibe no terminal o endereço da interface e o **`ARBORGRID_API_TOKEN`** para uso nas DAGs do Airflow/Databricks.
-
-> Também estão configuradas em [`.vscode/launch.json`](.vscode/launch.json) e [`.vscode/tasks.json`](.vscode/tasks.json) as opções para subir **sem Docker** (porta `8000`), rodar `pytest` e encerrar os containers (`--down`).
-
-### Opção 2 — Terminal (Docker Compose)
-```bash
-# Windows:
-python scripts/start_stack.py
-
-# Linux / macOS:
-python3 scripts/start_stack.py
-```
-
-Após subir:
-- **Web App (Mapa, Análise Visual e Normas):** `http://localhost`
-- **Documentação interativa da API (Swagger OpenAPI):** `http://localhost/docs`
-- **Prometheus (métricas 4 Golden Signals):** `http://127.0.0.1:9090`
-- **Grafana:** `http://127.0.0.1:3000` (credenciais em `infra/.env`)
-
-### Opção 3 — Execução Local sem Docker (FastAPI direto na porta 8000)
-```bash
-# Cria webapp/.venv se ainda não existir, instala dependências e inicia o Uvicorn:
-python scripts/start_stack.py --local-api
-```
-Acesse `http://127.0.0.1:8000` e `http://127.0.0.1:8000/docs` (nesse modo local, a autenticação Bearer fica desabilitada por padrão via `ARBORGRID_REQUIRE_AUTH=false`).
-
----
-
-## Guia Rápido para Integração Big Data (`Airflow / Databricks`)
-
-Para detalhes completos do contrato e exemplos de payload, consulte [`data-processing/CONTRATO_API.md`](data-processing/CONTRATO_API.md).
-
-- **Autenticação:** enviar `Authorization: Bearer <ARBORGRID_API_TOKEN>` (valor gerado automaticamente em `infra/.env` ou impresso ao subir com `scripts/start_stack.py`).
-- **Ingestão incremental (Airflow / Bronze -> Prata):**
-  - `GET /api/v1/inspections/available-dates` — lista os lotes diários disponíveis (`2026-11-10` a `2026-11-13`).
-  - `GET /api/v1/inspections?date=AAAA-MM-DD` — retorna registros tabulares normalizados (`536` vistas de `271` árvores) com geolocalização, triagem e proporções físicas.
-  - `GET /api/v1/manifest` e `GET /api/v1/trees/{geosampa_id}` — manifesto hierárquico completo.
-- **Retorno da Camada Ouro para o MVP (`workspace.gs.gold_fato_risco_arboreo`):**
-  - `POST /api/v1/gold/risk-scores` — ingestão idempotente (lote JSON conforme [`data-processing/amostras/sample_gold_upsert.json`](data-processing/amostras/sample_gold_upsert.json)) que atualiza imediatamente a tabela de priorização climática na tela inicial e nos detalhes do mapa.
-
----
-
-## O que funciona direto no clone vs. artefatos opcionais
-
-- **Incluído no Git (funciona imediatamente após `git clone`):**
-  - API FastAPI completa, SPA pré-compilada (`webapp/app/static/`), manifesto das 271 árvores (`webapp/data/manifest.json`), 16 normas curadas (`webapp/data/knowledge_base.jsonl`), modelo de segmentação para análise no navegador ([`segformer_v3_int8_dyn_matmul.onnx`](arborgrid-vision/models/segformer_v3_int8_dyn_matmul.onnx), `51,8 MiB`) e 4 fotos de amostra (`webapp/data/samples/`).
-- **Não versionados por volume/Termos de Uso (opcionais em desenvolvimento):**
-  - **Modelo LLM GGUF (`llm-assistant/models/arborgrid-qwen3-1.7b-q4_k_m.gguf`, `~1,0 GiB`):** quando presente nessa pasta, `scripts/start_stack.py` (ou `docker compose --profile llm up -d`) sobe automaticamente o container `llama-server`; quando ausente, o assistente responde pelo motor normativo RAG determinístico sem erros.
-  - **Mídias completas do Street View (`arborgrid-vision/dataset/sp_geosampa_api/images/` e `v3_overlays/`):** protegidas pelo `.gitignore`; com `ARBORGRID_EXPOSE_MEDIA_URLS=false` (padrão de `infra/.env.example`), mapa, estatísticas, API Big Data e Análise de Imagem com as amostras e upload de fotos funcionam normalmente.
-
----
-
-## Exemplos de Prompt e Resposta do Copiloto IA (`llm-assistant/`)
-
-Respostas estruturadas reais registradas pelo pipeline **`Qwen3-1.7B + LoRA + RAG + Agente GeoSampa`** ([`llm-assistant/avaliacao/benchmark_detalhes.json`](llm-assistant/avaliacao/benchmark_detalhes.json), exposto no MVP via `POST /api/v1/assistant/ask`):
-
-| Cenário | Prompt Enviado pelo Usuário | Saída Estruturada (Resumo) |
+| Disciplina | Onde | O que tem lá |
 | :--- | :--- | :--- |
-| **Emergência elétrica (`T01`)** | *"Tem uma árvore na calçada encostando nos fios e soltando faíscas com cheiro de queimado agora. Quem devo chamar?"* | `status: respondido` · `nivel_risco: emergencia_imediata` · **Enel Emergência (`0800 72 72 196`) e `193`** · `pode_podar_por_conta: false` · Fontes: `SEGURANCA-FIACAO`, `CHANGELOG-2026-ARBOR` |
-| **Poda preventiva sem faísca (`T07`)** | *"A árvore da calçada em frente ao meu prédio cresceu perto dos fios, mas não há faíscas nem curto-circuito. Como pedir poda preventiva em São Paulo?"* | `status: respondido` · `nivel_risco: preventivo_rotina` · **Portal `SP156` (`156`)** · `pode_podar_por_conta: false` · Fontes: `SP156-ROTINA`, `LEI-17794-ART05` |
-| **Sanitização LGPD (`T16`)** | *"Sou morador, CPF 123.456.789-00, meu carro placa ABC1D23 está parado perto da árvore na calçada. Como o ArborGrid lida com privacidade e para onde encaminho pedido de poda?"* | `status: respondido` · `nivel_risco: preventivo_rotina` · **`SP156 (156)` / `Descomplica SP`** · **CPF e placa omitidos na resposta** · Fontes: `SP156-ROTINA`, `LEI-17794-ART05` |
-| **Consulta ao agente GeoSampa (`T19`)** | *"Verifique os dados da árvore GeoSampa 612736 no ArborGrid (distrito e risco de proximidade na margem de vento)."* | `status: respondido` · `PINHEIROS` · Informa **`DIVERGENCIA_PARALAXE`** e **`43086 px`** na margem de vento + orienta `SP156 (156)` · Fontes: `NBR-16246-3`, `ARBORGRID-TRIAGEM`, `SP156-ROTINA` |
-| **Fora de escopo (`T25`)** | *"Qual o valor exato da taxa de boleto em reais para protocolar laudo particular na Subprefeitura de São Paulo?"* | `status: nao_consta` · `nivel_risco: fora_de_escopo` · Recusa fundamentada (`fontes: []`) |
+| Generative AI for Engineering | [`llm-assistant/`](llm-assistant/) | Base de normas com fontes, busca com `recall@k`, LoRA comparado ao RAG simples, placar das três configurações, cinco erros analisados e as respostas em JSON. No MVP, a aba Assistente. |
+| Big Data Architecture & Data Integration | [`data-processing/`](data-processing/) | DAG do Airflow 3, camadas Bronze, Prata e Ouro no Databricks, modelo estrela, LGPD e o contrato que entrega a camada Ouro à fila de prioridade do MVP. |
+| Applied Computer Vision | [`arborgrid-vision/`](arborgrid-vision/) | Coleta no GeoSampa e no Street View, segmentação de copa, fiação e poste em três ciclos de treino, auditoria em dois ângulos e quantização para o navegador. No MVP, a aba Análise de Imagem. |
+| Secure DevOps Tools & Cloud Computing | [`infra/`](infra/) e [`.github/workflows/`](.github/workflows/) | Terraform no Google Cloud, pipeline com Gitleaks, Semgrep e Trivy, deploy sem segredos de longa duração e observabilidade. Arquitetura, custos e LGPD em [`infra/ARQUITETURA_CLOUD_DEVSECOPS.md`](infra/ARQUITETURA_CLOUD_DEVSECOPS.md). |
+| Business Intelligence & Startup Development | pitch em vídeo, entregue pelo Teams | O produto em uso está no MVP; problema, proposta de valor, indicadores e ODS estão na Ficha Técnica acima. |
 
----
+## Como rodar
 
-## Testes Automatizados e Estrutura do Repositório
+Com o Docker Desktop aberto, na raiz do repositório:
 
 ```bash
-cd webapp
-
-# Windows:
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements-dev.txt
-pytest -v
-
-# Linux / macOS:
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements-dev.txt
-pytest -v
+python scripts/start_stack.py        # Linux/macOS: python3
 ```
 
-| Módulo | Como instalar | Como testar / rodar |
-| :--- | :--- | :--- |
-| `webapp/` | `pip install -r requirements-dev.txt` (em venv) | `pytest -v` |
-| `webapp/frontend/` | `npm ci` | `npm run build` (gera `webapp/app/static`, servido pelo FastAPI; em produção o build roda dentro do Dockerfile) |
-| `llm-assistant/` | `uv sync --group dev` | `uv run pytest -v` |
-| `arborgrid-vision/` | `uv sync` | Notebooks `01`–`05` / `scripts/run_operational_pipeline.py` |
-| `infra/` | `python scripts/start_stack.py` (local) | Docker Compose; nuvem e deploy em [`infra/ARQUITETURA_CLOUD_DEVSECOPS.md`](infra/ARQUITETURA_CLOUD_DEVSECOPS.md) |
+Na primeira vez, o script cria o `infra/.env` com tokens aleatórios, constrói as imagens e mostra no terminal os endereços e o token da API (`ARBORGRID_API_TOKEN`), usado pelo Airflow. No VS Code, **F5** faz o mesmo.
 
-- [`webapp/`](webapp/) — Aplicação Web (FastAPI + frontend React/Vite/Tailwind/Leaflet + `onnxruntime-web` + API `/api/v1/*` + Prometheus `/metrics` + `tests/test_api.py`).
-- [`scripts/start_stack.py`](scripts/start_stack.py) — Script único para subir Docker (ou API local), configurar `infra/.env` e exibir credenciais locais.
-- [`.vscode/`](.vscode/) — Atalhos compartilhados de execução/debug (`F5` / `Ctrl+Shift+B`).
-- [`data-processing/`](data-processing/) — Pipeline de Big Data: DAG do Airflow 3, notebooks Databricks (`Bronze -> Prata -> Ouro`), amostras e o contrato da API ([`CONTRATO_API.md`](data-processing/CONTRATO_API.md)).
-- [`arborgrid-vision/`](arborgrid-vision/) — Pipeline de Visão Computacional (treinamento, inferência multi-perspectiva, auditoria e quantização).
-- [`llm-assistant/`](llm-assistant/) — Módulo de Inteligência Generativa (RAG + LoRA + benchmarks `Qwen3` e `SmolLM2`).
-- [`infra/`](infra/) — Infraestrutura como Código (`terraform/` Google Cloud Compute Engine, `nginx/`, `docker-compose.yml`, `observability/` Prometheus + Grafana).
+| Serviço | Endereço |
+| :--- | :--- |
+| Web app | http://localhost |
+| API (Swagger) | http://localhost/docs |
+| Prometheus | http://127.0.0.1:9090 |
+| Grafana | http://127.0.0.1:3000 (senha no `infra/.env`) |
+
+**Sem Docker:** `python scripts/start_stack.py --local-api` sobe só a API e o web app em http://127.0.0.1:8000, sem autenticação. Precisa de Python 3.12 e Node.js 22: na primeira vez, o script cria o ambiente virtual e compila o frontend.
+
+**Arquivos que ficam fora do Git:**
+- **Modelo do assistente** (`llm-assistant/models/arborgrid-qwen3-1.7b-q4_k_m.gguf`, ~1 GiB). Com ele na pasta, o script sobe o llama.cpp; sem ele, o assistente responde pelo modo de regras, com as mesmas normas.
+- **Fotos completas do Street View**, pelos termos de uso do Google. O mapa, a fila, a API e a análise de imagem funcionam com as quatro fotos de exemplo do repositório.
+
+## Testes
+
+```bash
+# cada linha a partir da raiz do repositório
+cd webapp && pip install -r requirements-dev.txt && pytest -v           # API (num ambiente virtual)
+cd webapp/frontend && npm ci && npm run build                          # frontend: tipos e build
+cd llm-assistant && uv sync --group dev && uv run pytest -v            # assistente
+```
+
+O mesmo pipeline roda a cada push no GitHub Actions ([`devsecops.yml`](.github/workflows/devsecops.yml)), junto com Gitleaks, Semgrep e Trivy.
+
+## Estrutura do repositório
+
+| Pasta | Conteúdo |
+| :--- | :--- |
+| [`webapp/`](webapp/) | API FastAPI, frontend React/Vite/Leaflet e testes |
+| [`arborgrid-vision/`](arborgrid-vision/) | Visão computacional: notebooks, scripts, dataset e modelos |
+| [`llm-assistant/`](llm-assistant/) | Assistente: base de normas, notebooks, avaliação e scripts de treino |
+| [`data-processing/`](data-processing/) | Pipeline de Big Data e contrato da API ([`CONTRATO_API.md`](data-processing/CONTRATO_API.md)) |
+| [`infra/`](infra/) | Docker Compose, Caddy, Nginx, Prometheus, Grafana e Terraform |
+| [`scripts/`](scripts/) | `start_stack.py` (sobe tudo localmente) e `deploy_vm.py` (bootstrap e acesso à VM) |
+| [`docs/img/`](docs/img/) | Prints do MVP usadas neste README |
