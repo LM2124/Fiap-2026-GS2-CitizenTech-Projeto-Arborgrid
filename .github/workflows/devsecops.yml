@@ -243,7 +243,10 @@ jobs:
 
       - name: Deploy pinned image, hot-reload configs and smoke test
         run: |
-          ssh arborgrid-vm "IMAGE='${IMAGE}' REGISTRY='${GCP_REGION}-docker.pkg.dev' bash -s" <<'EOF'
+          # O script vai para um arquivo na VM e roda de la. Com "bash -s" ele era lido da entrada padrao,
+          # e o "docker compose exec" (que mantem a entrada aberta) engolia o resto: reload do Caddy e do
+          # Prometheus, health check e limpeza nunca rodavam, e o passo terminava verde mesmo assim.
+          ssh arborgrid-vm "f=\$(mktemp) && cat > \$f && IMAGE='${IMAGE}' REGISTRY='${GCP_REGION}-docker.pkg.dev' bash \$f; rc=\$?; rm -f \$f; exit \$rc" <<'EOF'
             set -euo pipefail
             cd /opt/arborgrid/app/infra
             if [ ! -f .env ]; then
