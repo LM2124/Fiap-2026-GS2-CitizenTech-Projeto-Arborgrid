@@ -84,8 +84,9 @@ class Settings(BaseSettings):
 
     llm_api_url: str = Field(default="http://127.0.0.1:8080/v1/chat/completions")
     llm_model_name: str = Field(default="qwen3-1.7b-arborgrid")
-    # Qwen3 1.7B em CPU numa e2-medium (1 nucleo fisico): ~19 tok/s no prompt e ~5 tok/s na geracao,
-    # entao uma pergunta tipica leva de 40 s a 2 min. O Nginx precisa de proxy_read_timeout maior que isto.
+    # Qwen3 1.7B em CPU: numa e2-medium (1 nucleo fisico, ~5 tok/s na geracao) uma pergunta leva de
+    # 40 s a 2 min; na e2-standard-4 (4 threads) cerca da metade. O timeout cobre o pior caso e o Nginx
+    # precisa de proxy_read_timeout maior que isto.
     llm_timeout_seconds: float = Field(default=110.0, gt=0)
 
     api_token: str | None = Field(default=None)

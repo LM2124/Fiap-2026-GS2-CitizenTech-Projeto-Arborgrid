@@ -29,7 +29,7 @@ services:
       - "-np"
       - "1"
       - "-t"
-      - "${LLAMA_THREADS:-2}"
+      - "${LLAMA_THREADS:-4}"
       - "--reasoning"
       - "off"
       - "--reasoning-budget"

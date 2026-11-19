@@ -11,23 +11,23 @@ Documento de referência para a disciplina **Secure DevOps Tools & Cloud Computi
 ```mermaid
 flowchart LR
     subgraph CI["GitHub Actions (a cada push e PR)"]
-        T["Gitleaks · build do front · pytest · Semgrep"] --> B["Docker build multi-stage + Trivy (IaC e imagem)"]
+        T["Gitleaks, build do front, pytest e Semgrep"] --> B["Docker build multi-stage + Trivy (IaC e imagem)"]
     end
     B -->|"OIDC → Workload Identity Federation"| AR[("Artifact Registry<br/>webapp@sha256:…")]
     B -->|"chave SSH efêmera no OS Login (30 min)"| IAP["Identity-Aware Proxy<br/>35.235.240.0/20 → 22"]
     IAP -->|"rsync de infra/ + pull do digest + reload a quente + health check"| GCE
 
-    User["Cidadão / Avaliador"] -->|"HTTPS 443 · arborgrid.duckdns.org"| FW["Firewall VPC"]
+    User["Cidadão / Avaliador"] -->|"HTTPS 443 (arborgrid.duckdns.org)"| FW["Firewall VPC"]
     Airflow["Airflow 3 / Big Data"] -->|"Bearer token (HTTPS)"| FW
     Admin["Equipe (gcloud + OS Login)"] -->|"túnel IAP"| IAP
 
-    subgraph GCE["Compute Engine e2-medium · Ubuntu 24.04 · Shielded VM · criada por Terraform"]
+    subgraph GCE["Compute Engine e2-standard-4, Ubuntu 24.04, Shielded VM (Terraform)"]
         FW --> Caddy["Caddy :443 (Let's Encrypt, HSTS)"]
         Caddy --> Nginx["Nginx interno (rate limit, gzip, bloqueio de /metrics)"]
         Nginx --> App["FastAPI + SPA React (UID 10001, read-only)"]
         App -->|":8080"| Llama["llama.cpp Qwen3-1.7B Q4_K_M"]
         Media[("/opt/arborgrid/media (RO)")] --> App
-        Models[("/opt/arborgrid/vision_models · llm_models (RO)")] --> App
+        Models[("/opt/arborgrid/vision_models e llm_models (RO)")] --> App
         Models --> Llama
         Prom["Prometheus 127.0.0.1:9090"] -->|"scrape /metrics"| App
         Graf["Grafana 127.0.0.1:3000"] --> Prom
@@ -75,18 +75,20 @@ Valores *on-demand* em USD (abatidos dos créditos da conta):
 
 | Recurso | Especificação | Mensal 24/7 (USD) | Por hora |
 | :--- | :--- | ---: | ---: |
-| Computação | `1x e2-medium` (2 vCPU compartilhadas, 4 GB) | ~\$24,27 | \$0,0332 |
+| Computação | `1x e2-standard-4` (4 vCPU, 16 GB; o llama.cpp usa as 4 threads) | ~\$97,83 | \$0,1340 |
 | Disco | `30 GB pd-balanced` | ~\$3,00 | \$0,0041 |
 | IPv4 estático em uso | `1x` endereço externo | ~\$3,65 | \$0,0050 |
 | Artifact Registry | até 10 versões da imagem (~300 MB cada; 0,5 GB grátis, depois \$0,10/GB·mês) | ~\$0,25 | — |
 | Cloud Storage (estado do Terraform) | poucos KB, versionado | < \$0,01 | — |
 | IAP, OS Login, WIF | sem custo | \$0,00 | — |
 | Egress | 1ª visita à "Análise de Imagem" baixa ~`67 MB` (ONNX + WASM); 100 visitantes ≈ 6,7 GB a ~\$0,12/GB | ~\$0,80 *(100 visitantes)* | sob demanda |
-| **Total** | | **~\$31,20 / mês** + egress | **~\$0,043 / h** |
+| **Total** | | **~\$104,75 / mês** + egress | **~\$0,143 / h** |
 
-Manter a stack 10 dias para a apresentação e a correção custa **~\$10,40**; com a VM parada fora da avaliação, sobra só o disco e o IP (**~\$0,22/dia**).
+Manter a stack 10 dias para a apresentação e a correção custa **~\$34,40**; com a VM parada fora da avaliação, sobram só o disco e o IP reservado (**~\$0,34/dia**).
 
-**Escala:** uma `e2-medium` por subprefeitura piloto (~\$31/mês). O primeiro componente a desacoplar é o LLM: Cloud Run com GPU L4 (escala a zero) ou Vertex AI, quando houver cota de GPU e tráfego que justifique.
+**Por que não a `e2-medium`:** a análise de memória do [`llm-assistant`](../llm-assistant/README.md) mostrou que o `Qwen3-1.7B Q4_K_M` cabe numa `e2-medium` (2 vCPU, 4 GB, ~\$31/mês no total), mas com 1 núcleo físico a resposta do assistente leva de 40 s a 2 min. A `e2-standard-4` dobra os núcleos para o llama.cpp e corta esse tempo pela metade; a `e2-medium` segue como piso econômico (`machine_type` no Terraform).
+
+**Escala:** uma VM por subprefeitura piloto: ~\$105/mês com o assistente rápido ou ~\$31/mês no piso econômico. O primeiro componente a desacoplar é o LLM: Cloud Run com GPU L4 (escala a zero) ou Vertex AI, quando houver cota de GPU e tráfego que justifique.
 
 ---
 

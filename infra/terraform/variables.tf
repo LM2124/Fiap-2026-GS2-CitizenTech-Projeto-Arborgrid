@@ -22,9 +22,9 @@ variable "project_name" {
 }
 
 variable "machine_type" {
-  description = "Tipo da VM no Compute Engine (e2-medium = 2 vCPU, 4 GB RAM para FastAPI + Nginx + Caddy + llama.cpp + Prometheus + Grafana)"
+  description = "Tipo da VM (e2-standard-4 = 4 vCPU, 16 GB: llama.cpp com 4 threads responde ~2x mais rapido; e2-medium e o piso economico, com o assistente mais lento)"
   type        = string
-  default     = "e2-medium"
+  default     = "e2-standard-4"
 }
 
 variable "domain" {
