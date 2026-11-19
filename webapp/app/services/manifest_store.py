@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from urllib.parse import quote
 import logging
 from collections import Counter
 from pathlib import Path
@@ -176,7 +177,7 @@ class ManifestStore:
                 overlay_url = None
                 if self.expose_media_urls and overlay_file:
                     prefix = self.public_base_url
-                    overlay_url = f"{prefix}/media/v3_overlays/{overlay_file}"
+                    overlay_url = f"{prefix}/media/v3_overlays/{overlay_file}{self._overlay_version_suffix()}"
 
                 rows.append(
                     {
@@ -264,6 +265,12 @@ class ManifestStore:
     def available_dates(self) -> list[dict[str, Any]]:
         counts = Counter(str(r["captured_at"])[:10] for r in self.inspections)
         return [{"date": d, "records": counts[d]} for d in sorted(counts)]
+
+    def _overlay_version_suffix(self) -> str:
+        """Sufixo ?v= dos overlays: muda quando as imagens sao regeradas (render_web_overlays.py),
+        para o navegador nao servir a versao antiga do cache (Cache-Control de 1 h na midia)."""
+        version = str(self.raw_manifest.get("overlays_render_version") or "").strip()
+        return f"?v={quote(version)}" if version else ""
 
     def build_stats(self) -> dict[str, Any]:
         tree_triages = Counter(_tree_consolidated_triage(t) for t in self.trees)
@@ -412,7 +419,9 @@ class ManifestStore:
                         "heading": view.get("heading"),
                         "distance_m": view.get("distance_m"),
                         "google_maps_url": view.get("google_maps_url"),
-                        "overlay_url": f"{prefix}/media/v3_overlays/{ov_file}" if ov_exists else None,
+                        "overlay_url": (
+                            f"{prefix}/media/v3_overlays/{ov_file}{self._overlay_version_suffix()}" if ov_exists else None
+                        ),
                         "image_url": f"{prefix}/media/images/{img_file}" if img_exists else None,
                         "v3_analysis": v3_view,
                     }
