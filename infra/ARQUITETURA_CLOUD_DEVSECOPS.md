@@ -14,12 +14,13 @@ flowchart LR
     WIF --> IAP["Túnel IAP (35.235.240.0/20 → SSH 22)"]
     IAP -->|"rsync + docker compose + health check"| GCE
 
-    User["Cidadão / Avaliador"] -->|"HTTP 80"| FW["GCP VPC Firewall Rules"]
-    Airflow["Airflow 3 / Big Data"] -->|"Bearer Token (HTTP)"| FW
+    User["Cidadão / Avaliador"] -->|"HTTPS 443 (arborgrid.duckdns.org)"| FW["GCP VPC Firewall Rules"]
+    Airflow["Airflow 3 / Big Data"] -->|"Bearer Token (HTTPS)"| FW
     Admin["Engenheiro DevOps"] -->|"SSH 22 CIDR Restrito /32"| FW
 
     subgraph GCE["Google Cloud Compute Engine e2-medium — Ubuntu 24.04 — Terraform IaC"]
-        FW --> Nginx["Nginx Reverse Proxy :80"]
+        FW --> Caddy["Caddy :443 TLS Let's Encrypt (HTTP 80 redireciona)"]
+        Caddy --> Nginx["Nginx :80 interno (rate limit, gzip, bloqueio de /metrics)"]
         Nginx --> App["FastAPI WebApp non-root :8000"]
         App -->|"Chat RAG :8080"| Llama["llama.cpp Qwen3-1.7B Q4_K_M"]
         Media[("Volume RO /opt/arborgrid/media")] --> App
@@ -46,6 +47,7 @@ flowchart LR
 | Disponibilidade do Identity-Aware Proxy, do STS/IAM Credentials e rotação das chaves de assinatura OIDC↔GCP | X | |
 | Varredura contínua Gitleaks, Semgrep e Trivy antes do deploy automático | | X |
 | Conformidade LGPD, anonimização e restrição de mídias Street View fora do repositório | | X |
+| HTTPS: certificado Let's Encrypt renovado automaticamente pelo Caddy; domínio DuckDNS apontando para o IP estático | | X |
 
 ---
 

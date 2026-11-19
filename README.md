@@ -6,7 +6,7 @@
 | :--- | :--- |
 | **Nome do produto** | **ArborGrid SP** |
 | **Integrantes (RM)** | **Lorenzo Gomes Andreata** (`551117`) · **Lucas Moreno Matheus** (`97158`) · **Kayky Oliveira Schunck** (`99756`) |
-| **URL do MVP e repositório** | http://34.41.193.154 (Web App) · http://34.41.193.154/docs (API Swagger) · https://github.com/LM2124/Fiap-2026-GS2-CitizenTech-Projeto-Arborgrid |
+| **URL do MVP e repositório** | https://arborgrid.duckdns.org (Web App, HTTPS) · https://arborgrid.duckdns.org/docs (API Swagger) · https://github.com/LM2124/Fiap-2026-GS2-CitizenTech-Projeto-Arborgrid |
 | **Cidadão e território** | Moradores, pedestres e equipes de zeladoria/energia em **São Paulo (SP)** — lotes auditados em Pinheiros, Alto da Mooca, Vila Mariana e corredor de controle Av. Paulista |
 | **Problema, em uma frase** | Conflitos não mapeados entre copas de árvores urbanas e fiação aérea de distribuição elétrica causam apagões, risco de choque elétrico e quedas de árvores sem vistoria preventiva |
 | **Proposta de valor** | Combinar dados geoespaciais abertos e visão computacional multi-perspectiva (`1024 px`) com risco climático para priorizar podas preventivas com transparência e controle de falsos positivos |

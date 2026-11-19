@@ -646,8 +646,8 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                   Controle negativo na Av. Paulista:
                 </strong>{" "}
                 {paulistaRow
-                  ? `na Av. Paulista, onde a rede é subterrânea, o modelo apontou ${formatPercentPtBr(paulistaRow.critical_rate_pct)} como críticas (esperado: 0,0%). Reduzimos esse falso alerta em 56,1% entre versões do modelo, mantendo ${paulistaRow.seguro} de ${paulistaRow.total_trees} árvores classificadas como sem conflito.`
-                  : "na Av. Paulista, onde a rede é subterrânea, reduzimos em 56,1% os falsos alertas entre versões do modelo, validando a separação entre cabos aéreos e estruturas urbanas."}
+                  ? `na Av. Paulista, onde a rede é subterrânea, o modelo apontou ${formatPercentPtBr(paulistaRow.critical_rate_pct)} como críticas (esperado: 0,0%). Nas 65 árvores que o modelo nunca viu no treino, a versão atual reduziu os falsos alertas de fiação em 41,8%, mantendo ${paulistaRow.seguro} de ${paulistaRow.total_trees} árvores classificadas como sem conflito.`
+                  : "na Av. Paulista, onde a rede é subterrânea, a versão atual do modelo reduziu em 41,8% os falsos alertas de fiação nas 65 árvores que nunca viu no treino."}
               </li>
             </ul>
           </div>
