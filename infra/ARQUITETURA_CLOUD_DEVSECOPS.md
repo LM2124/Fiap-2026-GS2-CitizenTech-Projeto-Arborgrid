@@ -64,7 +64,7 @@ O conjunto de dados hospedado (`manifest.json`) não contém dados pessoais; con
 - **Identificadores anonimizados:** `pano_id` e atores operacionais enviados pela camada Gold recebem hash SHA-256 truncado (`pano_id_hash`, `audit_actor_hash`).
 - **Perguntas ao assistente (`POST /api/v1/assistant/ask`):** a API mascara CPF, CNPJ, placa, telefone e e-mail antes de enviar o texto ao LLM e antes de devolvê-lo (`webapp/app/privacy.py`). As perguntas não são persistidas e o Uvicorn não registra corpos de requisição.
 - **Upload de fotos na "Análise de Imagem":** processado exclusivamente no navegador (`ONNX Runtime Web`); a foto nunca sai do dispositivo.
-- **Logs de acesso do Nginx:** registram IPs (dados pessoais sob a LGPD) e vivem só até a recriação do container; em produção, rotação e retenção limitada (`max-size` / `max-file`).
+- **Logs de acesso do Nginx:** registram IPs (dados pessoais sob a LGPD). Ficam só na VM, com rotação configurada no Compose (no máximo 3 arquivos de 10 MB por container), e somem quando o container é recriado.
 - **Região e transferência internacional:** `us-central1` (Iowa), com criptografia em repouso gerenciada pelo Google. Hospedar fora do Brasil configura transferência internacional (LGPD, art. 33); a alternativa nacional é `southamerica-east1` (São Paulo), com custo maior. Como a VM só persiste dados públicos e contagens não identificáveis, `us-central1` se justifica para o MVP.
 
 ---

@@ -1,5 +1,14 @@
+# Logs de todos os containers com rotacao: no maximo 3 arquivos de 10 MB por servico
+# (os logs do Nginx guardam IPs, dado pessoal pela LGPD; nada cresce sem limite no disco)
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   llama-server:
+    logging: *default-logging
     # Fixada pelo digest (build de 17/11/2026): a tag "server" e movel e quebraria a reprodutibilidade
     image: ghcr.io/ggml-org/llama.cpp:server@sha256:5b43086e3ba7ea5794d72904654f6cd41224a9b1c6ac0398f4940ee380d30f23
     container_name: arborgrid-llama
@@ -39,6 +48,7 @@ services:
       - arborgrid-net
 
   webapp:
+    logging: *default-logging
     # Producao: o CI publica a imagem no Artifact Registry e o deploy fixa o digest em
     # ARBORGRID_WEBAPP_IMAGE (a VM nao compila nada). Local: docker compose up --build.
     build:
@@ -74,6 +84,7 @@ services:
       retries: 3
 
   nginx:
+    logging: *default-logging
     image: nginx:1.27-alpine
     container_name: arborgrid-nginx
     restart: unless-stopped
@@ -90,6 +101,7 @@ services:
       - arborgrid-net
 
   caddy:
+    logging: *default-logging
     image: caddy:2.8.4-alpine
     container_name: arborgrid-caddy
     restart: unless-stopped
@@ -108,6 +120,7 @@ services:
       - arborgrid-net
 
   prometheus:
+    logging: *default-logging
     image: prom/prometheus:v2.55.1
     container_name: arborgrid-prometheus
     restart: unless-stopped
@@ -126,6 +139,7 @@ services:
       - arborgrid-net
 
   grafana:
+    logging: *default-logging
     image: grafana/grafana:11.3.0
     container_name: arborgrid-grafana
     restart: unless-stopped
