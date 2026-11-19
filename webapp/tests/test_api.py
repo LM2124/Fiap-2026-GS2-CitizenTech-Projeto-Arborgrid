@@ -444,6 +444,36 @@ def test_gold_seed_demo_non_destructive_and_switchable(tmp_path: Path) -> None:
     with _make_client(demo_disabled_dir, allow_demo_seed=False) as client_off:
         r_disabled = client_off.post("/api/v1/gold/seed-demo")
         assert r_disabled.status_code == 403
+        features = client_off.get("/api/v1/public/map-bootstrap").json()["features"]
+        assert features == {"demo_seed_enabled": False}
+
+
+def test_real_gold_batch_purges_demo_records(tmp_path: Path) -> None:
+    headers = {"Authorization": "Bearer test-secret-token"}
+    with _make_client(tmp_path) as client:
+        assert client.get("/api/v1/public/map-bootstrap").json()["features"] == {"demo_seed_enabled": True}
+        assert client.post("/api/v1/gold/seed-demo").status_code == 200
+
+        real_batch = {
+            "batch_id": "databricks-real-batch",
+            "records": [
+                {
+                    "geosampa_id": "612162",
+                    "distrito": "PINHEIROS",
+                    "composite_risk_score": 40.0,
+                    "priority_tier": "MEDIA",
+                    "recommended_action": "Vistoria programada",
+                }
+            ],
+        }
+        r_real = client.post("/api/v1/gold/risk-scores", json=real_batch, headers=headers)
+        assert r_real.status_code == 200
+        assert r_real.json()["removed_demo"] == 1
+        assert r_real.json()["total_gold_records"] == 1
+
+        items = client.get("/api/v1/gold/risk-scores", headers=headers).json()["items"]
+        assert [i["batch_id"] for i in items] == ["databricks-real-batch"]
+        assert items[0]["is_demo"] is False
 
 
 def test_corrupt_gold_state_quarantined_on_startup(tmp_path: Path) -> None:

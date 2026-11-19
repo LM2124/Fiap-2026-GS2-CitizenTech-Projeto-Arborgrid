@@ -73,6 +73,7 @@ def create_app(custom_settings: Settings | None = None) -> FastAPI:
             gold_store=gold_store,
             llm_api_url=settings.llm_api_url,
             llm_model_name=settings.llm_model_name,
+            llm_timeout_seconds=settings.llm_timeout_seconds,
         )
         app_instance.state.settings = settings
         app_instance.state.manifest_store = manifest_store
@@ -185,10 +186,16 @@ def create_app(custom_settings: Settings | None = None) -> FastAPI:
                 media_type = "application/wasm"
             elif suffix in {".js", ".mjs"}:
                 media_type = "text/javascript"
+            # Arquivos de assets/ levam hash do conteudo no nome (build do Vite): podem ficar em cache "para sempre"
+            cache_control = (
+                "public, max-age=31536000, immutable"
+                if full_path.startswith("assets/")
+                else "public, max-age=3600"
+            )
             return FileResponse(
                 candidate,
                 media_type=media_type,
-                headers={"Cache-Control": "public, max-age=3600"},
+                headers={"Cache-Control": cache_control},
             )
 
         index_file = STATIC_DIR / "index.html"

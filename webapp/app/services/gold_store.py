@@ -15,6 +15,13 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+def _is_demo_record(record: dict[str, Any]) -> bool:
+    """Registro do lote de demonstracao (flag explicita ou estado antigo com 'demo' no batch_id)."""
+    if record.get("is_demo") is True:
+        return True
+    return record.get("is_demo") is None and "demo" in str(record.get("batch_id", "")).lower()
+
+
 class GoldRiskStore:
     """Persiste e consulta registros da tabela Gold consumidos pelo MVP."""
 
@@ -99,6 +106,11 @@ class GoldRiskStore:
         """Executa MERGE idempotente por geosampa_id e salva estado em disco."""
         now_utc = datetime.now(timezone.utc).isoformat()
         with self._lock:
+            # Chegou dado real do pipeline: o lote de demonstracao sai inteiro, para nao misturar
+            # cenario simulado com Gold real (inclui estados antigos gravados antes da flag is_demo).
+            demo_ids = [gid for gid, rec in self.records.items() if _is_demo_record(rec)]
+            for gid in demo_ids:
+                del self.records[gid]
             inserted = 0
             updated = 0
             for item in items:
@@ -122,6 +134,7 @@ class GoldRiskStore:
             "batch_id": batch_id,
             "inserted": inserted,
             "updated": updated,
+            "removed_demo": len(demo_ids),
             "total_gold_records": total_records,
             "ingested_at_utc": now_utc,
         }
@@ -140,7 +153,7 @@ class GoldRiskStore:
                 existing = self.records.get(gid)
                 if existing is None:
                     inserted += 1
-                elif existing.get("is_demo") is True:
+                elif _is_demo_record(existing):
                     updated += 1
                 else:
                     skipped_real += 1

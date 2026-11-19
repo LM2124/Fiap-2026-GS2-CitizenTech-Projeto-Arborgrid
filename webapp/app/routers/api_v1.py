@@ -86,6 +86,8 @@ def public_map_bootstrap(request: Request) -> dict:
         {k: v for k, v in rec.items() if k != "audit_actor_hash"}
         for rec in gold.list_records()
     ]
+    # O front so mostra o botao de cenario de demonstracao quando o servidor permite o seed
+    payload["features"] = {"demo_seed_enabled": bool(request.app.state.settings.allow_demo_seed)}
     return payload
 
 

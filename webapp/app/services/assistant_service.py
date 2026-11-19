@@ -255,12 +255,14 @@ class AssistantService:
         gold_store: GoldRiskStore,
         llm_api_url: str = "http://127.0.0.1:8080/v1/chat/completions",
         llm_model_name: str = "qwen3-1.7b-arborgrid",
+        llm_timeout_seconds: float = 110.0,
     ) -> None:
         self.kb_path = Path(kb_path)
         self.manifest_store = manifest_store
         self.gold_store = gold_store
         self.llm_api_url = llm_api_url
         self.llm_model_name = llm_model_name
+        self.llm_timeout_seconds = llm_timeout_seconds
         self.chunks: list[dict[str, Any]] = []
         self._idf: dict[str, float] = {}
         self._chunk_vecs: list[dict[str, float]] = []
@@ -511,7 +513,7 @@ class AssistantService:
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=25.0) as resp:
+            with urllib.request.urlopen(req, timeout=self.llm_timeout_seconds) as resp:
                 raw_bytes = resp.read()
         except urllib.error.HTTPError as exc:
             self._record_llm_fallback("http_error", f"HTTP {exc.code}")
