@@ -1,7 +1,11 @@
 # TLS automatico (Let's Encrypt) na frente do Nginx. O dominio vem de ARBORGRID_DOMAIN (infra/.env),
 # ex.: arborgrid.duckdns.org apontando para o IP estatico da VM. Certificados ficam no volume caddy_data.
 {$ARBORGRID_DOMAIN} {
-	header Strict-Transport-Security "max-age=31536000"
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		# Sem anunciar software/versao (o Nginx atras tambem manda "Server")
+		-Server
+	}
 	reverse_proxy nginx:80
 }
 
