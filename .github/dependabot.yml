@@ -1,5 +1,7 @@
-# Atualizacoes semanais de dependencias. As actions do workflow estao fixadas por SHA;
-# o Dependabot abre um PR com o SHA novo, que passa pelos mesmos testes e scanners.
+# Atualizacoes semanais de dependencias, agrupadas em um PR por ecossistema.
+# As actions do workflow estao fixadas por SHA; o Dependabot propoe o SHA novo e cada PR
+# passa pelos mesmos testes e scanners do pipeline. Versoes major ficam de fora (mudam API
+# e exigem revisao manual); correcoes de seguranca continuam chegando pelos alertas.
 version: 2
 updates:
   - package-ecosystem: "github-actions"
@@ -14,20 +16,44 @@ updates:
     directory: "/webapp"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+    groups:
+      python:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/webapp/frontend"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+    groups:
+      frontend:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
     directory: "/webapp"
     schedule:
       interval: "weekly"
+    groups:
+      imagens-webapp:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker-compose"
     directory: "/infra"
     schedule:
       interval: "weekly"
+    groups:
+      imagens-infra:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
