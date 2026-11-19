@@ -658,7 +658,7 @@ def test_public_map_bootstrap_omits_audit_actor_hash(tmp_path: Path) -> None:
 
 
 def test_negated_emergency_terms_do_not_force_emergency(tmp_path: Path, monkeypatch) -> None:
-    """'nao tem faisca' e 'nem curto-circuito' sao negacoes: a resposta preventiva do LLM deve ser mantida."""
+    """Negacoes como 'nao tem faisca' nao contam como emergencia no modo de regras, e a resposta do LLM nunca e reescrita."""
     from app.services.assistant_service import _EMERGENCY_TERMS, _NEGATED_EMERGENCY_RE, _normalize_text
 
     def sinal(pergunta: str) -> list[str]:

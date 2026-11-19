@@ -599,15 +599,6 @@ class AssistantService:
         if nivel_risco not in _ALLOWED_RISK:
             nivel_risco = "preventivo_rotina"
 
-        q_norm = _normalize_text(question)
-        clean_q = _NEGATED_EMERGENCY_RE.sub(" ", q_norm)
-        has_emergency = any(term in clean_q for term in _EMERGENCY_TERMS)
-        has_fire_or_injury = any(
-            t in clean_q for t in ("fogo", "incendio", "chama", "ferid", "preso", "carro")
-        )
-        has_storm_fall = any(
-            t in clean_q for t in ("caiu", "caida", "ventania", "tempestade", "desab")
-        )
         pode_podar = parsed.get("pode_podar_por_conta")
         if not isinstance(pode_podar, bool) and pode_podar is not None:
             pode_podar = None
@@ -620,29 +611,8 @@ class AssistantService:
         )
         acao_out = _sanitize_internal_codes(acao)
 
-        if has_emergency:
-            nivel_risco = "emergencia_imediata"
-            pode_podar = False
-            if has_fire_or_injury:
-                orgao_out = "Corpo de Bombeiros (193) + Enel Distribuição SP Emergência"
-                canal_out = "193 (Bombeiros) / 0800 72 72 196 (Enel 24h)"
-            elif has_storm_fall:
-                orgao_out = "Defesa Civil SP (199) + Enel Distribuição SP"
-                canal_out = "199 (Defesa Civil) / 0800 72 72 196 (Enel 24h)"
-            else:
-                orgao_out = "Enel Distribuição São Paulo (Emergência 24h)"
-                canal_out = "0800 72 72 196"
-            if "156" in _normalize_text(acao_out) or (
-                "0800" not in acao_out and "193" not in acao_out and "199" not in acao_out
-            ):
-                acao_out = (
-                    f"Isole imediatamente o local, não se aproxime de cabos caídos ou da árvore "
-                    f"e acione os canais de emergência: {canal_out}."
-                )
-        elif tree_ctx and tree_ctx["triage_macro"] == "CRITICO":
-            if nivel_risco in ("preventivo_rotina", "fora_de_escopo"):
-                nivel_risco = "urgente_vistoria"
-            pode_podar = False
+        # A classificacao de risco e a do modelo, sem regra por cima: o placar do llm-assistant mede
+        # exatamente isso. Aqui so se validam schema, fontes citadas e codigos internos.
 
         if canal_out.count("(") > canal_out.count(")"):
             canal_out = canal_out + ")"
