@@ -39,14 +39,23 @@ groups:
 
       - alert: ArborGridAssistantLatencyP95
         expr: |
-          histogram_quantile(0.95, sum by (le) (rate(arborgrid_http_request_duration_seconds_bucket{route="/api/v1/assistant/ask"}[10m]))) > 25
+          histogram_quantile(0.95, sum by (le) (rate(arborgrid_http_request_duration_seconds_bucket{route="/api/v1/assistant/ask"}[10m]))) > 100
         for: 5m
         labels:
           severity: warning
           service: arborgrid-webapp
         annotations:
-          summary: "Assistente com P95 acima de 25 s"
-          description: "Respostas do assistente acima do timeout do LLM; o fallback deterministico deve estar sendo usado."
+          summary: "Assistente com P95 acima de 100 s"
+          description: "Respostas do assistente perto do timeout do LLM (110 s em CPU); a fila do llama-server esta saturando."
+
+      - alert: ArborGridLLMFallback
+        expr: sum(increase(arborgrid_llm_fallback_total[15m])) > 0
+        labels:
+          severity: warning
+          service: arborgrid-webapp
+        annotations:
+          summary: "Assistente respondendo sem o LLM"
+          description: "O LLM falhou nos ultimos 15 min (timeout, erro HTTP ou resposta invalida) e o assistente caiu no modo por regras. Ver arborgrid_llm_fallback_total por reason."
 
       - alert: ArborGridServiceDown
         expr: up{job="arborgrid-webapp"} == 0
