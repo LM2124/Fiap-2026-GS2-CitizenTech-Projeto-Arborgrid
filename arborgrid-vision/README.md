@@ -14,7 +14,7 @@ Módulo de auditoria preventiva de conflitos entre a arborização viária de S�
 | `97158` | Lucas Moreno Matheus |
 | `99756` | Kayky Oliveira Schunck |
 
-- **Conexão com o MVP ([`../README.md`](../README.md)):** gera o manifesto operacional georreferenciado ([`dataset/sp_geosampa_api/manifest.json`](dataset/sp_geosampa_api/manifest.json)) e a triagem multi-perspectiva (`CRITICO_CONFIRMADO`, `DIVERGENCIA_PARALAXE`, `PROXIMIDADE`, `SEGURO`) consumidos pelo backend/mapa em [`webapp/`](../webapp/), pelo copiloto técnico (`ArborGridInspector`) em [`llm-assistant/`](../llm-assistant/) e pelos pipelines territoriais em [`data-processing/`](../data-processing/).
+- **Conexão com o MVP ([`../README.md`](../README.md)):** gera o manifesto operacional georreferenciado ([`dataset/sp_geosampa_api/manifest.json`](dataset/sp_geosampa_api/manifest.json)) e a triagem multi-perspectiva (`CRITICO_CONFIRMADO`, `DIVERGENCIA_PARALAXE`, `PROXIMIDADE`, `SEGURO`) consumidos pelo backend/mapa em [`webapp/`](../webapp/), pelo assistente (`ArborGridInspector`) em [`llm-assistant/`](../llm-assistant/) e pelos pipelines territoriais em [`data-processing/`](../data-processing/).
 
 ---
 

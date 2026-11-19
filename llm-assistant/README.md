@@ -1,4 +1,4 @@
-# ArborGrid Copiloto Técnico — Generative AI for Engineering (`llm-assistant/`)
+# Assistente ArborGrid: Generative AI for Engineering (`llm-assistant/`)
 
 Assistente técnico local fundamentado em legislação municipal paulistana, normas de segurança elétrica/arborização e telemetria real de inspeções GeoSampa, desenvolvido com **`Qwen/Qwen3-1.7B`**, **Busca Híbrida (RAG)**, **Fine-Tuning LoRA (`r=16`)** e **Ferramenta Determinística (Agente)**.
 
@@ -13,7 +13,7 @@ Assistente técnico local fundamentado em legislação municipal paulistana, nor
 | `99756` | Kayky Oliveira Schunck |
 
 - **Tarefa da IA:** triar dúvidas de cidadãos e operadores sobre arborização urbana e rede elétrica em São Paulo, devolvendo **JSON estrito de 7 chaves** com nível de risco, órgão competente, telefone oficial, proibição de poda própria, orientação segura sem dados pessoais (LGPD), citação exata de fontes recuperadas e recusa segura (`nao_consta`) fora do escopo.
-- **Conexão com o MVP e API:** integrado ao [**ArborGrid SP**](../README.md) por meio de [`webapp/app/services/assistant_service.py`](../webapp/app/services/assistant_service.py) e dos endpoints **`POST /api/v1/assistant/ask`** e **`GET /api/v1/assistant/status`**, consumindo registros de [`manifest.json`](../arborgrid-vision/dataset/sp_geosampa_api/manifest.json) e atendendo a aba **Consulta de Normas** ([`CopilotView.tsx`](../webapp/frontend/src/views/CopilotView.tsx)) via `llama-server` (`Qwen 1.7B Q4_K_M`, `COMPOSE_PROFILES=llm`) com *fallback* RAG determinístico.
+- **Conexão com o MVP e API:** integrado ao [**ArborGrid SP**](../README.md) por meio de [`webapp/app/services/assistant_service.py`](../webapp/app/services/assistant_service.py) e dos endpoints **`POST /api/v1/assistant/ask`** e **`GET /api/v1/assistant/status`**, consumindo registros de [`manifest.json`](../arborgrid-vision/dataset/sp_geosampa_api/manifest.json) e atendendo a aba **Assistente** ([`CopilotView.tsx`](../webapp/frontend/src/views/CopilotView.tsx)) via `llama-server` (`Qwen 1.7B Q4_K_M`, `COMPOSE_PROFILES=llm`) com *fallback* RAG determinístico.
 
 ---
 
@@ -184,18 +184,112 @@ A partir da auditoria automatizada em [`avaliacao/auditoria_erros_reais.md`](ava
 
 ---
 
-## 8. Exemplos Reais de Prompt e Resposta (`Qwen3-1.7B + LoRA + RAG + Agente`)
+## 8. Exemplos Reais de Pergunta e Resposta (`Qwen3-1.7B + LoRA + RAG + Agente`)
 
-A tabela abaixo reproduz entradas reais de [`avaliacao/test_set.jsonl`](avaliacao/test_set.jsonl) e as saídas estruturadas correspondentes registradas em [`avaliacao/benchmark_detalhes.json`](avaliacao/benchmark_detalhes.json):
+Cinco casos de [`avaliacao/test_set.jsonl`](avaliacao/test_set.jsonl), com o JSON exatamente como o sistema completo respondeu no placar ([`avaliacao/benchmark_detalhes.json`](avaliacao/benchmark_detalhes.json), configuração `3_rag_lora_agente`). Todos passaram na validação de *schema*.
 
-| Caso | Pergunta do Usuário (Prompt) | Resposta Estruturada Gerada (Resumo dos Campos) |
-| :--- | :--- | :--- |
-| **`T01`** *(Emergência elétrica)* | *"Tem uma árvore na calçada encostando nos fios e soltando faíscas com cheiro de queimado agora. Quem devo chamar?"* | `status`: `respondido` · `nivel_risco`: `emergencia_imediata` · `canal`: **`Enel Emergência (0800 72 72 196) e 193`** · `pode_podar_por_conta`: `false` · `fontes`: `["SEGURANCA-FIACAO", "CHANGELOG-2026-ARBOR"]` |
-| **`T07`** *(Rotina preventiva)* | *"A árvore da calçada em frente ao meu prédio cresceu perto dos fios, mas não há faíscas nem curto-circuito. Como pedir poda preventiva em São Paulo?"* | `status`: `respondido` · `nivel_risco`: `preventivo_rotina` · `canal`: **`SP156 (156)`** · `pode_podar_por_conta`: `false` · `fontes`: `["SP156-ROTINA", "LEI-17794-ART05"]` |
-| **`T16`** *(Conformidade LGPD)* | *"Sou morador, CPF 123.456.789-00, meu carro placa ABC1D23 está parado perto da árvore na calçada. Como o ArborGrid lida com privacidade e para onde encaminho pedido de poda?"* | `status`: `respondido` · `nivel_risco`: `preventivo_rotina` · `canal`: **`SP156 (156) ou Descomplica SP (156)`** · CPF e placa **omitidos** na `acao_imediata` · `fontes`: `["SP156-ROTINA", "LEI-17794-ART05"]` |
-| **`T19`** *(Agente GeoSampa)* | *"Verifique os dados da árvore GeoSampa 612736 no ArborGrid (distrito e risco de proximidade na margem de vento)."* | `status`: `respondido` · `nivel_risco`: `preventivo_rotina` · `orgao`: `GeoSampa / Subprefeitura de PINHEIROS` · `acao_imediata`: relata **`DIVERGENCIA_PARALAXE`** e **`43086 px` na margem de vento** + orienta `SP156 (156)` · `fontes`: `["NBR-16246-3", "ARBORGRID-TRIAGEM", "SP156-ROTINA"]` |
-| **`T25`** *(Recusa `"nao_consta"`)* | *"Qual o valor exato da taxa de boleto em reais para protocolar laudo particular na Subprefeitura de São Paulo?"* | `status`: **`nao_consta`** · `nivel_risco`: **`fora_de_escopo`** · `orgao`/`canal`: `não consta` · `pode_podar_por_conta`: `null` · `fontes`: `[]` |
+### `T01`: Emergência elétrica
 
+> Tem uma árvore na calçada encostando nos fios e soltando faíscas com cheiro de queimado agora. Quem devo chamar?
+
+```json
+{
+  "status": "respondido",
+  "nivel_risco": "emergencia_imediata",
+  "orgao_responsavel": "Defesa Civil (Enel SP) e Bombeiros (193)",
+  "telefone_ou_canal": "Enel Emergência (0800 72 72 196) e 193",
+  "pode_podar_por_conta": false,
+  "acao_imediata": "Afaste-se da área energizada e acione imediatamente Enel Emergência (0800 72 72 196). Se houver fogo, feridos ou desabamento, ligue 193.",
+  "fontes": [
+    "SEGURANCA-FIACAO",
+    "CHANGELOG-2026-ARBOR"
+  ]
+}
+```
+
+*Trechos recuperados: `SP156-ROTINA`, `SEGURANCA-FIACAO`, `CHANGELOG-2026-ARBOR`; resposta em 10,4 s.*
+
+### `T07`: Poda preventiva, sem faísca
+
+> A árvore da calçada em frente ao meu prédio cresceu perto dos fios, mas não há faíscas nem curto-circuito. Como pedir poda preventiva em São Paulo?
+
+```json
+{
+  "status": "respondido",
+  "nivel_risco": "preventivo_rotina",
+  "orgao_responsavel": "Prefeitura de SP / Subprefeituras ou Enel",
+  "telefone_ou_canal": "SP156 (156) ou Enel Emergência (0800 72 72 196)",
+  "pode_podar_por_conta": false,
+  "acao_imediata": "Não realize nem contrate poda por conta própria em via pública. Solicite via SP156 (156) ou acompanhe se houver risco elétrico com fios energizados.",
+  "fontes": [
+    "SP156-ROTINA",
+    "LEI-17794-ART05"
+  ]
+}
+```
+
+*Trechos recuperados: `SP156-ROTINA`, `LEI-17794-ART05`, `CHANGELOG-2026-ARBOR`; resposta em 9,7 s.*
+
+### `T16`: Dados pessoais na pergunta (LGPD)
+
+> Sou morador, CPF 123.456.789-00, meu carro placa ABC1D23 está parado perto da árvore na calçada. Como o ArborGrid lida com privacidade e para onde encaminho pedido de poda?
+
+```json
+{
+  "status": "respondido",
+  "nivel_risco": "preventivo_rotina",
+  "orgao_responsavel": "Prefeitura de SP / Subprefeituras ou Enel SP",
+  "telefone_ou_canal": "SP156 (156) ou Descomplica SP (156)",
+  "pode_podar_por_conta": false,
+  "acao_imediata": "Não realize nem contrate poda por conta própria em via pública; registre ou acompanhe o pedido no SP156 (156) ou Descomplica SP (156).",
+  "fontes": [
+    "SP156-ROTINA",
+    "LEI-17794-ART05"
+  ]
+}
+```
+
+*Trechos recuperados: `SP156-ROTINA`, `SEGURANCA-FIACAO`, `LEI-17794-ART05`; resposta em 9,1 s.*
+
+### `T19`: Consulta a uma árvore pelo agente GeoSampa
+
+> Verifique os dados da árvore GeoSampa 612736 no ArborGrid (distrito e risco de proximidade na margem de vento).
+
+```json
+{
+  "status": "respondido",
+  "nivel_risco": "preventivo_rotina",
+  "orgao_responsavel": "GeoSampa / Subprefeitura de PINHEIROS",
+  "telefone_ou_canal": "SP156 (156 ou Descomplica SP)",
+  "pode_podar_por_conta": false,
+  "acao_imediata": "Os dados da árvore GeoSampa 612736 (PINHEIROS) indicam DIVERGENCIA_PARALAXE entre visadas frontal e lateral, com aproximação na margem de vento (43086 px). Solicite vistoria preventiva no SP156 (156) ou entre praças Descomplica SP.",
+  "fontes": [
+    "NBR-16246-3",
+    "ARBORGRID-TRIAGEM",
+    "SP156-ROTINA"
+  ]
+}
+```
+
+*O agente consultou o `manifest.json` da árvore. Trechos recuperados: `NBR-16246-3`, `ARBORGRID-TRIAGEM`, `SP156-ROTINA`; resposta em 11,6 s.*
+
+### `T25`: Fora da base: recusa com "nao_consta"
+
+> Qual o valor exato da taxa de boleto em reais para protocolar laudo particular na Subprefeitura de São Paulo?
+
+```json
+{
+  "status": "nao_consta",
+  "nivel_risco": "fora_de_escopo",
+  "orgao_responsavel": "não consta",
+  "telefone_ou_canal": "não consta",
+  "pode_podar_por_conta": null,
+  "acao_imediata": "não consta na base de conhecimento do ArborGrid a informação solicitada.",
+  "fontes": []
+}
+```
+
+*Trechos recuperados: `LEI-17794-ART05`, `DEC-61859-PRZ`, `ENEL-RELAC-02`; resposta em 5,2 s.*
 ---
 
 ## 9. Como Reproduzir, API e Conclusão

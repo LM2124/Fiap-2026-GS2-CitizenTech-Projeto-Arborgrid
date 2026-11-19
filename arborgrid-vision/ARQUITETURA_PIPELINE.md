@@ -129,6 +129,6 @@ Quando há visada frontal e lateral disponível (`has_single_view = False`):
 | Consumidor | Artefato / Endpoint | Conteúdo e Papel no Ecossistema |
 | :--- | :--- | :--- |
 | `webapp/` (Mapa e API) | `manifest.json` + `geosampa_cadastral/*.geojson` | Plotagem Leaflet das `271` árvores auditadas + camada cadastral GeoSampa (`7.912` pontos) + metadados comparativos (`gold_triage`, `v2_triage`, `v3_triage`). |
-| `llm-assistant/` (Copiloto) | `manifest.json` lido por `src/tools.py` | Fornece `distrito`, déficit SISGAU, `v3_triage` e `px_direct` / `px_wind` exatos quando o usuário pergunta por um `geosampa_id`. |
+| `llm-assistant/` (Assistente) | `manifest.json` lido por `src/tools.py` | Fornece `distrito`, déficit SISGAU, `v3_triage` e `px_direct` / `px_wind` exatos quando o usuário pergunta por um `geosampa_id`. |
 | `data-processing/` (Big Data) | `/api/v1/inspections` + GeoJSONs | Cruzamento entre risco físico da fiação e ausência de vistorias (`88,2%` nulos na amostra) junto a séries climáticas Open-Meteo. |
 | Execução Web On-Demand | `segformer_v3_int8_dyn_matmul.onnx` (`43,9 MiB` Gzip) | Exportado por [`04_quantizacao_onnx_e_benchmark_cpu.ipynb`](04_quantizacao_onnx_e_benchmark_cpu.ipynb) para inferência via `onnxruntime-web` no navegador sem disputar RAM com o LLM no servidor. |
