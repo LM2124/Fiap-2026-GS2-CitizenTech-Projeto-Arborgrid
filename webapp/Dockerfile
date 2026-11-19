@@ -2,7 +2,7 @@
 # a imagem final so leva o runtime Python, o backend e o build estatico, rodando sem root.
 
 # 1. Frontend React/Vite -> /build/app/static (outDir "../app/static" do vite.config.ts)
-FROM node:22-alpine AS frontend
+FROM node:26-alpine AS frontend
 WORKDIR /build/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
