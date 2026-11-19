@@ -100,7 +100,7 @@ export function OverlayPhoto({
         onMouseLeave={canToggle ? () => setIsHovered(false) : undefined}
         onFocus={canToggle ? () => setIsFocused(true) : undefined}
         onBlur={canToggle ? () => setIsFocused(false) : undefined}
-        className={`relative aspect-square w-full overflow-hidden rounded border border-[#D5E0D1] bg-[#EEF2EC] ${
+        className={`keep-colors relative aspect-square w-full overflow-hidden rounded border border-[#D5E0D1] bg-[#EEF2EC] ${
           canToggle
             ? "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]"
             : ""
@@ -125,7 +125,7 @@ export function OverlayPhoto({
             alt={displayAlt}
             onLoad={() => markLoaded(displaySrc)}
             onError={() => markErrored(displaySrc)}
-            className={`block h-full w-full select-none object-cover transition-opacity duration-150 ${
+            className={`keep-colors block h-full w-full select-none object-cover transition-opacity duration-150 ${
               isLoaded ? "opacity-100" : "opacity-0"
             }`}
           />

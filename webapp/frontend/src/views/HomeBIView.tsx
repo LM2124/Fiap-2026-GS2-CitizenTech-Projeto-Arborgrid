@@ -613,13 +613,13 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
         </div>
 
         {/* Faixa curta Como funciona com 3 passos numerados */}
-        <div className="mt-3.5 border-t border-[#E6ECE3] pt-3">
-          <p className="mb-2 text-xs font-bold text-[#18241B]">Como funciona</p>
-          <ol className="grid gap-3 md:grid-cols-3">
-            <li className="flex items-start gap-2 text-xs leading-snug text-[#4A5D4E]">
+        <div className="mt-4 border-t border-[#E6ECE3] pt-4">
+          <h2 className="mb-2.5 text-base font-bold text-[#18241B]">Como funciona</h2>
+          <ol className="grid gap-4 md:grid-cols-3">
+            <li className="flex items-start gap-2.5 text-[15px] leading-relaxed text-[#4A5D4E]">
               <span
                 aria-hidden="true"
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#EEF4EC] text-[11px] font-bold text-[#1B4332]"
+                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#EEF4EC] text-xs font-bold text-[#1B4332]"
               >
                 1
               </span>
@@ -631,10 +631,10 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                 lado.
               </span>
             </li>
-            <li className="flex items-start gap-2 text-xs leading-snug text-[#4A5D4E]">
+            <li className="flex items-start gap-2.5 text-[15px] leading-relaxed text-[#4A5D4E]">
               <span
                 aria-hidden="true"
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#EEF4EC] text-[11px] font-bold text-[#1B4332]"
+                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#EEF4EC] text-xs font-bold text-[#1B4332]"
               >
                 2
               </span>
@@ -651,10 +651,10 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                 </button>
               </span>
             </li>
-            <li className="flex items-start gap-2 text-xs leading-snug text-[#4A5D4E]">
+            <li className="flex items-start gap-2.5 text-[15px] leading-relaxed text-[#4A5D4E]">
               <span
                 aria-hidden="true"
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#EEF4EC] text-[11px] font-bold text-[#1B4332]"
+                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#EEF4EC] text-xs font-bold text-[#1B4332]"
               >
                 3
               </span>
@@ -665,68 +665,6 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
             </li>
           </ol>
         </div>
-
-        {/* Top 3 do Gold acima da dobra em 1280x720 e 1920x1080 */}
-        {topThreeGold.length > 0 && (
-          <div className="mt-3.5 border-t border-[#E6ECE3] pt-3">
-            <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-baseline gap-2">
-                <h2 className="text-sm font-bold text-[#18241B]">
-                  Top 3 da fila de prioridade climática
-                </h2>
-                <span className="text-xs text-[#4A5D4E]">
-                  {isDemoBatch ? "Cenário de demonstração" : "Monitoramento ativo"}
-                  {weatherObservedLabel ? `, clima previsto para ${weatherObservedLabel}` : ""}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  goldSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-                }
-                className="text-[13px] font-semibold text-[#1B4332] hover:underline"
-              >
-                Ver fila completa ({gold_records.length})
-              </button>
-            </div>
-            <div className="grid gap-3 md:grid-cols-3">
-              {topThreeGold.map((rec) => (
-                <div
-                  key={rec.geosampa_id}
-                  className="flex items-center justify-between gap-3 rounded border border-[#E6ECE3] bg-[#FAFBF9] px-3.5 py-2.5"
-                >
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-[#18241B]">
-                        #{rec.geosampa_id}
-                      </span>
-                      <span
-                        className={`rounded border px-1.5 py-0.5 text-xs font-semibold ${
-                          getPriorityTierStyle(rec.priority_tier).badge
-                        }`}
-                      >
-                        {formatPriorityTier(rec.priority_tier)}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-xs text-[#4A5D4E]">
-                      {formatDistrictName(rec.distrito)}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <ScoreBar score={rec.composite_risk_score} tier={rec.priority_tier} />
-                    <button
-                      type="button"
-                      onClick={() => onNavigate("mapa", { geosampaId: rec.geosampa_id })}
-                      className="text-xs font-semibold text-[#1B4332] hover:underline"
-                    >
-                      Ver no mapa
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </section>
 
       {/* 2. Fila de Priorização com Clima (Cartão principal de produto BI com borda/sombra) */}
@@ -785,6 +723,57 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
             </button>
           )}
         </div>
+
+        {/* Top 3 da fila de prioridade climática */}
+        {topThreeGold.length > 0 && (
+          <div className="mb-4">
+            <div className="mb-2.5 flex flex-wrap items-baseline gap-2">
+              <h3 className="text-sm font-bold text-[#18241B]">
+                Top 3 da fila de prioridade climática
+              </h3>
+              <span className="text-xs text-[#4A5D4E]">
+                {isDemoBatch ? "Cenário de demonstração" : "Monitoramento ativo"}
+                {weatherObservedLabel ? `, clima previsto para ${weatherObservedLabel}` : ""}
+              </span>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              {topThreeGold.map((rec) => (
+                <div
+                  key={rec.geosampa_id}
+                  className="flex items-center justify-between gap-3 rounded border border-[#E6ECE3] bg-[#FAFBF9] px-3.5 py-2.5"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-[#18241B]">
+                        #{rec.geosampa_id}
+                      </span>
+                      <span
+                        className={`rounded border px-1.5 py-0.5 text-xs font-semibold ${
+                          getPriorityTierStyle(rec.priority_tier).badge
+                        }`}
+                      >
+                        {formatPriorityTier(rec.priority_tier)}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-[#4A5D4E]">
+                      {formatDistrictName(rec.distrito)}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <ScoreBar score={rec.composite_risk_score} tier={rec.priority_tier} />
+                    <button
+                      type="button"
+                      onClick={() => onNavigate("mapa", { geosampaId: rec.geosampa_id })}
+                      className="text-xs font-semibold text-[#1B4332] hover:underline"
+                    >
+                      Ver no mapa
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {gold_records.length === 0 ? (
           <div className="rounded border border-dashed border-[#C6DBC0] bg-[#F6F8F5] p-6 text-center">
@@ -1145,7 +1134,8 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
           </h2>
           <p className="text-sm text-[#4A5D4E]">
             Pinheiros, Alto da Mooca e Vila Mariana possuem rede elétrica aérea; a Av. Paulista tem
-            rede subterrânea e atua como referência de controle. Clique em uma linha para abrir a
+            rede subterrânea e atua como referência de controle. Cada área mostra uma amostra das
+            árvores cadastradas, não todas as árvores da região. Clique em uma linha para abrir a
             região no mapa.
           </p>
         </div>

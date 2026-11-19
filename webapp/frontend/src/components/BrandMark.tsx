@@ -13,7 +13,7 @@ export function BrandMark({ className = "h-8 w-8 shrink-0" }: BrandMarkProps) {
       viewBox="0 0 64 64"
       fill="none"
       aria-hidden="true"
-      className={className}
+      className={`keep-colors ${className}`}
     >
       <rect width="64" height="64" rx="14" fill="#1B4332" />
       <path

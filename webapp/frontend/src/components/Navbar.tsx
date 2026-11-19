@@ -34,14 +34,9 @@ export function Navbar({
         >
           <BrandMark className="h-8 w-8 shrink-0" />
           <div>
-            <div className="flex items-baseline gap-2.5">
-              <span className="text-lg font-bold tracking-tight text-[#1B4332]">
-                ArborGrid SP
-              </span>
-              <span className="hidden text-xs font-medium text-[#4A5D4E] sm:inline">
-                São Paulo
-              </span>
-            </div>
+            <span className="block text-lg font-bold tracking-tight text-[#1B4332]">
+              ArborGrid SP
+            </span>
             <p className="text-xs text-[#4A5D4E]">
               Monitoramento urbano e prevenção de quedas na rede
             </p>

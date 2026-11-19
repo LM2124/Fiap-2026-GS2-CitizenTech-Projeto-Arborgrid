@@ -9,10 +9,30 @@
   box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.85);
 }
 
+/* Protege marca e fotografias contra inversão de modo escuro forçado e alto contraste */
+.keep-colors {
+  color-scheme: only light;
+  forced-color-adjust: none;
+}
+
 /* Ajustes visuais do Leaflet para modo claro editorial */
 .leaflet-container {
   background: #eaece7;
   font-family: "Source Sans 3 Variable", "Source Sans 3", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.arbor-study-area {
+  cursor: grab !important;
+}
+
+.leaflet-dragging .arbor-study-area {
+  cursor: grabbing !important;
+}
+
+.arbor-area-label {
+  background: transparent;
+  border: none;
+  pointer-events: none;
 }
 
 .leaflet-popup-content-wrapper,

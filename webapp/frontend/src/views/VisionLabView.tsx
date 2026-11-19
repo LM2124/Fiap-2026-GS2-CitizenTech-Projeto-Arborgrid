@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type DragEvent } from "react";
-import { AlertTriangle, Download, Loader2, Play, Sparkles, Upload } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { AlertTriangle, Download, Loader2, Play, Share2, Sparkles, Upload } from "lucide-react";
 import { fetchVisionSamples, formatFriendlyError } from "../services/api";
 import type { TreeRecord, VisionSampleItem, VisionSamplesPayload } from "../types/arborgrid";
 import {
@@ -302,6 +302,72 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
 
   const summaryInfo = result ? TRIAGE_EXPLANATION[result.triage] : null;
 
+  const canShareImage = useMemo(() => {
+    if (
+      typeof navigator === "undefined" ||
+      typeof navigator.share !== "function" ||
+      typeof navigator.canShare !== "function"
+    ) {
+      return false;
+    }
+    try {
+      const probe = new File([""], "arborgrid-probe.png", { type: "image/png" });
+      return navigator.canShare({ files: [probe] });
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const exportFilename = useMemo(() => {
+    if (selectedSample) {
+      return `arborgrid-analise-${selectedSample.geosampa_id}.png`;
+    }
+    if (customTitle) {
+      const base = customTitle
+        .replace(/\.[^.]+$/, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      return `arborgrid-analise-${base || "foto"}.png`;
+    }
+    return "arborgrid-analise-foto.png";
+  }, [selectedSample, customTitle]);
+
+  const handleDownloadImage = () => {
+    if (!result || !canvasRef.current) return;
+    canvasRef.current.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = exportFilename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  };
+
+  const handleShareImage = () => {
+    if (!result || !canvasRef.current || !canShareImage) return;
+    canvasRef.current.toBlob(async (blob) => {
+      if (!blob) return;
+      const file = new File([blob], exportFilename, { type: "image/png" });
+      if (!navigator.canShare?.({ files: [file] })) return;
+      try {
+        await navigator.share({
+          title: "Análise visual ArborGrid SP",
+          text: summaryInfo
+            ? `${summaryInfo.title} (ArborGrid SP)`
+            : "Análise visual de árvore e fiação elétrica (ArborGrid SP)",
+          files: [file],
+        });
+      } catch {
+        // Ignora cancelamento do compartilhamento pelo usuário
+      }
+    }, "image/png");
+  };
+
   return (
     <div className="mx-auto max-w-[1680px] space-y-3 px-4 py-3.5 sm:px-8">
       {/* Cabeçalho compacto fundido com aviso de IA Responsável */}
@@ -402,336 +468,318 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-12">
-        {/* Coluna Esquerda: Amostras + Upload + Camadas */}
-        <div className="min-w-0 space-y-2.5 lg:col-span-4">
-          <div className="rounded-md border border-[#D5E0D1] bg-white p-3">
-            <h2 className="text-sm font-semibold text-[#18241B]">
-              1. Escolha um exemplo ou envie sua foto
-            </h2>
+      <div className="grid gap-4 lg:grid-cols-12 lg:items-start">
+        {/* Card 1 (mobile: 1º | desktop: coluna esquerda topo): Amostras + Upload */}
+        <div className="order-1 min-w-0 rounded-md border border-[#D5E0D1] bg-white p-3 lg:order-none lg:col-span-4 lg:col-start-1 lg:row-start-1">
+          <h2 className="text-sm font-semibold text-[#18241B]">
+            1. Escolha um exemplo ou envie sua foto
+          </h2>
 
-            <div className="mt-2 grid min-h-[200px] grid-cols-2 gap-2">
-              {meta?.samples.map((s) => {
-                const active = selectedSample?.id === s.id;
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => handleSelectSample(s)}
-                    className={`flex flex-col overflow-hidden rounded border text-left transition-colors ${
-                      active
-                        ? "border-[#1B4332] bg-[#EEF4EC] ring-1 ring-[#1B4332]"
-                        : "border-[#D5E0D1] bg-[#FAFBF9] hover:border-[#2D6A4F]"
-                    }`}
-                  >
-                    <img
-                      src={s.image_url}
-                      alt={`Foto Street View da árvore #${s.geosampa_id} (${s.region_label})`}
-                      className="aspect-[16/10] w-full object-cover"
-                    />
-                    <div className="px-2 py-1.5">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="font-mono text-xs font-semibold text-[#18241B]">
-                          #{s.geosampa_id}
-                        </span>
-                        <span
-                          className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold ${
-                            BADGE_CLASS[s.reference_v3.triage] ?? BADGE_CLASS.SEGURO
-                          }`}
-                        >
-                          {formatMacroTriageShort(s.reference_v3.triage)}
-                        </span>
-                      </div>
-                      <p className="mt-0.5 text-xs text-[#4A5D4E]">
-                        {formatDistrictName(s.distrito)}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-2 border-t border-[#E6ECE3] pt-2">
-              <label
-                htmlFor="vision-file-upload"
-                onDragEnter={handleDragOver}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded border border-dashed px-3 py-1.5 text-center text-[13px] transition-colors ${
-                  isDragging
-                    ? "border-[#1B4332] bg-[#E7EFE4] text-[#18241B]"
-                    : "border-[#2D6A4F] bg-[#F6F8F5] text-[#1B4332] hover:bg-[#EEF4EC]"
-                }`}
-              >
-                <div className="flex items-center gap-2 font-medium">
-                  <Upload className="h-4 w-4 shrink-0" />
-                  <span>
-                    {isDragging
-                      ? "Solte a imagem aqui"
-                      : "Enviar ou arrastar foto (.jpg, .png, .webp)"}
-                  </span>
-                </div>
-                <input
-                  id="vision-file-upload"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="sr-only"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleUploadFile(file);
-                  }}
-                />
-              </label>
-            </div>
-          </div>
-
-          {/* Progresso / Erros + Controles de camadas */}
-          <div className="space-y-2.5 rounded-md border border-[#D5E0D1] bg-white p-3.5">
-            {(running || (!sessionReady && loadingText) || errorMsg) && (
-              <div aria-live="polite" className="space-y-2">
-                {running && (
-                  <div className="rounded border border-[#C6DBC0] bg-[#EEF4EC] px-3 py-2 text-[13px] text-[#1B4332]">
-                    <div className="flex items-center gap-2 font-semibold">
-                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
-                      <span className="tabular-nums">
-                        Identificando galhos e fiação… {inferenceElapsedSec} s
+          <div className="mt-2 grid min-h-[200px] grid-cols-2 gap-2">
+            {meta?.samples.map((s) => {
+              const active = selectedSample?.id === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => handleSelectSample(s)}
+                  className={`flex flex-col overflow-hidden rounded border text-left transition-colors ${
+                    active
+                      ? "border-[#1B4332] bg-[#EEF4EC] ring-1 ring-[#1B4332]"
+                      : "border-[#D5E0D1] bg-[#FAFBF9] hover:border-[#2D6A4F]"
+                  }`}
+                >
+                  <img
+                    src={s.image_url}
+                    alt={`Foto Street View da árvore #${s.geosampa_id} (${s.region_label})`}
+                    className="keep-colors aspect-[16/10] w-full object-cover"
+                  />
+                  <div className="px-2 py-1.5">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="font-mono text-xs font-semibold text-[#18241B]">
+                        #{s.geosampa_id}
+                      </span>
+                      <span
+                        className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold ${
+                          BADGE_CLASS[s.reference_v3.triage] ?? BADGE_CLASS.SEGURO
+                        }`}
+                      >
+                        {formatMacroTriageShort(s.reference_v3.triage)}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-xs text-[#3D4F41]">
-                      O processamento ocorre no navegador e costuma levar cerca de 15 s.
+                    <p className="mt-0.5 text-xs text-[#4A5D4E]">
+                      {formatDistrictName(s.distrito)}
                     </p>
                   </div>
-                )}
+                </button>
+              );
+            })}
+          </div>
 
-                {!running && !sessionReady && loadingText && (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-2 text-[13px] text-[#2D4234]">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1B4332]" />
-                        <span>{loadingText}</span>
-                      </span>
-                      <span className="tabular-nums">{progressPct}%</span>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded bg-[#E6ECE3]">
-                      <div
-                        className="h-full bg-[#2D6A4F] transition-all duration-200"
-                        style={{ width: `${progressPct}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {errorMsg && (
-                  <div className="flex items-start gap-2 rounded border border-[#FECACA] bg-[#FEF2F2] p-3 text-[13px] text-[#991B1B]">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>{errorMsg}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="space-y-2.5">
-              <span className="block text-[13px] font-semibold text-[#18241B]">
-                Camadas sobre a foto
-              </span>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[13px]">
-                    <label htmlFor="vision-opacity-slider" className="text-[#4A5D4E]">
-                      Opacidade
-                    </label>
-                    <span className="font-mono tabular-nums text-[#18241B]">
-                      {Math.round(layers.opacity * 100)}%
-                    </span>
-                  </div>
-                  <input
-                    id="vision-opacity-slider"
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.02}
-                    value={layers.opacity}
-                    onChange={(e) =>
-                      setLayers((prev) => ({ ...prev, opacity: Number(e.target.value) }))
-                    }
-                    className="w-full accent-[#1B4332]"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[13px]">
-                    <label htmlFor="vision-border-slider" className="text-[#4A5D4E]">
-                      Espessura da borda
-                    </label>
-                    <span className="font-mono tabular-nums text-[#18241B]">
-                      {(layers.borderThickness ?? 2) === 0
-                        ? "Sem borda"
-                        : `Nível ${layers.borderThickness ?? 2} / 5`}
-                    </span>
-                  </div>
-                  <input
-                    id="vision-border-slider"
-                    type="range"
-                    min={0}
-                    max={5}
-                    step={1}
-                    value={layers.borderThickness ?? 2}
-                    onChange={(e) =>
-                      setLayers((prev) => ({
-                        ...prev,
-                        borderThickness: Number(e.target.value),
-                      }))
-                    }
-                    className="w-full accent-[#1B4332]"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-2 text-[13px] sm:grid-cols-1 xl:grid-cols-3">
-                {[
-                  { key: "copa" as const, label: "Copa (verde)", dot: "bg-[#2dc33c]" },
-                  { key: "fiacao" as const, label: "Fiação (amarelo)", dot: "bg-[#facc15]" },
-                  {
-                    key: "vento" as const,
-                    label: "Margem de vento (laranja)",
-                    dot: "bg-[#f97316]",
-                  },
-                ].map((item) => (
-                  <label
-                    key={item.key}
-                    className="flex cursor-pointer items-center gap-2 rounded border border-[#D5E0D1] bg-[#FAFBF9] px-2.5 py-1.5 text-[#18241B]"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={Boolean(layers[item.key])}
-                      onChange={(e) =>
-                        setLayers((prev) => ({ ...prev, [item.key]: e.target.checked }))
-                      }
-                      className="accent-[#1B4332]"
-                    />
-                    <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${item.dot}`} />
-                    <span>{item.label}</span>
-                  </label>
-                ))}
-              </div>
-              <p className="flex items-center gap-1.5 text-[13px] leading-snug text-[#4A5D4E]">
-                <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-[#dc2626]" />
+          <div className="mt-2 border-t border-[#E6ECE3] pt-2">
+            <label
+              htmlFor="vision-file-upload"
+              onDragEnter={handleDragOver}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded border border-dashed px-3 py-1.5 text-center text-[13px] transition-colors ${
+                isDragging
+                  ? "border-[#1B4332] bg-[#E7EFE4] text-[#18241B]"
+                  : "border-[#2D6A4F] bg-[#F6F8F5] text-[#1B4332] hover:bg-[#EEF4EC]"
+              }`}
+            >
+              <div className="flex items-center gap-2 font-medium">
+                <Upload className="h-4 w-4 shrink-0" />
                 <span>
-                  Com <strong>Copa</strong> e <strong>Fiação</strong> ativas, a sobreposição direta
-                  entre galhos e cabos é destacada em <strong>vermelho</strong>.
+                  {isDragging
+                    ? "Solte a imagem aqui"
+                    : "Enviar ou arrastar foto (.jpg, .png, .webp)"}
                 </span>
-              </p>
-            </div>
+              </div>
+              <input
+                id="vision-file-upload"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUploadFile(file);
+                }}
+              />
+            </label>
           </div>
         </div>
 
-        {/* Coluna Direita: Veredito no topo + Imagem analisada */}
-        <div className="min-w-0 space-y-3 lg:col-span-8">
-          {result && summaryInfo ? (
-            <div className="rounded-md border border-[#D5E0D1] bg-white p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`rounded border px-2.5 py-0.5 text-[13px] font-semibold ${
-                        BADGE_CLASS[result.triage] ?? BADGE_CLASS.SEGURO
-                      }`}
-                    >
-                      {formatMacroTriageShort(result.triage)}
-                    </span>
-                    <span className="text-[13px] tabular-nums text-[#4A5D4E]">
-                      Análise concluída em{" "}
-                      {formatDurationSeconds(result.inferenceMs + result.postprocessMs)}
+        {/* Card 2 (mobile: 3º depois da imagem/resultado | desktop: coluna esquerda abaixo): Camadas */}
+        <div className="order-3 min-w-0 space-y-2.5 rounded-md border border-[#D5E0D1] bg-white p-3.5 lg:order-none lg:col-span-4 lg:col-start-1 lg:row-start-2">
+          {(running || (!sessionReady && loadingText) || errorMsg) && (
+            <div aria-live="polite" className="space-y-2">
+              {running && (
+                <div className="rounded border border-[#C6DBC0] bg-[#EEF4EC] px-3 py-2 text-[13px] text-[#1B4332]">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                    <span className="tabular-nums">
+                      Identificando galhos e fiação… {inferenceElapsedSec} s
                     </span>
                   </div>
-                  <h2 className="text-base font-bold text-[#18241B]">{summaryInfo.title}</h2>
-                  <p className="max-w-3xl text-[13px] leading-relaxed text-[#4A5D4E]">
-                    {summaryInfo.subtitle}
+                  <p className="mt-0.5 text-xs text-[#3D4F41]">
+                    O processamento ocorre no navegador e costuma levar cerca de 15 s.
                   </p>
                 </div>
+              )}
 
-                <button
-                  type="button"
-                  onClick={handleAskIntegratedAssistant}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded bg-[#1B4332] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#143325]"
-                >
-                  <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  <span>Consultar assistente</span>
-                </button>
+              {!running && !sessionReady && loadingText && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2 text-[13px] text-[#2D4234]">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1B4332]" />
+                      <span>{loadingText}</span>
+                    </span>
+                    <span className="tabular-nums">{progressPct}%</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded bg-[#E6ECE3]">
+                    <div
+                      className="h-full bg-[#2D6A4F] transition-all duration-200"
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {errorMsg && (
+                <div className="flex items-start gap-2 rounded border border-[#FECACA] bg-[#FEF2F2] p-3 text-[13px] text-[#991B1B]">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-2.5">
+            <span className="block text-[13px] font-semibold text-[#18241B]">
+              Camadas sobre a foto
+            </span>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[13px]">
+                  <label htmlFor="vision-opacity-slider" className="text-[#4A5D4E]">
+                    Opacidade
+                  </label>
+                  <span className="font-mono tabular-nums text-[#18241B]">
+                    {Math.round(layers.opacity * 100)}%
+                  </span>
+                </div>
+                <input
+                  id="vision-opacity-slider"
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.02}
+                  value={layers.opacity}
+                  onChange={(e) =>
+                    setLayers((prev) => ({ ...prev, opacity: Number(e.target.value) }))
+                  }
+                  className="w-full accent-[#1B4332]"
+                />
               </div>
-
-              <div className="mt-3 grid grid-cols-2 gap-3 border-t border-[#E6ECE3] pt-3 text-[13px] tabular-nums sm:grid-cols-4">
-                <div>
-                  <span className="text-[#4A5D4E]">Contato direto (da copa)</span>
-                  <p className="mt-0.5 font-mono text-sm font-bold text-[#991B1B]">
-                    {formatRelativePct(result.contactDirectPx, result.copaPx)}
-                  </p>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[13px]">
+                  <label htmlFor="vision-border-slider" className="text-[#4A5D4E]">
+                    Espessura da borda
+                  </label>
+                  <span className="font-mono tabular-nums text-[#18241B]">
+                    {(layers.borderThickness ?? 2) === 0
+                      ? "Sem borda"
+                      : `Nível ${layers.borderThickness ?? 2} / 5`}
+                  </span>
                 </div>
-                <div>
-                  <span className="text-[#4A5D4E]">Zona de vento (da copa)</span>
-                  <p className="mt-0.5 font-mono text-sm font-bold text-[#92400E]">
-                    {formatRelativePct(result.windBufferPx, result.copaPx)}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-[#4A5D4E]">Fiação (da foto)</span>
-                  <p className="mt-0.5 font-mono text-sm font-bold text-[#18241B]">
-                    {formatRelativePct(result.wirePx, ANALYSIS_GRID_PIXELS)}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-[#4A5D4E]">Copa arbórea (da foto)</span>
-                  <p className="mt-0.5 font-mono text-sm font-bold text-[#1B4332]">
-                    {formatRelativePct(result.copaPx, ANALYSIS_GRID_PIXELS)}
-                  </p>
-                </div>
+                <input
+                  id="vision-border-slider"
+                  type="range"
+                  min={0}
+                  max={5}
+                  step={1}
+                  value={layers.borderThickness ?? 2}
+                  onChange={(e) =>
+                    setLayers((prev) => ({
+                      ...prev,
+                      borderThickness: Number(e.target.value),
+                    }))
+                  }
+                  className="w-full accent-[#1B4332]"
+                />
               </div>
             </div>
-          ) : (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#D5E0D1] bg-white px-4 py-2.5 text-[13px] text-[#4A5D4E]">
-              <div className="min-w-0 flex-1">
-                {selectedSample ? (
-                  <>
-                    Clique em <strong className="text-[#18241B]">2. Analisar foto</strong> para
-                    executar a análise visual nesta imagem (situação registrada no levantamento:{" "}
-                    <strong className="text-[#18241B]">
-                      {formatMacroTriageShort(selectedSample.reference_v3.triage)}
-                    </strong>
-                    ).
-                  </>
-                ) : (
-                  <>
-                    Clique em <strong className="text-[#18241B]">2. Analisar foto</strong> para
-                    identificar galhos, cabos elétricos e eventuais contatos na foto enviada.
-                  </>
-                )}
-              </div>
+            <div className="grid grid-cols-1 gap-2 text-[13px] sm:grid-cols-1 xl:grid-cols-3">
+              {[
+                { key: "copa" as const, label: "Copa (verde)", dot: "bg-[#2dc33c]" },
+                { key: "fiacao" as const, label: "Fiação (amarelo)", dot: "bg-[#facc15]" },
+                {
+                  key: "vento" as const,
+                  label: "Margem de vento (laranja)",
+                  dot: "bg-[#f97316]",
+                },
+              ].map((item) => (
+                <label
+                  key={item.key}
+                  className="flex cursor-pointer items-center gap-2 rounded border border-[#D5E0D1] bg-[#FAFBF9] px-2.5 py-1.5 text-[#18241B]"
+                >
+                  <input
+                    type="checkbox"
+                    checked={Boolean(layers[item.key])}
+                    onChange={(e) =>
+                      setLayers((prev) => ({ ...prev, [item.key]: e.target.checked }))
+                    }
+                    className="accent-[#1B4332]"
+                  />
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${item.dot}`} />
+                  <span>{item.label}</span>
+                </label>
+              ))}
+            </div>
+            <p className="flex items-center gap-1.5 text-[13px] leading-snug text-[#4A5D4E]">
+              <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-[#dc2626]" />
+              <span>
+                Com <strong>Copa</strong> e <strong>Fiação</strong> ativas, a sobreposição direta
+                entre galhos e cabos é destacada em <strong>vermelho</strong>.
+              </span>
+            </p>
+          </div>
+        </div>
 
-              <div className="flex flex-col items-end gap-1">
+        {/* Coluna Direita (mobile: 2º logo após escolher exemplo | desktop: colunas 5-12) */}
+        <div className="order-2 min-w-0 space-y-3 lg:order-none lg:col-span-8 lg:col-start-5 lg:row-span-2 lg:row-start-1">
+          {/* Faixa superior de altura fixa: instrução + botão / contador / resumo + CTA */}
+          <div className="flex min-h-[68px] flex-wrap items-center justify-between gap-3 rounded-md border border-[#D5E0D1] bg-white px-4 py-2 sm:h-[68px] sm:flex-nowrap">
+            {result && summaryInfo && !running ? (
+              <>
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span
+                    className={`shrink-0 rounded border px-2 py-0.5 text-xs font-semibold ${
+                      BADGE_CLASS[result.triage] ?? BADGE_CLASS.SEGURO
+                    }`}
+                  >
+                    {formatMacroTriageShort(result.triage)}
+                  </span>
+                  <h2 className="truncate text-sm font-bold text-[#18241B]">
+                    {summaryInfo.title}
+                  </h2>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setResult(null)}
+                    className="rounded border border-[#D5E0D1] bg-white px-3 py-2 text-xs font-semibold text-[#1B4332] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC]"
+                  >
+                    Analisar outra foto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAskIntegratedAssistant}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded bg-[#1B4332] px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#143325]"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span>Consultar assistente</span>
+                  </button>
+                </div>
+              </>
+            ) : running ? (
+              <>
+                <div className="flex min-w-0 flex-1 items-center gap-2 text-[13px] font-medium text-[#1B4332]">
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+                  <span className="truncate">Identificando galhos e fiação na foto...</span>
+                </div>
                 <button
                   type="button"
-                  disabled={running || !activeImageSrc || !sessionReady}
+                  disabled
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded bg-[#1B4332] px-4 py-2 text-sm font-semibold text-white opacity-70"
+                >
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  <span className="tabular-nums">Analisando… {inferenceElapsedSec} s</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="min-w-0 flex-1 text-[13px] text-[#4A5D4E]">
+                  {selectedSample ? (
+                    <span className="line-clamp-2">
+                      Clique em <strong className="text-[#18241B]">2. Analisar foto</strong> para
+                      executar a análise visual (levantamento:{" "}
+                      <strong className="text-[#18241B]">
+                        {formatMacroTriageShort(selectedSample.reference_v3.triage)}
+                      </strong>
+                      ).
+                    </span>
+                  ) : (
+                    <span className="line-clamp-2">
+                      Clique em <strong className="text-[#18241B]">2. Analisar foto</strong> para
+                      identificar galhos, cabos elétricos e contatos na foto enviada.
+                    </span>
+                  )}
+                  {!sessionReady && (
+                    <span className="block text-[11px] font-medium text-[#92400E]">
+                      Prepare a análise primeiro
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!activeImageSrc || !sessionReady}
                   title={!sessionReady ? "Prepare a análise primeiro" : undefined}
                   onClick={handleRunInference}
                   className="inline-flex shrink-0 items-center justify-center gap-2 rounded bg-[#1B4332] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#143325] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {running ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Play className="h-4 w-4" aria-hidden="true" />
-                  )}
-                  <span className="tabular-nums">
-                    {running ? `Analisando… ${inferenceElapsedSec} s` : "2. Analisar foto"}
-                  </span>
+                  <Play className="h-4 w-4" aria-hidden="true" />
+                  <span>2. Analisar foto</span>
                 </button>
-                {!sessionReady && (
-                  <span className="text-[11px] font-medium text-[#92400E]">
-                    Prepare a análise primeiro
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+              </>
+            )}
+          </div>
 
+          {/* Card da imagem/canvas + baixar e compartilhar */}
           <div
             onDragEnter={handleDragOver}
             onDragOver={handleDragOver}
@@ -741,14 +789,14 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
               isDragging ? "border-[#1B4332] bg-[#EEF4EC]" : "border-[#D5E0D1]"
             }`}
           >
-            <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <div className="text-[13px] text-[#4A5D4E]">
                 {selectedSample ? (
                   <>
                     <strong className="font-semibold text-[#18241B]">
                       Árvore #{selectedSample.geosampa_id}
-                    </strong>,{" "}
-                    {selectedSample.region_label}
+                    </strong>
+                    , {selectedSample.region_label}
                   </>
                 ) : customTitle ? (
                   <>
@@ -759,15 +807,35 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
                   "Selecione uma imagem ou arraste para cá"
                 )}
               </div>
-              <span className="text-xs text-[#4A5D4E]">
-                Arraste outra foto para esta área ou escolha um exemplo ao lado
-              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={!result}
+                  onClick={handleDownloadImage}
+                  className="inline-flex min-h-[30px] items-center gap-1.5 rounded border border-[#D5E0D1] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  <Download className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>Baixar imagem</span>
+                </button>
+                {canShareImage && (
+                  <button
+                    type="button"
+                    disabled={!result}
+                    onClick={handleShareImage}
+                    className="inline-flex min-h-[30px] items-center gap-1.5 rounded border border-[#D5E0D1] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    <Share2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span>Compartilhar</span>
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="relative flex min-h-[320px] max-h-[calc(100vh-320px)] items-center justify-center overflow-hidden rounded border border-[#E6ECE3] bg-[#F6F8F5]">
+            <div className="keep-colors relative flex min-h-[320px] max-h-[calc(100vh-360px)] items-center justify-center overflow-hidden rounded border border-[#E6ECE3] bg-[#F6F8F5]">
               <canvas
                 ref={canvasRef}
-                className="max-h-[calc(100vh-320px)] w-auto max-w-full object-contain"
+                className="keep-colors max-h-[calc(100vh-360px)] w-auto max-w-full object-contain"
               />
               {running && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-[1px]">
@@ -790,6 +858,58 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
                 </div>
               )}
             </div>
+
+            <p className="mt-2 text-right text-xs text-[#4A5D4E]">
+              Arraste outra foto para esta área ou escolha um exemplo ao lado
+            </p>
+          </div>
+
+          {/* Cartão de detalhes e métricas abaixo da imagem com altura reservada */}
+          <div className="flex min-h-[144px] flex-col justify-center rounded-md border border-[#D5E0D1] bg-white p-3.5 sm:h-[144px]">
+            {result && summaryInfo ? (
+              <div className="flex flex-col justify-between gap-2.5">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p className="max-w-3xl text-[13px] leading-snug text-[#4A5D4E]">
+                    {summaryInfo.subtitle}
+                  </p>
+                  <span className="shrink-0 text-xs tabular-nums text-[#4A5D4E]">
+                    Análise concluída em{" "}
+                    {formatDurationSeconds(result.inferenceMs + result.postprocessMs)}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 border-t border-[#E6ECE3] pt-2.5 text-[13px] tabular-nums sm:grid-cols-4">
+                  <div>
+                    <span className="text-[#4A5D4E]">Contato direto (da copa)</span>
+                    <p className="mt-0.5 font-mono text-sm font-bold text-[#991B1B]">
+                      {formatRelativePct(result.contactDirectPx, result.copaPx)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[#4A5D4E]">Zona de vento (da copa)</span>
+                    <p className="mt-0.5 font-mono text-sm font-bold text-[#92400E]">
+                      {formatRelativePct(result.windBufferPx, result.copaPx)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[#4A5D4E]">Fiação (da foto)</span>
+                    <p className="mt-0.5 font-mono text-sm font-bold text-[#18241B]">
+                      {formatRelativePct(result.wirePx, ANALYSIS_GRID_PIXELS)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[#4A5D4E]">Copa arbórea (da foto)</span>
+                    <p className="mt-0.5 font-mono text-sm font-bold text-[#1B4332]">
+                      {formatRelativePct(result.copaPx, ANALYSIS_GRID_PIXELS)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-center text-[13px] text-[#4A5D4E]">
+                O resultado aparece aqui depois da análise.
+              </p>
+            )}
           </div>
         </div>
       </div>

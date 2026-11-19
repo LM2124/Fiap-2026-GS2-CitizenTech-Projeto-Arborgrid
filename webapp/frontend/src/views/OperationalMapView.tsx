@@ -309,6 +309,7 @@ export function OperationalMapView({
 
     for (const [regionKey, cat] of Object.entries(data.regions_catalog)) {
       if (regionFilter !== "all" && regionFilter !== regionKey) continue;
+      let labelLatLng: [number, number] | null = null;
       if (cat.corridor_polygon && cat.corridor_polygon.length > 0) {
         L.polygon(cat.corridor_polygon, {
           color: "#1B4332",
@@ -316,9 +317,20 @@ export function OperationalMapView({
           dashArray: "6 4",
           fillColor: "#2D6A4F",
           fillOpacity: 0.08,
-        })
-          .bindTooltip(`${cat.label}, área monitorada`, { sticky: true })
-          .addTo(group);
+          interactive: false,
+          className: "arbor-study-area",
+        }).addTo(group);
+        let maxLat = -Infinity;
+        let minLon = Infinity;
+        let maxLon = -Infinity;
+        for (const [lat, lon] of cat.corridor_polygon) {
+          if (lat > maxLat) maxLat = lat;
+          if (lon < minLon) minLon = lon;
+          if (lon > maxLon) maxLon = lon;
+        }
+        if (Number.isFinite(maxLat) && Number.isFinite(minLon)) {
+          labelLatLng = [maxLat, (minLon + maxLon) / 2];
+        }
       } else if (cat.bbox && cat.bbox.length === 4) {
         const [minLon, minLat, maxLon, maxLat] = cat.bbox;
         L.rectangle(
@@ -332,10 +344,25 @@ export function OperationalMapView({
             dashArray: "6 4",
             fillColor: "#2D6A4F",
             fillOpacity: 0.06,
+            interactive: false,
+            className: "arbor-study-area",
           },
-        )
-          .bindTooltip(`${cat.label}, área monitorada`, { sticky: true })
-          .addTo(group);
+        ).addTo(group);
+        labelLatLng = [maxLat, (minLon + maxLon) / 2];
+      }
+
+      if (labelLatLng) {
+        const shortName = cat.label.split("(")[0].trim();
+        L.marker(labelLatLng, {
+          interactive: false,
+          keyboard: false,
+          icon: L.divIcon({
+            className: "arbor-area-label",
+            html: `<div style="transform:translate(-50%,-100%);margin-top:-6px;white-space:nowrap;border:1px solid #C6DBC0;background:rgba(255,255,255,0.92);color:#1B4332;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;box-shadow:0 1px 3px rgba(24,36,27,0.08);pointer-events:none;">${shortName}</div>`,
+            iconSize: [0, 0],
+            iconAnchor: [0, 0],
+          }),
+        }).addTo(group);
       }
     }
 
@@ -447,7 +474,13 @@ export function OperationalMapView({
               <span className="flex items-center gap-1.5">
                 <span className="h-3 w-3 rounded-full border-2 border-[#18241B] bg-white" /> Prioridade climática alta
               </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-3 w-3.5 rounded-[2px] border border-dashed border-[#1B4332] bg-[#2D6A4F]/10" /> Área monitorada
+              </span>
             </div>
+            <p className="mt-1 text-[11px] text-[#4A5D4E]">
+              Cada área mostra uma amostra das árvores cadastradas, não todas as árvores da região.
+            </p>
           </div>
         </div>
 
