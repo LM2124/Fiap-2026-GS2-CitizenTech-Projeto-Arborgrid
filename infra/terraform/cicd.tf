@@ -1,6 +1,8 @@
-# Deploy automatico do GitHub Actions sem abrir a porta 22 para a internet:
-# o runner se autentica por Workload Identity Federation (sem chave JSON de longa
-# duracao) e chega na VM pelo tunel TCP do Identity-Aware Proxy (IAP).
+# Deploy automatico do GitHub Actions sem nenhum segredo de longa duracao:
+# o runner se autentica por Workload Identity Federation (token OIDC trocado por um
+# token GCP de curta duracao), publica a imagem no Artifact Registry e entra na VM
+# por OS Login, pelo tunel TCP do Identity-Aware Proxy (IAP). A porta 22 so aceita
+# a faixa fixa do IAP; nao ha IP administrativo liberado.
 #
 # Pre-requisito (bootstrap manual, uma vez por projeto): as APIs
 # cloudresourcemanager.googleapis.com e serviceusage.googleapis.com precisam estar
@@ -10,9 +12,11 @@
 
 locals {
   cicd_apis = toset([
+    "artifactregistry.googleapis.com",
     "iap.googleapis.com",
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
+    "oslogin.googleapis.com",
     "sts.googleapis.com",
   ])
 }
@@ -23,11 +27,11 @@ resource "google_project_service" "cicd" {
   disable_on_destroy = false
 }
 
-# SSH apenas a partir da faixa fixa do IAP (o acesso administrativo direto segue restrito a allowed_ssh_cidr)
+# Unica entrada SSH: a faixa fixa do IAP (usada pelo CI e pelo acesso administrativo)
 resource "google_compute_firewall" "arborgrid_ssh_iap" {
   name        = "${var.project_name}-allow-ssh-iap"
   network     = "default"
-  description = "SSH (22) somente via tunel TCP do Identity-Aware Proxy (35.235.240.0/20) para o deploy do CI"
+  description = "SSH (22) somente via tunel TCP do Identity-Aware Proxy (35.235.240.0/20): deploy do CI e acesso administrativo"
 
   allow {
     protocol = "tcp"
@@ -38,12 +42,15 @@ resource "google_compute_firewall" "arborgrid_ssh_iap" {
   target_tags   = ["${var.project_name}-ssh"]
 }
 
-# Identidade do pipeline: so consegue ler instancias e abrir tunel IAP para ESTA VM
+# ---------------------------------------------------------------------------------------
+# Identidade do pipeline: publica imagens, le a VM e entra nela por IAP + OS Login
+# ---------------------------------------------------------------------------------------
 resource "google_service_account" "cicd" {
   account_id   = "${var.project_name}-cicd"
   display_name = "ArborGrid CI/CD (GitHub Actions via IAP)"
 }
 
+# Ler a instancia e as chaves de host publicadas em guest attributes
 resource "google_project_iam_member" "cicd_compute_viewer" {
   project = var.gcp_project_id
   role    = "roles/compute.viewer"
@@ -58,6 +65,31 @@ resource "google_iap_tunnel_instance_iam_member" "cicd_tunnel" {
   member   = "serviceAccount:${google_service_account.cicd.email}"
 
   depends_on = [google_project_service.cicd]
+}
+
+# OS Login com sudo apenas NESTA VM (docker e rsync para /opt exigem root)
+resource "google_compute_instance_iam_member" "cicd_os_admin_login" {
+  project       = var.gcp_project_id
+  zone          = var.gcp_zone
+  instance_name = google_compute_instance.arborgrid_vm.name
+  role          = "roles/compute.osAdminLogin"
+  member        = "serviceAccount:${google_service_account.cicd.email}"
+}
+
+# Exigido pelo OS Login em VMs com service account anexada
+resource "google_service_account_iam_member" "cicd_act_as_vm_runtime" {
+  service_account_id = google_service_account.vm_runtime.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.cicd.email}"
+}
+
+# Publicar imagens apenas neste repositorio do Artifact Registry
+resource "google_artifact_registry_repository_iam_member" "cicd_writer" {
+  project    = var.gcp_project_id
+  location   = google_artifact_registry_repository.arborgrid.location
+  repository = google_artifact_registry_repository.arborgrid.name
+  role       = "roles/artifactregistry.writer"
+  member     = "serviceAccount:${google_service_account.cicd.email}"
 }
 
 resource "google_iam_workload_identity_pool" "github" {
@@ -90,4 +122,34 @@ resource "google_service_account_iam_member" "cicd_wif" {
   service_account_id = google_service_account.cicd.name
   role               = "roles/iam.workloadIdentityUser"
   member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${var.github_repository}"
+}
+
+# ---------------------------------------------------------------------------------------
+# Acesso administrativo humano: mesmo caminho do CI (IAP + OS Login), sem chave SSH fixa
+# ---------------------------------------------------------------------------------------
+resource "google_iap_tunnel_instance_iam_member" "admin_tunnel" {
+  for_each = toset(var.admin_principals)
+  project  = var.gcp_project_id
+  zone     = var.gcp_zone
+  instance = google_compute_instance.arborgrid_vm.name
+  role     = "roles/iap.tunnelResourceAccessor"
+  member   = each.value
+
+  depends_on = [google_project_service.cicd]
+}
+
+resource "google_compute_instance_iam_member" "admin_os_admin_login" {
+  for_each      = toset(var.admin_principals)
+  project       = var.gcp_project_id
+  zone          = var.gcp_zone
+  instance_name = google_compute_instance.arborgrid_vm.name
+  role          = "roles/compute.osAdminLogin"
+  member        = each.value
+}
+
+resource "google_service_account_iam_member" "admin_act_as_vm_runtime" {
+  for_each           = toset(var.admin_principals)
+  service_account_id = google_service_account.vm_runtime.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = each.value
 }

@@ -1,13 +1,15 @@
-gcp_project_id   = "seu-project-id-no-gcp"
-gcp_region       = "us-central1"
-gcp_zone         = "us-central1-a"
-project_name     = "arborgrid-mvp"
-machine_type     = "e2-medium"
-ssh_user         = "ubuntu"
-ssh_public_key   = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... arborgrid-gcp"
-allowed_ssh_cidr = "203.0.113.10/32"
+gcp_project_id = "seu-project-id-no-gcp"
+gcp_region     = "us-central1"
+gcp_zone       = "us-central1-a"
+project_name   = "arborgrid-mvp"
+machine_type   = "e2-medium"
+domain         = "arborgrid.duckdns.org"
 
-# Deploy automatico (GitHub Actions -> IAP -> VM)
-static_ip_address = "34.0.0.10"  # IP efemero atual da VM (promove sem trocar) ou remova para alocar um novo
-ci_ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... arborgrid-ci"
+# IP ja reservado para o qual o DNS aponta (remova na primeira criacao para alocar um novo)
+static_ip_address = "34.0.0.10"
+
+# Quem administra a VM por IAP + OS Login (sem chave SSH fixa)
+admin_principals = ["user:voce@gmail.com"]
+
+# Repositorio autorizado a fazer o deploy via Workload Identity Federation
 github_repository = "LM2124/Fiap-2026-GS2-CitizenTech-Projeto-Arborgrid"

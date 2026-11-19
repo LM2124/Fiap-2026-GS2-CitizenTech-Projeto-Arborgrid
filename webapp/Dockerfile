@@ -1,4 +1,16 @@
-# Multi-stage slim Dockerfile com execucao non-root e contexto autossuficiente em webapp/
+# Multi-stage: compila o frontend (Node) e as dependencias Python em estagios separados;
+# a imagem final so leva o runtime Python, o backend e o build estatico, rodando sem root.
+
+# 1. Frontend React/Vite -> /build/app/static (outDir "../app/static" do vite.config.ts)
+FROM node:22-alpine AS frontend
+WORKDIR /build/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build
+
+
+# 2. Dependencias Python num venv isolado
 FROM python:3.12-slim AS builder
 
 WORKDIR /build
@@ -10,6 +22,7 @@ RUN pip install --no-cache-dir --upgrade pip==24.3.1 \
     && pip install --no-cache-dir -r requirements.txt
 
 
+# 3. Runtime enxuto
 FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -35,6 +48,7 @@ WORKDIR /app
 
 COPY --from=builder /opt/venv /opt/venv
 COPY --chown=appuser:appgroup app /app/app
+COPY --from=frontend --chown=appuser:appgroup /build/app/static /app/app/static
 COPY --chown=appuser:appgroup data /app/data
 
 USER appuser

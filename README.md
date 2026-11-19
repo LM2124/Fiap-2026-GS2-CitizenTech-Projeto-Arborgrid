@@ -119,9 +119,10 @@ pytest -v
 | Módulo | Como instalar | Como testar / rodar |
 | :--- | :--- | :--- |
 | `webapp/` | `pip install -r requirements-dev.txt` (em venv) | `pytest -v` |
+| `webapp/frontend/` | `npm ci` | `npm run build` (gera `webapp/app/static`, servido pelo FastAPI; em produção o build roda dentro do Dockerfile) |
 | `llm-assistant/` | `uv sync --group dev` | `uv run pytest -v` |
 | `arborgrid-vision/` | `uv sync` | Notebooks `01`–`05` / `scripts/run_operational_pipeline.py` |
-| `infra/` | `python scripts/start_stack.py` | Docker Compose |
+| `infra/` | `python scripts/start_stack.py` (local) | Docker Compose; nuvem e deploy em [`infra/ARQUITETURA_CLOUD_DEVSECOPS.md`](infra/ARQUITETURA_CLOUD_DEVSECOPS.md) |
 
 - [`webapp/`](webapp/) — Aplicação Web (FastAPI + frontend React/Vite/Tailwind/Leaflet + `onnxruntime-web` + API `/api/v1/*` + Prometheus `/metrics` + `tests/test_api.py`).
 - [`scripts/start_stack.py`](scripts/start_stack.py) — Script único para subir Docker (ou API local), configurar `infra/.env` e exibir credenciais locais.

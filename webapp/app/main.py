@@ -46,6 +46,18 @@ ALLOWED_MEDIA_FOLDERS = frozenset(
 SAFE_FILENAME_RE = re.compile(r"^[A-Za-z0-9_.-]+\.(?:jpg|jpeg|png|webp)$", re.IGNORECASE)
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
+
+def _index_response() -> HTMLResponse:
+    """Entrega o index.html do SPA; sem build do frontend, explica como gerar em vez de dar 500."""
+    index_file = STATIC_DIR / "index.html"
+    if not index_file.is_file():
+        return HTMLResponse(
+            "<h1>Frontend n&atilde;o compilado</h1>"
+            "<p>Rode <code>npm ci &amp;&amp; npm run build</code> em <code>webapp/frontend</code>.</p>",
+            status_code=503,
+        )
+    return HTMLResponse(index_file.read_text(encoding="utf-8"))
+
 def _route_label(request: Request) -> str:
     route = request.scope.get("route")
     if route is not None and getattr(route, "path", None):
@@ -130,12 +142,12 @@ def create_app(custom_settings: Settings | None = None) -> FastAPI:
         return response
 
     app.include_router(api_v1_router)
-    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    # check_dir=False: em desenvolvimento o build do frontend pode ainda nao existir
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR), check_dir=False), name="static")
 
     @app.get("/", include_in_schema=False)
     def serve_index() -> HTMLResponse:
-        index_file = STATIC_DIR / "index.html"
-        return HTMLResponse(index_file.read_text(encoding="utf-8"))
+        return _index_response()
 
     @app.get("/metrics", include_in_schema=False)
     def prometheus_metrics() -> Response:
@@ -174,8 +186,7 @@ def create_app(custom_settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nao encontrado.")
 
         if full_path in {"mapa", "visao", "copiloto", "assistente"}:
-            index_file = STATIC_DIR / "index.html"
-            return HTMLResponse(index_file.read_text(encoding="utf-8"))
+            return _index_response()
 
         static_root = STATIC_DIR.resolve()
         candidate = (static_root / full_path).resolve()
@@ -198,8 +209,7 @@ def create_app(custom_settings: Settings | None = None) -> FastAPI:
                 headers={"Cache-Control": cache_control},
             )
 
-        index_file = STATIC_DIR / "index.html"
-        return HTMLResponse(index_file.read_text(encoding="utf-8"))
+        return _index_response()
 
     return app
 

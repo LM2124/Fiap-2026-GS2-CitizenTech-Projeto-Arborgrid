@@ -4,7 +4,7 @@ variable "gcp_project_id" {
 }
 
 variable "gcp_region" {
-  description = "Regiao GCP de implantacao (us-central1 padrao de menor custo)"
+  description = "Regiao GCP de implantacao (us-central1: menor custo e e2 disponivel)"
   type        = string
   default     = "us-central1"
 }
@@ -22,42 +22,38 @@ variable "project_name" {
 }
 
 variable "machine_type" {
-  description = "Tipo da VM no Compute Engine (e2-medium = 2 vCPU, 4 GB RAM para FastAPI + Nginx + llama.cpp + Prometheus + Grafana)"
+  description = "Tipo da VM no Compute Engine (e2-medium = 2 vCPU, 4 GB RAM para FastAPI + Nginx + Caddy + llama.cpp + Prometheus + Grafana)"
   type        = string
   default     = "e2-medium"
 }
 
-variable "ssh_user" {
-  description = "Usuario administrativo Linux configurado na VM"
+variable "domain" {
+  description = "Dominio publico do MVP (registro DNS A apontando para o IP estatico)"
   type        = string
-  default     = "ubuntu"
-}
-
-variable "ssh_public_key" {
-  description = "Conteudo da chave publica SSH (ex.: ssh-ed25519 AAAA... gerada com ssh-keygen)"
-  type        = string
-}
-
-variable "allowed_ssh_cidr" {
-  description = "Bloco CIDR estrito autorizado para SSH (porta 22). NUNCA usar 0.0.0.0/0."
-  type        = string
-
-  validation {
-    condition     = var.allowed_ssh_cidr != "0.0.0.0/0" && can(cidrhost(var.allowed_ssh_cidr, 0))
-    error_message = "Por seguranca (DevSecOps), allowed_ssh_cidr deve ser um IP/CIDR valido e jamais 0.0.0.0/0."
-  }
+  default     = "arborgrid.duckdns.org"
 }
 
 variable "static_ip_address" {
-  description = "IP externo a reservar como estatico. Use o IP efemero atual da VM para promove-lo sem troca; null aloca um novo endereco."
+  description = "IP externo estatico ja reservado (o DNS aponta para ele). null aloca um novo endereco na primeira criacao."
   type        = string
   default     = null
 }
 
-variable "ci_ssh_public_key" {
-  description = "Chave publica SSH dedicada ao deploy do GitHub Actions (par separado da chave administrativa). Vazio desativa."
+variable "admin_principals" {
+  description = "Quem administra a VM por IAP + OS Login (ex.: [\"user:fulano@gmail.com\"]). Sem chave SSH fixa."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for p in var.admin_principals : can(regex("^(user|group|serviceAccount):", p))])
+    error_message = "Cada item de admin_principals deve comecar com user:, group: ou serviceAccount:."
+  }
+}
+
+variable "artifact_registry_repository" {
+  description = "Nome do repositorio Docker no Artifact Registry"
   type        = string
-  default     = ""
+  default     = "arborgrid"
 }
 
 variable "github_repository" {

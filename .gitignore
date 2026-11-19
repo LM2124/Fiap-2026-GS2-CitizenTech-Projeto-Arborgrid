@@ -36,3 +36,6 @@ node_modules/
 *.zip
 *.tar.gz
 *.rar
+
+# Build do frontend: gerado pelo Dockerfile (estagio Node) e pelo CI; localmente, npm run build em webapp/frontend
+webapp/app/static/

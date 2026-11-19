@@ -1,5 +1,12 @@
 terraform {
   required_version = ">= 1.6.0"
+
+  # Estado remoto em bucket GCS versionado (criado uma vez no bootstrap, fora deste estado).
+  # O nome do bucket vai na inicializacao: terraform init -backend-config="bucket=<projeto>-tfstate"
+  backend "gcs" {
+    prefix = "arborgrid/production"
+  }
+
   required_providers {
     google = {
       source  = "hashicorp/google"
@@ -8,18 +15,21 @@ terraform {
   }
 }
 
+# Credenciais: o operador assina com a propria conta (gcloud auth application-default login)
+# e impersona a service account terraform-deployer via GOOGLE_IMPERSONATE_SERVICE_ACCOUNT.
+# Nenhuma chave JSON de longa duracao.
 provider "google" {
   project = var.gcp_project_id
   region  = var.gcp_region
   zone    = var.gcp_zone
 }
 
-# Regra de Firewall HTTP/HTTPS publica apenas para o proxy reverso Nginx do MVP
+# HTTP/HTTPS publico apenas para o Caddy (TLS) na frente do Nginx do MVP
 #trivy:ignore:AVD-GCP-0051
 resource "google_compute_firewall" "arborgrid_web" {
   name        = "${var.project_name}-allow-web"
   network     = "default"
-  description = "Permite trafego HTTP/HTTPS publico (80/443) ao Nginx do MVP ArborGrid"
+  description = "Permite trafego HTTP/HTTPS publico (80/443) ao Caddy do MVP ArborGrid"
 
   allow {
     protocol = "tcp"
@@ -30,38 +40,30 @@ resource "google_compute_firewall" "arborgrid_web" {
   target_tags   = ["${var.project_name}-web"]
 }
 
-# Regra de Firewall SSH estritamente restrita ao CIDR administrativo (nunca 0.0.0.0/0)
-resource "google_compute_firewall" "arborgrid_ssh" {
-  name        = "${var.project_name}-allow-ssh-restricted"
-  network     = "default"
-  description = "Restringe SSH (22) exclusivamente ao IP/CIDR administrativo definido em allowed_ssh_cidr"
-
-  allow {
-    protocol = "tcp"
-    ports    = ["22"]
-  }
-
-  source_ranges = [var.allowed_ssh_cidr]
-  target_tags   = ["${var.project_name}-ssh"]
-}
-
-# IP externo estatico: a URL entregue nao muda em stop/start da VM.
-# Com static_ip_address = IP efemero atual, o GCP "promove" o endereco em uso sem troca-lo.
+# IP externo estatico: o registro DNS (DuckDNS) aponta para ele, entao nao pode mudar.
 resource "google_compute_address" "arborgrid_ip" {
   name         = "${var.project_name}-ip"
   region       = var.gcp_region
   address_type = "EXTERNAL"
   network_tier = "PREMIUM"
   address      = var.static_ip_address
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
-# Instancia Compute Engine Ubuntu 24.04 LTS com Shielded VM e chave SSH isolada por instancia
+# VM Ubuntu 24.04 LTS com Shielded VM. Sem chaves SSH no metadata: o acesso e por OS Login
+# (identidade do Google + IAM), sempre pelo tunel do Identity-Aware Proxy.
 #trivy:ignore:AVD-GCP-0030
 #trivy:ignore:AVD-GCP-0031
 resource "google_compute_instance" "arborgrid_vm" { # nosemgrep
   name         = "${var.project_name}-vm"
   machine_type = var.machine_type
   zone         = var.gcp_zone
+
+  # Trocar a service account ou o tipo da maquina exige parar a VM (~1 min)
+  allow_stopping_for_update = true
 
   tags = [
     "${var.project_name}-web",
@@ -83,19 +85,21 @@ resource "google_compute_instance" "arborgrid_vm" { # nosemgrep
     }
   }
 
-  # Chave administrativa + chave dedicada do CI (revogavel sem afetar o acesso humano)
   metadata = {
-    block-project-ssh-keys = "true"
-    enable-oslogin         = "false"
-    ssh-keys = join("\n", compact([
-      "${var.ssh_user}:${trimspace(var.ssh_public_key)}",
-      var.ci_ssh_public_key != "" ? "${var.ssh_user}:${trimspace(var.ci_ssh_public_key)}" : "",
-    ]))
+    enable-oslogin          = "TRUE"
+    enable-guest-attributes = "TRUE" # publica as chaves de host para o CI fixa-las sem TOFU
+    block-project-ssh-keys  = "true"
   }
 
   metadata_startup_script = templatefile("${path.module}/user_data.sh.tpl", {
     project_name = var.project_name
   })
+
+  # Identidade propria e minima: so le imagens do Artifact Registry do projeto
+  service_account {
+    email  = google_service_account.vm_runtime.email
+    scopes = ["https://www.googleapis.com/auth/devstorage.read_only"]
+  }
 
   shielded_instance_config {
     enable_secure_boot          = true
@@ -108,4 +112,6 @@ resource "google_compute_instance" "arborgrid_vm" { # nosemgrep
     environment = "production"
     managed_by  = "terraform"
   }
+
+  depends_on = [google_artifact_registry_repository_iam_member.vm_reader]
 }
