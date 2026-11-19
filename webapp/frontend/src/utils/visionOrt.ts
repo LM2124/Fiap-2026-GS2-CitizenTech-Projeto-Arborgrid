@@ -50,6 +50,27 @@ export interface VisionInferenceResult {
 
 const MODEL_CACHE_NAME = "arborgrid-vision-onnx-v1";
 
+function buildModelCacheKey(modelUrl: string, cacheVersion?: string): string {
+  return cacheVersion
+    ? `${modelUrl}${modelUrl.includes("?") ? "&" : "?"}v=${encodeURIComponent(cacheVersion)}`
+    : modelUrl;
+}
+
+export async function isModelCached(
+  modelUrl: string,
+  cacheVersion?: string,
+): Promise<boolean> {
+  if (typeof caches === "undefined") return false;
+  try {
+    const cache = await caches.open(MODEL_CACHE_NAME);
+    const cacheKey = buildModelCacheKey(modelUrl, cacheVersion);
+    const matched = await cache.match(cacheKey);
+    return Boolean(matched && matched.ok);
+  } catch {
+    return false;
+  }
+}
+
 export type OnnxProgressListener = (loadedMb: number, totalMb: number, statusText: string) => void;
 
 let cachedSession: ort.InferenceSession | null = null;
@@ -113,9 +134,7 @@ export async function ensureOnnxSession(
       configureOrtEnv();
       emitProgress(0, 51.8, "Preparando ferramenta de análise visual...");
 
-      const cacheKey = cacheVersion
-        ? `${modelUrl}${modelUrl.includes("?") ? "&" : "?"}v=${encodeURIComponent(cacheVersion)}`
-        : modelUrl;
+      const cacheKey = buildModelCacheKey(modelUrl, cacheVersion);
 
       let buffer: Uint8Array | null = null;
 

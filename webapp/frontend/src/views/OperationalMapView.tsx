@@ -317,7 +317,7 @@ export function OperationalMapView({
           fillColor: "#2D6A4F",
           fillOpacity: 0.08,
         })
-          .bindTooltip(`${cat.label} — Área monitorada`, { sticky: true })
+          .bindTooltip(`${cat.label}, área monitorada`, { sticky: true })
           .addTo(group);
       } else if (cat.bbox && cat.bbox.length === 4) {
         const [minLon, minLat, maxLon, maxLat] = cat.bbox;
@@ -334,7 +334,7 @@ export function OperationalMapView({
             fillOpacity: 0.06,
           },
         )
-          .bindTooltip(`${cat.label} — Área monitorada`, { sticky: true })
+          .bindTooltip(`${cat.label}, área monitorada`, { sticky: true })
           .addTo(group);
       }
     }
@@ -344,11 +344,11 @@ export function OperationalMapView({
       const labelStatus = formatTriageLabel(tree.v3_triage.raw_consolidated);
       const marker = L.marker([tree.tree_lat, tree.tree_lon], {
         icon: createTreeMarkerIcon(tree, gold?.priority_tier),
-        title: `Árvore #${tree.geosampa_id} — ${labelStatus}`,
+        title: `Árvore #${tree.geosampa_id}, ${labelStatus}`,
         alt: `Árvore #${tree.geosampa_id}`,
       });
       marker.bindTooltip(
-        `<strong>Árvore #${tree.geosampa_id}</strong> · ${formatDistrictName(tree.distrito)}<br/>${labelStatus}${
+        `<strong>Árvore #${tree.geosampa_id}</strong>, ${formatDistrictName(tree.distrito)}<br/>${labelStatus}${
           gold
             ? `<br/>Prioridade climática: ${formatPriorityTier(gold.priority_tier)} (${formatNumberPtBr(gold.composite_risk_score, 1)}/100)`
             : ""
@@ -482,8 +482,8 @@ export function OperationalMapView({
                       </span>
                     </div>
                     <p className="mt-1 text-[13px] text-[#4A5D4E]">
-                      {formatDistrictName(selectedTree.distrito)} · Subprefeitura{" "}
-                      {formatDistrictName(selectedTree.subprefeitura)} · Última vistoria da Prefeitura
+                      {formatDistrictName(selectedTree.distrito)}, Subprefeitura{" "}
+                      {formatDistrictName(selectedTree.subprefeitura)}. Última vistoria da Prefeitura
                       (SISGAU):{" "}
                       <strong className="font-medium text-[#92400E]">
                         {formatDatePtBr(selectedTree.sisgau_last_inspection)}
@@ -519,7 +519,7 @@ export function OperationalMapView({
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <span className={`font-semibold tabular-nums ${tierStyle.title}`}>
                                 Prioridade climática (
-                                {formatNumberPtBr(selectedGold.composite_risk_score, 1)}/100 ·{" "}
+                                {formatNumberPtBr(selectedGold.composite_risk_score, 1)}/100,{" "}
                                 {formatPriorityTier(selectedGold.priority_tier)})
                               </span>
                               <span className="inline-flex items-center gap-2 tabular-nums text-[#3D4F41]">
@@ -556,7 +556,7 @@ export function OperationalMapView({
                       Ângulos da via ({selectedTree.views.length})
                     </h3>
                     <span className="text-xs text-[#4A5D4E]">
-                      Fontes: cadastro da Prefeitura (GeoSampa/SISGAU) · Google Street View
+                      Fontes: Prefeitura (GeoSampa e SISGAU) e Google Street View
                     </span>
                   </div>
 
@@ -600,8 +600,8 @@ export function OperationalMapView({
                               key={`${selectedTree.geosampa_id}-${view.perspective}-${view.overlay_url ?? view.image_url ?? idx}`}
                               overlayUrl={view.overlay_url}
                               imageUrl={view.image_url}
-                              overlayAlt={`Foto com marcações da árvore #${selectedTree.geosampa_id} — ${angleLabel}`}
-                              originalAlt={`Foto original sem marcações da árvore #${selectedTree.geosampa_id} — ${angleLabel}`}
+                              overlayAlt={`Foto com marcações da árvore #${selectedTree.geosampa_id}, ${angleLabel}`}
+                              originalAlt={`Foto original sem marcações da árvore #${selectedTree.geosampa_id}, ${angleLabel}`}
                             />
                           )}
 
@@ -699,7 +699,7 @@ export function OperationalMapView({
                 </div>
               </div>
 
-              {/* Camada do mapa à esquerda · Com prioridade climática à direita */}
+              {/* Camada do mapa à esquerda, com prioridade climática à direita */}
               <div className="flex flex-wrap items-center justify-between gap-2 border-y border-[#E6ECE3] py-2.5">
                 <div
                   role="group"
@@ -772,7 +772,7 @@ export function OperationalMapView({
                   >
                     <span className="font-semibold">Todas as regiões de estudo</span>
                     <span className="tabular-nums text-[13px] text-[#4A5D4E]">
-                      {data.stats.total_trees} árvores ·{" "}
+                      {data.stats.total_trees} árvores,{" "}
                       {data.stats.tree_triage_counts.CRITICO ?? 0} críticas
                     </span>
                   </button>

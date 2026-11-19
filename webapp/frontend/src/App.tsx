@@ -1,25 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, ExternalLink, RefreshCw } from "lucide-react";
 import { Navbar, type AppTab } from "./components/Navbar";
 import {
   fetchBootstrap,
-  fetchVisionSamples,
   formatFriendlyError,
   seedGoldDemo,
 } from "./services/api";
 import type { MapBootstrapPayload } from "./types/arborgrid";
 import { APP_LABELS } from "./utils/labels";
-import { ensureOnnxSession } from "./utils/visionOrt";
 import { CopilotView } from "./views/CopilotView";
 import { HomeBIView } from "./views/HomeBIView";
 import { OperationalMapView } from "./views/OperationalMapView";
 import { VisionLabView } from "./views/VisionLabView";
 
 const TAB_TITLES: Record<AppTab, string> = {
-  bi: "Visão Geral — ArborGrid SP",
-  mapa: "Mapa de Vistorias — ArborGrid SP",
-  visao: "Análise de Imagem — ArborGrid SP",
-  assistente: "Assistente — ArborGrid SP",
+  bi: "Visão Geral | ArborGrid SP",
+  mapa: "Mapa de Vistorias | ArborGrid SP",
+  visao: "Análise de Imagem | ArborGrid SP",
+  assistente: "Assistente | ArborGrid SP",
 };
 
 function readInitialTab(): AppTab {
@@ -57,8 +55,6 @@ export function App() {
   const [focusRegionKey, setFocusRegionKey] = useState<string | null>(initialQuery.regionKey);
   const [assistantPrompt, setAssistantPrompt] = useState<string | null>(initialQuery.prompt);
 
-  const prewarmStartedRef = useRef(false);
-
   const loadBootstrap = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -75,35 +71,6 @@ export function App() {
   useEffect(() => {
     void loadBootstrap();
   }, [loadBootstrap]);
-
-  // Pré-aquece a sessão ONNX em segundo plano após carregar o bootstrap
-  useEffect(() => {
-    if (!data || prewarmStartedRef.current) return;
-    prewarmStartedRef.current = true;
-
-    const startPrewarm = () => {
-      void fetchVisionSamples()
-        .then((res) => {
-          if (res.model_available) {
-            const versionTag = res.model_etag || res.model_version || res.model_variant;
-            void ensureOnnxSession(res.model_url, undefined, versionTag).catch(() => {});
-          }
-        })
-        .catch(() => {});
-    };
-
-    const win = window as Window & {
-      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
-      cancelIdleCallback?: (id: number) => void;
-    };
-
-    if (typeof win.requestIdleCallback === "function") {
-      const idleId = win.requestIdleCallback(startPrewarm, { timeout: 2500 });
-      return () => win.cancelIdleCallback?.(idleId);
-    }
-    const timerId = window.setTimeout(startPrewarm, 800);
-    return () => window.clearTimeout(timerId);
-  }, [data]);
 
   useEffect(() => {
     document.title = TAB_TITLES[activeTab];
@@ -249,7 +216,7 @@ export function App() {
       <footer className="border-t border-[#D5E0D1] bg-white py-5 text-xs text-[#4A5D4E]">
         <div className="mx-auto flex max-w-[1680px] flex-wrap items-center justify-between gap-3 px-4 sm:px-8">
           <p>
-            <strong className="font-semibold text-[#18241B]">ArborGrid SP</strong> — Projeto acadêmico FIAP Global Solution 2026 (CitizenTech).
+            <strong className="font-semibold text-[#18241B]">ArborGrid SP</strong>, projeto acadêmico FIAP Global Solution 2026 (CitizenTech).
           </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <p>

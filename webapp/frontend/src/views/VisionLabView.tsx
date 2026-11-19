@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { AlertTriangle, Loader2, Play, Sparkles, Upload } from "lucide-react";
+import { AlertTriangle, Download, Loader2, Play, Sparkles, Upload } from "lucide-react";
 import { fetchVisionSamples, formatFriendlyError } from "../services/api";
 import type { TreeRecord, VisionSampleItem, VisionSamplesPayload } from "../types/arborgrid";
 import {
   ensureOnnxSession,
+  isModelCached,
   isOnnxSessionReady,
   renderResultToCanvas,
   runOnnxInference,
@@ -17,6 +18,7 @@ import {
   formatDistrictName,
   formatDurationSeconds,
   formatMacroTriageShort,
+  formatNumberPtBr,
   formatRelativePct,
 } from "../utils/labels";
 
@@ -33,12 +35,12 @@ const BADGE_CLASS: Record<string, string> = {
 
 const TRIAGE_EXPLANATION: Record<string, { title: string; subtitle: string }> = {
   CRITICO: {
-    title: "Risco crítico — contato aparente com a fiação",
+    title: "Risco crítico: contato aparente com a fiação",
     subtitle:
       "A análise visual detectou interseção direta entre os galhos da árvore e cabos aéreos. Sem faíscas ou fios rompidos, o registro preventivo deve ser aberto pelo SP156.",
   },
   PROXIMIDADE: {
-    title: "Atenção — galhos próximos à rede elétrica",
+    title: "Atenção: galhos próximos à rede elétrica",
     subtitle:
       "Os galhos não tocam os fios neste ângulo, mas estão na faixa de alcance em dias de vento forte. Recomenda-se vistoria preventiva pelo SP156.",
   },
@@ -56,9 +58,15 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
   const [customTitle, setCustomTitle] = useState<string | null>(null);
 
   const [sessionReady, setSessionReady] = useState<boolean>(() => isOnnxSessionReady());
+  const [needsModelDownload, setNeedsModelDownload] = useState(false);
+  const [preparingModel, setPreparingModel] = useState(false);
   const [modelLoadError, setModelLoadError] = useState<string | null>(null);
   const [loadingText, setLoadingText] = useState<string | null>(null);
   const [progressPct, setProgressPct] = useState<number>(0);
+  const [downloadProgress, setDownloadProgress] = useState<{
+    loadedMb: number;
+    totalMb: number;
+  } | null>(null);
   const [running, setRunning] = useState(false);
   const [inferenceElapsedSec, setInferenceElapsedSec] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -82,46 +90,67 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
   const objectUrlRef = useRef<string | null>(null);
   const assistantSectionRef = useRef<HTMLElement | null>(null);
 
+  const startModelPreparation = (payload: VisionSamplesPayload) => {
+    const versionTag = payload.model_etag || payload.model_version || payload.model_variant;
+    setModelLoadError(null);
+    setPreparingModel(true);
+    return ensureOnnxSession(
+      payload.model_url,
+      (loadedMb, totalMb, statusText) => {
+        setLoadingText(statusText);
+        setDownloadProgress({ loadedMb, totalMb });
+        setProgressPct(totalMb > 0 ? Math.min(100, Math.round((loadedMb / totalMb) * 100)) : 0);
+      },
+      versionTag,
+    )
+      .then(() => {
+        setSessionReady(true);
+        setNeedsModelDownload(false);
+        setModelLoadError(null);
+        setLoadingText(null);
+        setDownloadProgress(null);
+      })
+      .catch(() => {
+        setLoadingText(null);
+        setDownloadProgress(null);
+        setModelLoadError("Não foi possível preparar a análise. Tente novamente.");
+      })
+      .finally(() => {
+        setPreparingModel(false);
+      });
+  };
+
   useEffect(() => {
     const unsubProgress = subscribeOnnxProgress((loadedMb, totalMb, statusText) => {
       setLoadingText(statusText);
+      setDownloadProgress({ loadedMb, totalMb });
       setProgressPct(totalMb > 0 ? Math.min(100, Math.round((loadedMb / totalMb) * 100)) : 0);
     });
 
     fetchVisionSamples()
-      .then((res) => {
+      .then(async (res) => {
         setMeta(res);
         if (res.samples.length > 0) {
           setSelectedSample(res.samples[0]);
           setActiveImageSrc(res.samples[0].image_url);
           setEmbeddedTreeId(res.samples[0].geosampa_id);
         }
-        if (res.model_available) {
-          if (isOnnxSessionReady()) {
-            setSessionReady(true);
-            setLoadingText(null);
-          } else {
-            const versionTag = res.model_etag || res.model_version || res.model_variant;
-            void ensureOnnxSession(
-              res.model_url,
-              (loadedMb, totalMb, statusText) => {
-                setLoadingText(statusText);
-                setProgressPct(totalMb > 0 ? Math.min(100, Math.round((loadedMb / totalMb) * 100)) : 0);
-              },
-              versionTag,
-            )
-              .then(() => {
-                setSessionReady(true);
-                setModelLoadError(null);
-                setLoadingText(null);
-              })
-              .catch(() => {
-                setLoadingText(null);
-                setModelLoadError("Não foi possível preparar a análise. Recarregue a página.");
-              });
-          }
-        } else {
+        if (!res.model_available) {
           setModelLoadError("Ferramenta de análise visual indisponível no servidor.");
+          return;
+        }
+        if (isOnnxSessionReady()) {
+          setSessionReady(true);
+          setNeedsModelDownload(false);
+          setLoadingText(null);
+          return;
+        }
+        const versionTag = res.model_etag || res.model_version || res.model_variant;
+        const cached = await isModelCached(res.model_url, versionTag);
+        if (cached) {
+          void startModelPreparation(res);
+        } else {
+          setNeedsModelDownload(true);
         }
       })
       .catch((err) => setErrorMsg(formatFriendlyError(err)));
@@ -288,33 +317,76 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {modelLoadError ? (
-              <span
-                role="alert"
-                className="inline-flex items-center gap-1.5 rounded border border-[#FECACA] bg-[#FEF2F2] px-3 py-1 text-[13px] font-medium text-[#991B1B]"
-              >
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                <span>{modelLoadError}</span>
-              </span>
-            ) : (
-              <span
-                className={`inline-flex items-center gap-2 rounded border px-3 py-1 text-[13px] font-medium ${
-                  sessionReady
-                    ? "border-[#A7F3D0] bg-[#ECFDF5] text-[#065F46]"
-                    : "border-[#D5E0D1] bg-[#F6F8F5] text-[#4A5D4E]"
-                }`}
-              >
-                {sessionReady ? (
-                  <span className="h-2 w-2 rounded-full bg-[#15803d]" />
-                ) : (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[#92400E]" />
-                )}
-                <span>
-                  {sessionReady ? "Pronto para analisar fotos" : "Preparando análise visual..."}
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  role="alert"
+                  className="inline-flex items-center gap-1.5 rounded border border-[#FECACA] bg-[#FEF2F2] px-3 py-1 text-[13px] font-medium text-[#991B1B]"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{modelLoadError}</span>
                 </span>
+                {meta?.model_available && (
+                  <button
+                    type="button"
+                    onClick={() => void startModelPreparation(meta)}
+                    className="rounded border border-[#2D6A4F] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] hover:bg-[#EEF4EC]"
+                  >
+                    Tentar novamente
+                  </button>
+                )}
+              </div>
+            ) : sessionReady ? (
+              <span className="inline-flex items-center gap-2 rounded border border-[#A7F3D0] bg-[#ECFDF5] px-3 py-1 text-[13px] font-medium text-[#065F46]">
+                <span className="h-2 w-2 rounded-full bg-[#15803d]" aria-hidden="true" />
+                <span>Pronto para analisar fotos</span>
               </span>
-            )}
+            ) : null}
           </div>
         </div>
+
+        {!sessionReady && !modelLoadError && preparingModel && (
+          <div className="mt-2.5 rounded-md border border-[#C6DBC0] bg-[#FAFBF9] px-4 py-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[13px] text-[#18241B]">
+              <span className="inline-flex items-center gap-2 font-semibold">
+                <Loader2 className="h-4 w-4 animate-spin text-[#1B4332]" aria-hidden="true" />
+                <span>{loadingText || "Preparando análise visual..."}</span>
+              </span>
+              <span className="tabular-nums font-medium text-[#3D4F41]">
+                {downloadProgress && downloadProgress.totalMb > 0
+                  ? `${formatNumberPtBr(downloadProgress.loadedMb, 1)} MB de ${formatNumberPtBr(downloadProgress.totalMb, 1)} MB (${progressPct}%)`
+                  : `${progressPct}%`}
+              </span>
+            </div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded bg-[#E6ECE3]">
+              <div
+                className="h-full bg-[#2D6A4F] transition-all duration-200"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {!sessionReady && !modelLoadError && !preparingModel && needsModelDownload && (
+          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#C6DBC0] bg-[#FAFBF9] px-4 py-2.5">
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <h2 className="text-sm font-bold text-[#18241B]">
+                A análise roda no seu computador
+              </h2>
+              <p className="text-[13px] text-[#4A5D4E]">
+                A foto não é enviada para nenhum servidor: o modelo de visão computacional é baixado uma vez (cerca de 55 MB) e roda no seu navegador.
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={!meta}
+              onClick={() => meta && void startModelPreparation(meta)}
+              className="inline-flex shrink-0 items-center gap-2 rounded bg-[#1B4332] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#143325] disabled:opacity-50"
+            >
+              <Download className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>Preparar análise no meu computador</span>
+            </button>
+          </div>
+        )}
 
         <div
           role="note"
@@ -322,10 +394,10 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
         >
           <strong className="font-semibold">IA Responsável:</strong>
           <span>
-            análise local no navegador (a foto não sai do dispositivo) — não substitui vistoria presencial. Emergência:
+            análise local no navegador (a foto não sai do dispositivo). Não substitui vistoria presencial. Emergência:
           </span>
           <strong className="font-semibold">
-            Enel 0800 72 72 196 · Bombeiros 193 · Defesa Civil 199
+            Enel 0800 72 72 196, Bombeiros 193, Defesa Civil 199
           </strong>
         </div>
       </div>
@@ -634,21 +706,29 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
                 )}
               </div>
 
-              <button
-                type="button"
-                disabled={running || !activeImageSrc}
-                onClick={handleRunInference}
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded bg-[#1B4332] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#143325] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {running ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Play className="h-4 w-4" aria-hidden="true" />
+              <div className="flex flex-col items-end gap-1">
+                <button
+                  type="button"
+                  disabled={running || !activeImageSrc || !sessionReady}
+                  title={!sessionReady ? "Prepare a análise primeiro" : undefined}
+                  onClick={handleRunInference}
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded bg-[#1B4332] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#143325] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {running ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Play className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  <span className="tabular-nums">
+                    {running ? `Analisando… ${inferenceElapsedSec} s` : "2. Analisar foto"}
+                  </span>
+                </button>
+                {!sessionReady && (
+                  <span className="text-[11px] font-medium text-[#92400E]">
+                    Prepare a análise primeiro
+                  </span>
                 )}
-                <span className="tabular-nums">
-                  {running ? `Analisando… ${inferenceElapsedSec} s` : "2. Analisar foto"}
-                </span>
-              </button>
+              </div>
             </div>
           )}
 
@@ -667,8 +747,8 @@ export function VisionLabView({ trees }: VisionLabViewProps) {
                   <>
                     <strong className="font-semibold text-[#18241B]">
                       Árvore #{selectedSample.geosampa_id}
-                    </strong>{" "}
-                    · {selectedSample.region_label}
+                    </strong>,{" "}
+                    {selectedSample.region_label}
                   </>
                 ) : customTitle ? (
                   <>

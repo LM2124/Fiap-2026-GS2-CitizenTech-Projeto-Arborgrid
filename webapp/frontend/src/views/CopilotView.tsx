@@ -223,7 +223,7 @@ export function CopilotView({
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#D5E0D1] bg-white px-5 py-3.5">
           <div>
             <h2 className="text-base font-bold text-[#18241B]">
-              {APP_LABELS.assistantTab} — {APP_LABELS.assistantSubtitle}
+              {APP_LABELS.assistantTab}: {APP_LABELS.assistantSubtitle}
             </h2>
             <p className="text-[13px] text-[#4A5D4E]">
               Orientações com base na Lei Municipal SP nº 17.794/2022, ABNT NBR 16246, Manual SVMA e canais oficiais.
@@ -246,7 +246,7 @@ export function CopilotView({
                   {APP_LABELS.assistantTab}
                 </h1>
                 <span className="text-[13px] font-medium text-[#4A5D4E]">
-                  · {APP_LABELS.assistantSubtitle}
+                  {APP_LABELS.assistantSubtitle}
                 </span>
               </div>
               <p className="mt-0.5 text-[13px] text-[#4A5D4E]">
@@ -271,10 +271,10 @@ export function CopilotView({
           >
             <strong className="font-semibold">IA Responsável:</strong>
             <span>
-              triagem automática — não substitui vistoria presencial. Em emergência:
+              triagem automática, não substitui vistoria presencial. Em emergência:
             </span>
             <strong className="font-semibold">
-              Enel 0800 72 72 196 · Bombeiros 193 · Defesa Civil 199
+              Enel 0800 72 72 196, Bombeiros 193, Defesa Civil 199
             </strong>
           </div>
         </div>
@@ -311,7 +311,7 @@ export function CopilotView({
                 )}
                 {criticalSampleTrees.map((t) => (
                   <option key={t.geosampa_id} value={t.geosampa_id}>
-                    #{t.geosampa_id} — {formatDistrictName(t.distrito)} ({formatTriageLabel(t.v3_triage.raw_consolidated)})
+                    #{t.geosampa_id}, {formatDistrictName(t.distrito)} ({formatTriageLabel(t.v3_triage.raw_consolidated)})
                   </option>
                 ))}
               </select>
@@ -429,7 +429,7 @@ export function CopilotView({
                           <span>
                             {modeLabel}
                             {resp?.latency_ms !== undefined
-                              ? ` · ${formatDurationSeconds(resp.latency_ms)}`
+                              ? `, ${formatDurationSeconds(resp.latency_ms)}`
                               : ""}
                           </span>
                         </span>
@@ -606,8 +606,8 @@ export function CopilotView({
                     </span>
                   </div>
                   <p className="mt-1 text-[#3D4F41]">
-                    {formatDistrictName(activeEvidence.tree_context.distrito)} · Subprefeitura{" "}
-                    {formatDistrictName(activeEvidence.tree_context.subprefeitura)} · Última vistoria (SISGAU):{" "}
+                    {formatDistrictName(activeEvidence.tree_context.distrito)}, Subprefeitura{" "}
+                    {formatDistrictName(activeEvidence.tree_context.subprefeitura)}. Última vistoria (SISGAU):{" "}
                     {formatDatePtBr(activeEvidence.tree_context.sisgau_last_inspection)}
                   </p>
                   <div className="mt-2 grid grid-cols-3 gap-2 text-[13px] tabular-nums text-[#18241B]">
