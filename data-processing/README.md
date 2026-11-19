@@ -99,9 +99,9 @@ Arquivo: [`dags/arborgrid_coleta.py`](dags/arborgrid_coleta.py), com as funçõe
 | Agendamento | `@daily`, `start_date` 10/11/2026, `catchup=True` (reprocessa dias passados) |
 | Concorrência | `max_active_runs=1` |
 | Falhas | `retries=2`, `retry_delay=2 min`, `on_failure_callback` registra tarefa, dia e tentativa |
-| Paralelismo | as 3 coletas rodam em paralelo; `verifica_arquivos` só passa se os 3 arquivos do dia existirem e não estiverem vazios |
+| Paralelismo | as 3 coletas rodam em paralelo; `verifica_arquivos` só passa se os 3 arquivos do dia existirem, todas as linhas forem JSON válido e houver o mínimo de registros por fonte (clima 4, árvores 1, denúncias 1) |
 | Saída | `chegada/<fonte>/<fonte>_<AAAA-MM-DD>.json` (JSON Lines), gravado em arquivo temporário e renomeado (escrita atômica) |
-| Segredos | URL e tokens lidos de **Airflow Variables** (criptografadas pela Fernet key); nada no código |
+| Segredos | URL e tokens lidos de **Airflow Variables** (criptografadas pela Fernet key); nada no código. Variable ausente falha na hora (`AirflowFailException`), sem gastar retries |
 
 Variables usadas: `arborgrid_api_url`, `arborgrid_api_token`, `arborgrid_app_token`.
 
@@ -111,14 +111,14 @@ Variables usadas: `arborgrid_api_url`, `arborgrid_api_token`, `arborgrid_app_tok
 
 | Camada | Notebook | O que faz | Resultado |
 |---|---|---|---|
-| Setup | `00_setup` | Cria o schema `workspace.gs` e o Volume `chegada` | — |
-| **Bronze** | `01_bronze` | Auto Loader (`cloudFiles`, `availableNow`) com checkpoint: ingestão **incremental**, dado bruto + `arquivo_origem` + `carregado_em` | 2º lote somou só os arquivos novos; 3ª execução não duplicou nada |
-| **Prata** | `02_prata` | `from_json` + `explode` das listas, tipagem, fuso `America/Sao_Paulo`, deduplicação (`ROW_NUMBER`), **11 regras de qualidade** e `MERGE` idempotente | 505 vistas de árvores, 960 horas de clima, 62 denúncias; 2º MERGE = 0 alterações |
+| Setup | `00_setup` | Cria o schema `workspace.gs` e o Volume `chegada`; lista os uploads do Volume por dia (prova dos 2 lotes) | — |
+| **Bronze** | `01_bronze` | Auto Loader (`cloudFiles`, `availableNow`) com checkpoint: ingestão **incremental**, dado bruto + `arquivo_origem` + `carregado_em`; as contagens de cada etapa ficam em `bronze_auditoria` | 2º lote somou só os arquivos novos; 3ª execução não duplicou nada |
+| **Prata** | `02_prata` | `from_json` + `explode` das listas, tipagem, fuso `America/Sao_Paulo`, deduplicação (`ROW_NUMBER`), **11 regras de qualidade**, `MERGE` idempotente e a fila de revisão `prata_arvores_revisao` para as fotos barradas pela A4 | 505 vistas de árvores, 960 horas de clima, 62 denúncias; 2º MERGE = 0 alterações |
 | **Ouro** | `03_ouro` | Modelo estrela, score de risco, LGPD e 10 checagens de integridade | 10/10 checagens verdadeiras |
 | Consultas | `04_consultas` | P1–P5 | ver seção 3 |
 | Contrato | `05_contrato_mvp` | View para o MVP + exportação do lote | 262 árvores exportadas |
 
-**Regras de qualidade da Prata** (registros barrados ficam com `motivo_rejeicao` e não entram):
+**Regras de qualidade da Prata** (registros barrados ficam com `motivo_rejeicao` e não entram na Prata; os da A4 vão para a fila de revisão humana `prata_arvores_revisao`, com `status_revisao = 'PENDENTE'`):
 
 | Fonte | Regras |
 |---|---|
@@ -301,6 +301,6 @@ data-processing/
 - **Imagens do Street View** são de 2022–2024; a triagem reflete a árvore naquela data, e o modelo precisa ser reavaliado periodicamente.
 - **OpenStreetMap (hospitais) foi retirado:** a API Overpass ficou instável (406/502/timeout) em todos os servidores testados.
 - **Dia 18/11:** a DAG já coletou esse dia, mas o Databricks foi carregado com os dias 10 a 17; os arquivos do dia 18 ficam como próximo lote.
-- **271 × 262 árvores:** 9 árvores da API só tinham vistas com confiança < 0,7 (regra A4) e não entraram na Prata.
+- **271 × 262 árvores:** 9 árvores da API só tinham vistas com confiança < 0,7 (regra A4) e não entraram na Prata; ficam em `prata_arvores_revisao` aguardando revisão humana.
 - **Grupo de controle:** a Paulista tem rede subterrânea, mas ainda aparecem 9 árvores críticas nas ruas laterais com fiação aérea.
 - **API do MVP:** durante a coleta, a API ArborGrid rodou localmente e sem TLS. Hoje o MVP está publicado com HTTPS em https://arborgrid.duckdns.org, e o script de envio aponta para ele com `ARBORGRID_API_URL`.
