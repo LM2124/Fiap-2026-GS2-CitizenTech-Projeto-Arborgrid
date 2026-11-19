@@ -199,8 +199,24 @@ def _resolve_webapp_python() -> str:
     return py_exec
 
 
+def _ensure_frontend_build() -> None:
+    """O build do SPA nao fica no Git: no modo local ele e gerado uma vez (no Docker, o Dockerfile faz isso)."""
+    if (WEBAPP_DIR / "app" / "static" / "index.html").exists():
+        return
+    npm_bin = shutil.which("npm")
+    if not npm_bin:
+        print("[aviso] Frontend nao compilado e npm nao encontrado: a API sobe, mas a interface mostra instrucoes.")
+        print("[aviso] Instale o Node.js 22 e rode de novo, ou use o modo Docker (sem --local-api).")
+        return
+    frontend_dir = WEBAPP_DIR / "frontend"
+    print("[setup] Compilando o frontend (npm ci + npm run build) em webapp/app/static ...")
+    subprocess.run([npm_bin, "ci", "--no-audit", "--no-fund"], cwd=frontend_dir, check=True)
+    subprocess.run([npm_bin, "run", "build"], cwd=frontend_dir, check=True)
+
+
 def _run_local_api() -> None:
     py_exec = _resolve_webapp_python()
+    _ensure_frontend_build()
     env = dict(os.environ)
     env.setdefault("ARBORGRID_REQUIRE_AUTH", "false")
     print("\n[local] Iniciando Web App + API FastAPI em http://127.0.0.1:8000 (auth local desabilitada).")
