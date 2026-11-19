@@ -139,6 +139,34 @@ export function formatPriorityTier(tier?: string | null): string {
   return PRIORITY_TIER_LABELS[key] ?? tier;
 }
 
+const PHOTO_TRIAGE_REASON_LABELS: Record<string, string> = {
+  CRITICO_CONFIRMADO: "Contato com a fiação nos dois ângulos",
+  DIVERGENCIA_PARALAXE: "Contato visível só no 2º ângulo",
+  CRITICO_MONO_VISADA: "Contato com a fiação em um ângulo",
+  CRITICO: "Contato com a fiação na foto",
+  PROXIMIDADE: "Galhos perto dos fios",
+  PROXIMIDADE_MONO_VISADA: "Galhos perto dos fios",
+  SEGURO: "Sem conflito nas fotos",
+  SEGURO_MONO_VISADA: "Sem conflito nas fotos",
+};
+
+export function formatPhotoTriageReason(raw?: string | null): string {
+  if (!raw) return "Sem conflito nas fotos";
+  const key = raw.trim().toUpperCase();
+  return PHOTO_TRIAGE_REASON_LABELS[key] ?? "Sem conflito nas fotos";
+}
+
+export function formatShortAreaName(label: string): string {
+  return label.replace(/\s*\([^)]*\)/g, "").trim();
+}
+
+export function joinListPtBr(items: string[]): string {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} e ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")} e ${items[items.length - 1]}`;
+}
+
 export const ANALYSIS_GRID_PIXELS = 640 * 640;
 
 export function formatNumberPtBr(value: number, fractionDigits = 1): string {

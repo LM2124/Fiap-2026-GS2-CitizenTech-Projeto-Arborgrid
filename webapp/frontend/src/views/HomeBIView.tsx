@@ -4,6 +4,8 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowUpDown,
+  Calendar,
+  Camera,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -14,6 +16,7 @@ import {
   RotateCcw,
   Search,
   Sparkles,
+  Wind,
 } from "lucide-react";
 import { OverlayPhoto } from "../components/OverlayPhoto";
 import type { AppTab } from "../components/Navbar";
@@ -31,9 +34,12 @@ import {
   formatMacroTriageShort,
   formatNumberPtBr,
   formatPercentPtBr,
+  formatPhotoTriageReason,
   formatPriorityTier,
+  formatShortAreaName,
   formatTriageLabel,
   getPriorityTierStyle,
+  joinListPtBr,
 } from "../utils/labels";
 
 interface HomeBIViewProps {
@@ -48,8 +54,106 @@ interface HomeBIViewProps {
 type GoldSortKey = "score" | "wind" | "inspection";
 type SortDir = "asc" | "desc";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 const TIER_ORDER: PriorityTier[] = ["URGENTE", "ALTA", "MEDIA", "BAIXA"];
+
+const DETAILED_TRIAGE_RANK: Record<string, number> = {
+  CRITICO_CONFIRMADO: 0,
+  DIVERGENCIA_PARALAXE: 1,
+  CRITICO_MONO_VISADA: 2,
+  CRITICO: 2,
+  PROXIMIDADE: 3,
+  PROXIMIDADE_MONO_VISADA: 3,
+  SEGURO: 4,
+  SEGURO_MONO_VISADA: 4,
+};
+
+function getTriageSeverityRank(tree?: TreeRecord): number {
+  const raw = tree?.v3_triage.raw_consolidated?.trim().toUpperCase();
+  if (!raw) return 5;
+  return DETAILED_TRIAGE_RANK[raw] ?? 5;
+}
+
+// Trechos de contato somados nas duas fotos e fração média da fiação visível dentro da copa.
+// Desempatam árvores com o mesmo índice e a mesma triagem: mais trechos = mais pontos a podar.
+function getContactStats(tree?: TreeRecord): { points: number; meanPct: number } {
+  const views = tree?.views ?? [];
+  if (views.length === 0) return { points: 0, meanPct: 0 };
+  let points = 0;
+  let pctSum = 0;
+  for (const view of views) {
+    points += view.v3_analysis?.contact_points ?? 0;
+    pctSum += view.v3_analysis?.wire_contact_pct ?? 0;
+  }
+  return { points, meanPct: pctSum / views.length };
+}
+
+function comparePriorityDesc(
+  a: GoldRiskRecord,
+  b: GoldRiskRecord,
+  treeById: Map<string, TreeRecord>,
+): number {
+  const scoreDiff = b.composite_risk_score - a.composite_risk_score;
+  if (scoreDiff !== 0) return scoreDiff;
+
+  const triageDiff =
+    getTriageSeverityRank(treeById.get(a.geosampa_id)) -
+    getTriageSeverityRank(treeById.get(b.geosampa_id));
+  if (triageDiff !== 0) return triageDiff;
+
+  const ca = getContactStats(treeById.get(a.geosampa_id));
+  const cb = getContactStats(treeById.get(b.geosampa_id));
+  if (ca.points !== cb.points) return cb.points - ca.points;
+  if (ca.meanPct !== cb.meanPct) return cb.meanPct - ca.meanPct;
+
+  const wa = a.wind_gust_kmh ?? -Infinity;
+  const wb = b.wind_gust_kmh ?? -Infinity;
+  if (wa !== wb) return wb - wa;
+
+  const pa = a.precipitation_mm ?? -Infinity;
+  const pb = b.precipitation_mm ?? -Infinity;
+  if (pa !== pb) return pb - pa;
+
+  return a.geosampa_id.localeCompare(b.geosampa_id, "pt-BR", { numeric: true });
+}
+
+function formatInspectionReason(raw?: string | null): string {
+  if (!raw || !raw.trim()) return "Sem vistoria registrada";
+  const yearMatch = /^(\d{4})/.exec(raw.trim());
+  if (yearMatch) {
+    return `Última vistoria em ${yearMatch[1]}`;
+  }
+  const parsed = new Date(raw.trim());
+  if (!Number.isNaN(parsed.getTime())) {
+    return `Última vistoria em ${parsed.getFullYear()}`;
+  }
+  return "Sem vistoria registrada";
+}
+
+function getInspectionYearRange(trees: TreeRecord[]): { min: number; max: number } | null {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const tree of trees) {
+    const raw = tree.sisgau_last_inspection?.trim();
+    if (!raw) continue;
+    let year: number | null = null;
+    const yearMatch = /^(\d{4})/.exec(raw);
+    if (yearMatch) {
+      year = Number(yearMatch[1]);
+    } else {
+      const parsed = new Date(raw);
+      if (!Number.isNaN(parsed.getTime())) {
+        year = parsed.getFullYear();
+      }
+    }
+    if (year !== null && year >= 1900 && year <= 2100) {
+      if (year < min) min = year;
+      if (year > max) max = year;
+    }
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+  return { min, max };
+}
 
 const PHOTO_TRIAGE_BADGE: Record<string, string> = {
   CRITICO: "border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]",
@@ -116,16 +220,11 @@ function ScoreBar({ score, tier }: { score: number; tier: string }) {
   const clamped = Math.min(100, Math.max(0, score));
   const barColor = getPriorityTierStyle(tier).bar;
   return (
-    <div className="flex items-center justify-end gap-2">
-      <div
-        className="h-2 w-20 overflow-hidden rounded-full bg-[#E6ECE3]"
-        aria-hidden="true"
-      >
-        <div className={`h-full rounded-full ${barColor}`} style={{ width: `${clamped}%` }} />
-      </div>
-      <span className="w-10 text-right font-semibold tabular-nums text-[#18241B]">
-        {formatNumberPtBr(score, 1)}
-      </span>
+    <div
+      className="h-1.5 w-20 overflow-hidden rounded-full bg-[#E6ECE3]"
+      aria-hidden="true"
+    >
+      <div className={`h-full rounded-full ${barColor}`} style={{ width: `${clamped}%` }} />
     </div>
   );
 }
@@ -169,6 +268,29 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
     : "0,0%";
 
   const paulistaRow = stats.district_breakdown.find((d) => d.is_negative_control);
+  const areaCount = stats.district_breakdown.length;
+  const totalGeosampaTrees = useMemo(
+    () => stats.district_breakdown.reduce((acc, d) => acc + (d.total_geosampa_trees ?? 0), 0),
+    [stats.district_breakdown],
+  );
+  const thousandsFloor = Math.floor(totalGeosampaTrees / 1000);
+  const aerialAreaNames = useMemo(
+    () =>
+      stats.district_breakdown
+        .filter((d) => !d.is_negative_control)
+        .map((d) => formatShortAreaName(d.region_label))
+        .filter(Boolean),
+    [stats.district_breakdown],
+  );
+  const undergroundAreaNames = useMemo(
+    () =>
+      stats.district_breakdown
+        .filter((d) => d.is_negative_control)
+        .map((d) => formatShortAreaName(d.region_label))
+        .filter(Boolean),
+    [stats.district_breakdown],
+  );
+  const inspectionYearRange = useMemo(() => getInspectionYearRange(trees), [trees]);
 
   const heroTrees = useMemo(() => selectHeroTrees(trees), [trees]);
   const safeHeroIndex = heroTrees.length > 0 ? activeHeroIndex % heroTrees.length : 0;
@@ -234,11 +356,14 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
     ? formatDatePtBr(weatherObservedRaw, "dateTime")
     : null;
 
-  const topThreeGold: GoldRiskRecord[] = gold_records.slice(0, 3);
-
   const treeById = useMemo(
     () => new Map(trees.map((t) => [t.geosampa_id, t])),
     [trees],
+  );
+
+  const topThreeGold: GoldRiskRecord[] = useMemo(
+    () => [...gold_records].sort((a, b) => comparePriorityDesc(a, b, treeById)).slice(0, 3),
+    [gold_records, treeById],
   );
 
   const districtOptions = useMemo(() => {
@@ -296,22 +421,27 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
 
     return [...filtered].sort((a, b) => {
       if (sortKey === "score") {
-        const diff = a.composite_risk_score - b.composite_risk_score;
-        return sortDir === "asc" ? diff : -diff;
+        const cmp = comparePriorityDesc(a, b, treeById);
+        return sortDir === "desc" ? cmp : -cmp;
       }
       if (sortKey === "wind") {
         const wa = a.wind_gust_kmh;
         const wb = b.wind_gust_kmh;
-        if (wa == null && wb == null) return 0;
+        if (wa == null && wb == null) {
+          return a.geosampa_id.localeCompare(b.geosampa_id, "pt-BR", { numeric: true });
+        }
         if (wa == null) return 1;
         if (wb == null) return -1;
-        return sortDir === "asc" ? wa - wb : wb - wa;
+        if (wa !== wb) return sortDir === "asc" ? wa - wb : wb - wa;
+        return a.geosampa_id.localeCompare(b.geosampa_id, "pt-BR", { numeric: true });
       }
       const ta = parseInspectionTimestamp(treeById.get(a.geosampa_id)?.sisgau_last_inspection);
       const tb = parseInspectionTimestamp(treeById.get(b.geosampa_id)?.sisgau_last_inspection);
       const va = ta ?? -Infinity;
       const vb = tb ?? -Infinity;
-      if (va === vb) return 0;
+      if (va === vb) {
+        return a.geosampa_id.localeCompare(b.geosampa_id, "pt-BR", { numeric: true });
+      }
       return sortDir === "asc" ? va - vb : vb - va;
     });
   }, [baseFilteredGold, selectedTiers, sortKey, sortDir, treeById]);
@@ -366,7 +496,6 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
       "Arvore",
       "Distrito",
       "Prioridade",
-      "Indice",
       "Vento_kmh",
       "Chuva_mm",
       "Ultima_vistoria",
@@ -381,7 +510,6 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
         rec.geosampa_id,
         formatDistrictName(rec.distrito),
         formatPriorityTier(rec.priority_tier),
-        formatNumberPtBr(rec.composite_risk_score, 1),
         rec.wind_gust_kmh != null ? formatNumberPtBr(rec.wind_gust_kmh, 1) : "",
         rec.precipitation_mm != null ? formatNumberPtBr(rec.precipitation_mm, 1) : "",
         lastInspection,
@@ -674,7 +802,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
         className="rounded-md border border-[#D5E0D1] bg-white p-6 shadow-sm"
       >
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4 border-b border-[#E6ECE3] pb-4">
-          <div className="max-w-3xl space-y-1">
+          <div className="max-w-3xl space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-lg font-bold text-[#18241B]">
                 {isDemoBatch
@@ -694,17 +822,47 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                   <strong className="font-semibold text-[#18241B]">
                     {weatherObservedLabel ?? "última leitura climática"}
                   </strong>{" "}
-                  (serviço meteorológico Open-Meteo), aplicando valores de referência de vento e chuva por faixa de
-                  prioridade para ordenar vistorias de 0 a 100.
+                  (serviço meteorológico Open-Meteo), aplicando valores de referência de vento e
+                  chuva por faixa de prioridade para ordenar vistorias.
                 </>
               ) : (
-                <>
-                  Combina a proximidade dos galhos com a fiação e dados climáticos do serviço Open-Meteo
-                  {weatherObservedLabel ? ` (${weatherObservedLabel})` : ""} para gerar o índice de
-                  prioridade de 0 a 100.
-                </>
+                "A prioridade junta três sinais: o que as fotos mostram, há quanto tempo a árvore não recebe vistoria e a rajada de vento prevista para as próximas 48 horas."
               )}
             </p>
+            {!isDemoBatch &&
+              gold_records.length > 0 &&
+              stats.total_trees > gold_records.length && (
+                <p className="text-[13px] text-[#4A5D4E]">
+                  {gold_records.length} das {stats.total_trees} árvores da amostra estão na fila. As
+                  outras {stats.total_trees - gold_records.length} ficaram de fora porque o modelo
+                  teve pouca certeza nas fotos delas (menos de 70%) e aguardam revisão de uma
+                  pessoa.
+                </p>
+              )}
+            <details className="text-[13px] text-[#4A5D4E]">
+              <summary className="cursor-pointer select-none font-medium text-[#1B4332] hover:underline">
+                Como a prioridade é calculada
+              </summary>
+              <div className="mt-2 space-y-1.5 rounded border border-[#E6ECE3] bg-[#FAFBF9] p-3 leading-relaxed text-[#3D4F41]">
+                <p>
+                  O que mais pesa é o que aparece nas fotos: contato com a fiação pesa mais do que
+                  galhos perto dos fios, e árvores sem conflito ficam no menor nível.
+                </p>
+                <p>
+                  Árvores sem vistoria registrada há mais de 10 anos recebem um acréscimo, e a
+                  rajada de vento prevista para as próximas 48 horas aumenta a prioridade quando há
+                  vento forte ou reduz quando o vento está fraco.
+                </p>
+                <p>
+                  Urgente e Alta pedem vistoria ou poda antes das próximas tempestades; Média indica
+                  acompanhamento preventivo e Baixa indica ausência de urgência no momento.
+                </p>
+                <p>
+                  Quando a previsão de vento é parecida em todas as áreas, árvores com o mesmo
+                  resultado na foto e no histórico de vistoria ficam com a mesma prioridade.
+                </p>
+              </div>
+            </details>
           </div>
 
           {demoSeedEnabled && (
@@ -737,40 +895,82 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
               </span>
             </div>
             <div className="grid gap-3 md:grid-cols-3">
-              {topThreeGold.map((rec) => (
-                <div
-                  key={rec.geosampa_id}
-                  className="flex items-center justify-between gap-3 rounded border border-[#E6ECE3] bg-[#FAFBF9] px-3.5 py-2.5"
-                >
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-[#18241B]">
-                        #{rec.geosampa_id}
-                      </span>
-                      <span
-                        className={`rounded border px-1.5 py-0.5 text-xs font-semibold ${
-                          getPriorityTierStyle(rec.priority_tier).badge
-                        }`}
-                      >
-                        {formatPriorityTier(rec.priority_tier)}
-                      </span>
+              {topThreeGold.map((rec) => {
+                const tree = treeById.get(rec.geosampa_id);
+                const contactPoints = getContactStats(tree).points;
+                const photoReason = tree
+                  ? `${formatPhotoTriageReason(tree.v3_triage.raw_consolidated)}${
+                      contactPoints > 0
+                        ? `, em ${contactPoints} ${contactPoints === 1 ? "trecho" : "trechos"}`
+                        : ""
+                    }`
+                  : null;
+                const inspectionReason = formatInspectionReason(tree?.sisgau_last_inspection);
+                const windReason =
+                  rec.wind_gust_kmh !== null &&
+                  rec.wind_gust_kmh !== undefined &&
+                  Number.isFinite(rec.wind_gust_kmh)
+                    ? `Rajada de até ${formatNumberPtBr(rec.wind_gust_kmh, 0)} km/h prevista`
+                    : null;
+
+                return (
+                  <div
+                    key={rec.geosampa_id}
+                    className="flex flex-col justify-between gap-2.5 rounded border border-[#E6ECE3] bg-[#FAFBF9] px-3.5 py-3"
+                  >
+                    <div>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-[#18241B]">
+                            #{rec.geosampa_id}
+                          </span>
+                          <span
+                            className={`rounded border px-1.5 py-0.5 text-xs font-semibold ${
+                              getPriorityTierStyle(rec.priority_tier).badge
+                            }`}
+                          >
+                            {formatPriorityTier(rec.priority_tier)}
+                          </span>
+                          <span className="text-xs text-[#4A5D4E]">
+                            {formatDistrictName(rec.distrito)}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onNavigate("mapa", { geosampaId: rec.geosampa_id })}
+                          aria-label={`Ver árvore #${rec.geosampa_id} no mapa`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#1B4332] hover:underline"
+                        >
+                          <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          <span>Ver no mapa</span>
+                        </button>
+                      </div>
+
+                      <ul className="mt-2 space-y-1 text-xs text-[#3D4F41]">
+                        {photoReason && (
+                          <li className="flex items-center gap-1.5">
+                            <Camera className="h-3.5 w-3.5 shrink-0 text-[#4A5D4E]" aria-hidden="true" />
+                            <span>{photoReason}</span>
+                          </li>
+                        )}
+                        <li className="flex items-center gap-1.5">
+                          <Calendar
+                            className="h-3.5 w-3.5 shrink-0 text-[#4A5D4E]"
+                            aria-hidden="true"
+                          />
+                          <span>{inspectionReason}</span>
+                        </li>
+                        {windReason && (
+                          <li className="flex items-center gap-1.5">
+                            <Wind className="h-3.5 w-3.5 shrink-0 text-[#4A5D4E]" aria-hidden="true" />
+                            <span>{windReason}</span>
+                          </li>
+                        )}
+                      </ul>
                     </div>
-                    <p className="mt-0.5 text-xs text-[#4A5D4E]">
-                      {formatDistrictName(rec.distrito)}
-                    </p>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <ScoreBar score={rec.composite_risk_score} tier={rec.priority_tier} />
-                    <button
-                      type="button"
-                      onClick={() => onNavigate("mapa", { geosampaId: rec.geosampa_id })}
-                      className="text-xs font-semibold text-[#1B4332] hover:underline"
-                    >
-                      Ver no mapa
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -885,7 +1085,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
             </div>
 
             {sortedGoldRecords.length === 0 ? (
-              <div className="rounded border border-dashed border-[#C6DBC0] bg-[#F6F8F5] p-6 text-center">
+              <div className="flex min-h-[686px] flex-col items-center justify-center rounded border border-dashed border-[#C6DBC0] bg-[#F6F8F5] p-6 text-center">
                 <p className="text-sm font-medium text-[#18241B]">
                   Nenhuma árvore encontrada com esses filtros.
                 </p>
@@ -899,114 +1099,111 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                 </button>
               </div>
             ) : (
-              <>
-                <div className="max-h-[640px] overflow-auto rounded border border-[#E6ECE3]">
-                  <table className="w-full min-w-[960px] border-collapse text-left text-sm">
-                    <caption className="sr-only">
-                      Fila de trabalho para podas e vistorias priorizadas por risco visual e previsão climática
-                    </caption>
-                    <thead className="sticky top-0 z-10 border-b border-[#D5E0D1] bg-[#FAFBF9] text-[13px] text-[#4A5D4E]">
-                      <tr>
-                        <th scope="col" className="py-2.5 pl-3 pr-3 font-semibold">
-                          Árvore
-                        </th>
-                        <th scope="col" className="px-3 py-2.5 font-semibold">
-                          Distrito
-                        </th>
-                        <th scope="col" className="px-3 py-2.5 font-semibold">
-                          Prioridade
-                        </th>
-                        <th
-                          scope="col"
-                          aria-sort={
-                            sortKey === "score"
-                              ? sortDir === "asc"
-                                ? "ascending"
-                                : "descending"
-                              : "none"
-                          }
-                          className="px-3 py-2.5 text-right font-semibold"
+              <div className="min-h-[686px] overflow-x-auto rounded border border-[#E6ECE3]">
+                <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+                  <caption className="sr-only">
+                    Fila de trabalho para podas e vistorias priorizadas por risco visual e previsão climática
+                  </caption>
+                  <thead className="border-b border-[#D5E0D1] bg-[#FAFBF9] text-[13px] text-[#4A5D4E]">
+                    <tr className="h-11">
+                      <th scope="col" className="py-2.5 pl-3 pr-3 font-semibold">
+                        Árvore
+                      </th>
+                      <th scope="col" className="px-3 py-2.5 font-semibold">
+                        Distrito
+                      </th>
+                      <th
+                        scope="col"
+                        aria-sort={
+                          sortKey === "score"
+                            ? sortDir === "asc"
+                              ? "ascending"
+                              : "descending"
+                            : "none"
+                        }
+                        className="px-3 py-2.5 font-semibold"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSort("score")}
+                          className="inline-flex items-center gap-1 hover:text-[#18241B]"
                         >
-                          <button
-                            type="button"
-                            onClick={() => handleToggleSort("score")}
-                            className="inline-flex items-center gap-1 hover:text-[#18241B]"
-                          >
-                            <span>Índice</span>
-                            {renderSortIcon("score")}
-                          </button>
-                        </th>
-                        <th
-                          scope="col"
-                          aria-sort={
-                            sortKey === "wind"
-                              ? sortDir === "asc"
-                                ? "ascending"
-                                : "descending"
-                              : "none"
-                          }
-                          className="px-3 py-2.5 text-right font-semibold"
+                          <span>Prioridade</span>
+                          {renderSortIcon("score")}
+                        </button>
+                      </th>
+                      <th
+                        scope="col"
+                        aria-sort={
+                          sortKey === "wind"
+                            ? sortDir === "asc"
+                              ? "ascending"
+                              : "descending"
+                            : "none"
+                        }
+                        className="px-3 py-2.5 text-right font-semibold"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSort("wind")}
+                          className="inline-flex items-center gap-1 hover:text-[#18241B]"
                         >
-                          <button
-                            type="button"
-                            onClick={() => handleToggleSort("wind")}
-                            className="inline-flex items-center gap-1 hover:text-[#18241B]"
-                          >
-                            <span>Vento e chuva previstos</span>
-                            {renderSortIcon("wind")}
-                          </button>
-                        </th>
-                        <th
-                          scope="col"
-                          aria-sort={
-                            sortKey === "inspection"
-                              ? sortDir === "asc"
-                                ? "ascending"
-                                : "descending"
-                              : "none"
-                          }
-                          className="px-3 py-2.5 font-semibold"
+                          <span>Vento e chuva previstos</span>
+                          {renderSortIcon("wind")}
+                        </button>
+                      </th>
+                      <th
+                        scope="col"
+                        aria-sort={
+                          sortKey === "inspection"
+                            ? sortDir === "asc"
+                              ? "ascending"
+                              : "descending"
+                            : "none"
+                        }
+                        className="px-3 py-2.5 font-semibold"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSort("inspection")}
+                          className="inline-flex items-center gap-1 hover:text-[#18241B]"
                         >
-                          <button
-                            type="button"
-                            onClick={() => handleToggleSort("inspection")}
-                            className="inline-flex items-center gap-1 hover:text-[#18241B]"
-                          >
-                            <span>Última vistoria</span>
-                            {renderSortIcon("inspection")}
-                          </button>
-                        </th>
-                        <th scope="col" className="px-3 py-2.5 font-semibold">
-                          Análise da foto
-                        </th>
-                        <th scope="col" className="px-3 py-2.5 font-semibold">
-                          Encaminhamento sugerido
-                        </th>
-                        <th scope="col" className="py-2.5 pl-3 pr-3 text-right font-semibold">
-                          Ações
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#EEF2EC]">
-                      {pageGoldRecords.map((rec) => {
-                        const tree = treeById.get(rec.geosampa_id);
-                        const lastInspection = formatDatePtBr(tree?.sisgau_last_inspection);
-                        const photoMacro = tree?.v3_triage.consolidated ?? "SEGURO";
-                        const photoLabel = tree
-                          ? formatMacroTriageShort(tree.v3_triage.consolidated)
-                          : "Sem dados";
-                        const photoTitle = tree
-                          ? formatTriageLabel(tree.v3_triage.raw_consolidated)
-                          : undefined;
-                        return (
-                          <tr key={rec.geosampa_id} className="align-top hover:bg-[#F6F8F5]">
-                            <td className="py-3 pl-3 pr-3 font-mono text-[13px] font-semibold text-[#18241B]">
-                              #{rec.geosampa_id}
-                            </td>
-                            <td className="px-3 py-3 text-[13px] text-[#3D4F41]">
-                              {formatDistrictName(rec.distrito)}
-                            </td>
-                            <td className="px-3 py-3">
+                          <span>Última vistoria</span>
+                          {renderSortIcon("inspection")}
+                        </button>
+                      </th>
+                      <th scope="col" className="px-3 py-2.5 font-semibold">
+                        Análise da foto
+                      </th>
+                      <th scope="col" className="px-3 py-2.5 font-semibold">
+                        Encaminhamento sugerido
+                      </th>
+                      <th scope="col" className="py-2.5 pl-3 pr-3 text-right font-semibold">
+                        Ações
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#EEF2EC]">
+                    {pageGoldRecords.map((rec) => {
+                      const tree = treeById.get(rec.geosampa_id);
+                      const lastInspection = formatDatePtBr(tree?.sisgau_last_inspection);
+                      const photoMacro = tree?.v3_triage.consolidated ?? "SEGURO";
+                      const photoLabel = tree
+                        ? formatMacroTriageShort(tree.v3_triage.consolidated)
+                        : "Sem dados";
+                      const photoTitle = tree
+                        ? formatTriageLabel(tree.v3_triage.raw_consolidated)
+                        : undefined;
+                      return (
+                        <tr key={rec.geosampa_id} className="h-16 align-middle hover:bg-[#F6F8F5]">
+                          <td className="whitespace-nowrap py-2 pl-3 pr-3 font-mono text-[13px] font-semibold text-[#18241B]">
+                            #{rec.geosampa_id}
+                          </td>
+                          <td className="max-w-[160px] px-3 py-2 text-[13px] text-[#3D4F41]">
+                            <span className="line-clamp-2">{formatDistrictName(rec.distrito)}</span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="flex flex-col items-start gap-1.5">
                               <span
                                 className={`inline-block rounded border px-2 py-0.5 text-xs font-semibold ${
                                   getPriorityTierStyle(rec.priority_tier).badge
@@ -1014,78 +1211,97 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                               >
                                 {formatPriorityTier(rec.priority_tier)}
                               </span>
-                            </td>
-                            <td className="px-3 py-3 text-[13px]">
                               <ScoreBar score={rec.composite_risk_score} tier={rec.priority_tier} />
-                            </td>
-                            <td className="px-3 py-3 text-right text-[13px] tabular-nums text-[#4A5D4E]">
-                              <div>
-                                {rec.wind_gust_kmh !== null && rec.wind_gust_kmh !== undefined
-                                  ? `${formatNumberPtBr(rec.wind_gust_kmh, 1)} km/h`
-                                  : "—"}
-                              </div>
-                              <div className="text-xs">
-                                {rec.precipitation_mm !== null && rec.precipitation_mm !== undefined
-                                  ? `${formatNumberPtBr(rec.precipitation_mm, 1)} mm`
-                                  : "—"}
-                              </div>
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-[13px] tabular-nums text-[#3D4F41]">
-                              {lastInspection}
-                            </td>
-                            <td className="px-3 py-3">
-                              {tree ? (
-                                <span
-                                  title={photoTitle}
-                                  className={`inline-block rounded border px-2 py-0.5 text-xs font-semibold ${
-                                    PHOTO_TRIAGE_BADGE[photoMacro] ?? PHOTO_TRIAGE_BADGE.SEGURO
-                                  }`}
-                                >
-                                  {photoLabel}
-                                </span>
-                              ) : (
-                                <span className="text-xs text-[#4A5D4E]">—</span>
-                              )}
-                            </td>
-                            <td className="px-3 py-3 text-[13px] leading-relaxed text-[#3D4F41]">
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-right text-[13px] tabular-nums text-[#4A5D4E]">
+                            <div>
+                              {rec.wind_gust_kmh !== null && rec.wind_gust_kmh !== undefined
+                                ? `${formatNumberPtBr(rec.wind_gust_kmh, 1)} km/h`
+                                : "—"}
+                            </div>
+                            <div className="text-xs">
+                              {rec.precipitation_mm !== null && rec.precipitation_mm !== undefined
+                                ? `${formatNumberPtBr(rec.precipitation_mm, 1)} mm`
+                                : "—"}
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-[13px] tabular-nums text-[#3D4F41]">
+                            {lastInspection}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2">
+                            {tree ? (
+                              <span
+                                title={photoTitle}
+                                className={`inline-block rounded border px-2 py-0.5 text-xs font-semibold ${
+                                  PHOTO_TRIAGE_BADGE[photoMacro] ?? PHOTO_TRIAGE_BADGE.SEGURO
+                                }`}
+                              >
+                                {photoLabel}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-[#4A5D4E]">—</span>
+                            )}
+                          </td>
+                          <td className="max-w-[320px] px-3 py-2">
+                            <p
+                              title={rec.recommended_action}
+                              className="line-clamp-2 text-[13px] leading-snug text-[#3D4F41]"
+                            >
                               {rec.recommended_action}
-                            </td>
-                            <td className="whitespace-nowrap py-3 pl-3 pr-3 text-right text-[13px]">
-                              <div className="inline-flex items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  title="Ver no mapa"
-                                  aria-label={`Ver árvore #${rec.geosampa_id} no mapa`}
-                                  onClick={() => onNavigate("mapa", { geosampaId: rec.geosampa_id })}
-                                  className="inline-flex min-h-[30px] items-center gap-1 rounded border border-[#D5E0D1] bg-white px-2 py-1 text-xs font-medium text-[#1B4332] hover:border-[#2D6A4F] hover:bg-[#EEF4EC]"
-                                >
-                                  <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                                  <span className="hidden 2xl:inline">Ver no mapa</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  title="Perguntar ao assistente"
-                                  aria-label={`Perguntar ao assistente sobre a árvore #${rec.geosampa_id}`}
-                                  onClick={() =>
-                                    onNavigate("assistente", { geosampaId: rec.geosampa_id })
-                                  }
-                                  className="inline-flex min-h-[30px] items-center gap-1.5 rounded border border-[#2D6A4F] bg-white px-2 py-1 text-xs font-semibold text-[#1B4332] hover:bg-[#EEF4EC]"
-                                >
-                                  <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                                  <span className="hidden 2xl:inline">Perguntar ao assistente</span>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                            </p>
+                          </td>
+                          <td className="whitespace-nowrap py-2 pl-3 pr-3 text-right text-[13px]">
+                            <div className="inline-flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                title="Ver no mapa"
+                                aria-label={`Ver árvore #${rec.geosampa_id} no mapa`}
+                                onClick={() => onNavigate("mapa", { geosampaId: rec.geosampa_id })}
+                                className="inline-flex min-h-[30px] items-center gap-1 rounded border border-[#D5E0D1] bg-white px-2 py-1 text-xs font-medium text-[#1B4332] hover:border-[#2D6A4F] hover:bg-[#EEF4EC]"
+                              >
+                                <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                                <span className="hidden 2xl:inline">Ver no mapa</span>
+                              </button>
+                              <button
+                                type="button"
+                                title="Perguntar ao assistente"
+                                aria-label={`Perguntar ao assistente sobre a árvore #${rec.geosampa_id}`}
+                                onClick={() =>
+                                  onNavigate("assistente", { geosampaId: rec.geosampa_id })
+                                }
+                                className="inline-flex min-h-[30px] items-center gap-1.5 rounded border border-[#2D6A4F] bg-white px-2 py-1 text-xs font-semibold text-[#1B4332] hover:bg-[#EEF4EC]"
+                              >
+                                <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                                <span className="hidden 2xl:inline">Perguntar ao assistente</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {Array.from({ length: Math.max(0, PAGE_SIZE - pageGoldRecords.length) }).map(
+                      (_, idx) => (
+                        <tr key={`empty-row-${idx}`} aria-hidden="true" className="h-16">
+                          <td colSpan={8} className="h-16 px-3 py-2" />
+                        </tr>
+                      ),
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-                {/* Paginação */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[13px] text-[#4A5D4E]">
-                  <span className="tabular-nums">
+            {/* Paginação */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[13px] text-[#4A5D4E]">
+              <span className="tabular-nums">
+                {sortedGoldRecords.length === 0 ? (
+                  <>
+                    Mostrando <strong className="font-semibold text-[#18241B]">0</strong> de{" "}
+                    <strong className="font-semibold text-[#18241B]">0</strong>
+                  </>
+                ) : (
+                  <>
                     Mostrando{" "}
                     <strong className="font-semibold text-[#18241B]">
                       {startIdx + 1}–{endIdx}
@@ -1094,79 +1310,105 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                     <strong className="font-semibold text-[#18241B]">
                       {sortedGoldRecords.length.toLocaleString("pt-BR")}
                     </strong>
-                  </span>
+                  </>
+                )}
+              </span>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={safePage <= 1}
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      className="inline-flex min-h-[34px] items-center gap-1 rounded border border-[#D5E0D1] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:opacity-40"
-                    >
-                      <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-                      <span>Anterior</span>
-                    </button>
-                    <span className="tabular-nums text-xs font-medium text-[#18241B]">
-                      Página {safePage} de {totalPages}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={safePage >= totalPages}
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      className="inline-flex min-h-[34px] items-center gap-1 rounded border border-[#D5E0D1] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:opacity-40"
-                    >
-                      <span>Próxima</span>
-                      <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={safePage <= 1 || sortedGoldRecords.length === 0}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="inline-flex min-h-[34px] items-center gap-1 rounded border border-[#D5E0D1] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Anterior</span>
+                </button>
+                <span className="tabular-nums text-xs font-medium text-[#18241B]">
+                  Página {safePage} de {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={safePage >= totalPages || sortedGoldRecords.length === 0}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="inline-flex min-h-[34px] items-center gap-1 rounded border border-[#D5E0D1] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:opacity-40"
+                >
+                  <span>Próxima</span>
+                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </section>
 
-      {/* 3. Comparativo das 4 Regiões Analisadas (Seção plana com divisor) */}
+      {/* 3. Comparativo das Áreas Analisadas (Seção plana com divisor) */}
       <section className="space-y-4 border-t border-[#D5E0D1] pt-8">
         <div>
           <h2 className="text-lg font-bold text-[#18241B]">
-            Retrato comparativo das 4 áreas analisadas
+            {areaCount === 1
+              ? "Retrato comparativo da área analisada"
+              : `Retrato comparativo das ${areaCount} áreas analisadas`}
           </h2>
           <p className="text-sm text-[#4A5D4E]">
-            Pinheiros, Alto da Mooca e Vila Mariana possuem rede elétrica aérea; a Av. Paulista tem
-            rede subterrânea e atua como referência de controle. Cada área mostra uma amostra das
-            árvores cadastradas, não todas as árvores da região. Clique em uma linha para abrir a
-            região no mapa.
+            {aerialAreaNames.length > 0 && (
+              <>
+                {joinListPtBr(aerialAreaNames)}{" "}
+                {aerialAreaNames.length === 1 ? "possui" : "possuem"} rede elétrica aérea
+                {undergroundAreaNames.length > 0 ? "; " : ". "}
+              </>
+            )}
+            {undergroundAreaNames.length > 0 && (
+              <>
+                {joinListPtBr(undergroundAreaNames)}{" "}
+                {undergroundAreaNames.length === 1 ? "tem" : "têm"} fiação subterrânea.{" "}
+              </>
+            )}
+            Cada área mostra uma amostra das árvores cadastradas, não todas as árvores da região.
           </p>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+            <caption className="sr-only">
+              Comparativo das áreas analisadas com distribuição de risco visual e histórico de vistorias
+            </caption>
             <thead>
               <tr className="border-b border-[#D5E0D1] text-[13px] text-[#4A5D4E]">
-                <th className="py-2.5 pr-4 font-semibold">Região / recorte</th>
-                <th className="px-3 py-2.5 font-semibold">Rede elétrica</th>
-                <th className="px-3 py-2.5 text-right font-semibold">Cadastro da Prefeitura (GeoSampa)</th>
-                <th className="px-3 py-2.5 text-right font-semibold">Amostra avaliada</th>
-                <th className="px-3 py-2.5 text-right font-semibold">Risco crítico</th>
-                <th className="px-3 py-2.5 text-right font-semibold">
+                <th scope="col" className="py-2.5 pr-4 font-semibold">
+                  Área
+                </th>
+                <th scope="col" className="px-3 py-2.5 font-semibold">
+                  Rede elétrica
+                </th>
+                <th scope="col" className="px-3 py-2.5 text-right font-semibold">
+                  Árvores no cadastro da Prefeitura
+                </th>
+                <th scope="col" className="px-3 py-2.5 text-right font-semibold">
+                  Árvores analisadas (fotos)
+                </th>
+                <th scope="col" className="px-3 py-2.5 text-right font-semibold">
+                  Risco crítico
+                </th>
+                <th scope="col" className="px-3 py-2.5 text-right font-semibold">
                   {APP_LABELS.parallaxLabel}
                 </th>
-                <th className="px-3 py-2.5 text-right font-semibold">Atenção vento</th>
-                <th className="py-2.5 pl-4 text-right font-semibold">Sem conflito</th>
+                <th scope="col" className="px-3 py-2.5 text-right font-semibold">
+                  Atenção vento
+                </th>
+                <th scope="col" className="px-3 py-2.5 text-right font-semibold">
+                  Sem conflito
+                </th>
+                <th scope="col" className="py-2.5 pl-3 text-right font-semibold">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2EAE0]">
               {stats.district_breakdown.map((d) => (
-                <tr
-                  key={d.region_key}
-                  onClick={() => onNavigate("mapa", { regionKey: d.region_key })}
-                  className="cursor-pointer transition-colors hover:bg-white"
-                >
+                <tr key={d.region_key} className="transition-colors hover:bg-white">
                   <td className="py-3.5 pr-4">
-                    <div className="font-semibold text-[#1B4332] hover:underline">
-                      {d.region_label}
-                    </div>
+                    <div className="font-semibold text-[#18241B]">{d.region_label}</div>
                     <div className="text-xs text-[#4A5D4E]">
                       {d.sisgau_never_inspected_count} de {d.total_trees} sem vistoria registrada no
                       SISGAU
@@ -1180,7 +1422,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                           : "border-[#D5E0D1] bg-white text-[#2D4234]"
                       }`}
                     >
-                      {d.is_negative_control ? "Subterrânea (controle)" : "Aérea convencional"}
+                      {d.is_negative_control ? "Subterrânea" : "Aérea"}
                     </span>
                   </td>
                   <td className="px-3 py-3.5 text-right tabular-nums text-[#4A5D4E]">
@@ -1198,8 +1440,20 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                   <td className="px-3 py-3.5 text-right tabular-nums text-[#4A5D4E]">
                     {d.proximidade}
                   </td>
-                  <td className="py-3.5 pl-4 text-right font-semibold tabular-nums text-[#1B4332]">
+                  <td className="px-3 py-3.5 text-right font-semibold tabular-nums text-[#1B4332]">
                     {d.seguro}
+                  </td>
+                  <td className="whitespace-nowrap py-3.5 pl-3 text-right">
+                    <button
+                      type="button"
+                      title="Ver no mapa"
+                      aria-label={`Ver área ${d.region_label} no mapa`}
+                      onClick={() => onNavigate("mapa", { regionKey: d.region_key })}
+                      className="inline-flex min-h-[30px] items-center gap-1 rounded border border-[#D5E0D1] bg-white px-2 py-1 text-xs font-medium text-[#1B4332] hover:border-[#2D6A4F] hover:bg-[#EEF4EC]"
+                    >
+                      <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      <span className="hidden lg:inline">Ver no mapa</span>
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -1208,7 +1462,52 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
         </div>
       </section>
 
-      {/* 4. Procedência dos Dados: Fontes Oficiais vs. Análise Própria (Seção plana com divisor) */}
+      {/* 4. Impacto Urbano e ODS ONU */}
+      <section className="space-y-4 border-t border-[#D5E0D1] pt-8">
+        <h2 className="text-lg font-bold text-[#18241B]">
+          Contribuição urbana e Objetivos de Desenvolvimento Sustentável (ONU)
+        </h2>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="space-y-1.5 rounded-md border border-[#D5E0D1] bg-white p-5">
+            <p className="text-[13px] font-semibold text-[#2D6A4F]">
+              ODS 9: Infraestrutura resiliente
+            </p>
+            <p className="text-sm font-semibold text-[#18241B]">
+              Menos interrupções na rede elétrica aérea
+            </p>
+            <p className="text-[13px] leading-relaxed text-[#4A5D4E]">
+              Identificar o encontro entre galhos e cabos antes do rompimento ajuda a direcionar
+              manutenção e soluções como cabos protegidos nos trechos mais críticos.
+            </p>
+          </div>
+          <div className="space-y-1.5 rounded-md border border-[#D5E0D1] bg-white p-5">
+            <p className="text-[13px] font-semibold text-[#2D6A4F]">
+              ODS 11: Cidades sustentáveis
+            </p>
+            <p className="text-sm font-semibold text-[#18241B]">
+              Preservação das árvores e atendimento correto ao cidadão
+            </p>
+            <p className="text-[13px] leading-relaxed text-[#4A5D4E]">
+              Evita podas drásticas desnecessárias ao mesmo tempo em que informa à população quando
+              registrar um pedido preventivo no SP156 e quando ligar para Enel ou Bombeiros.
+            </p>
+          </div>
+          <div className="space-y-1.5 rounded-md border border-[#D5E0D1] bg-white p-5">
+            <p className="text-[13px] font-semibold text-[#2D6A4F]">
+              ODS 13: Ação climática
+            </p>
+            <p className="text-sm font-semibold text-[#18241B]">
+              Planejamento preventivo antes de temporais
+            </p>
+            <p className="text-[13px] leading-relaxed text-[#4A5D4E]">
+              Ao cruzar árvores próximas aos fios com previsões de vento forte e chuva intensa, o
+              sistema apoia ações antes da ocorrência de emergências.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Procedência dos Dados: Fontes Oficiais vs. Análise Própria (Seção plana com divisor) */}
       <section className="space-y-4 border-t border-[#D5E0D1] pt-8">
         <div>
           <h2 className="text-lg font-bold text-[#18241B]">
@@ -1222,23 +1521,38 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
 
         <div className="grid gap-8 md:grid-cols-2">
           <div className="space-y-3">
-            <span className="inline-block rounded border border-[#D5E0D1] bg-white px-2.5 py-0.5 text-xs font-semibold text-[#2D4234]">
-              Fontes externas e oficiais
-            </span>
-            <h3 className="text-base font-semibold text-[#18241B]">
-              Dados cadastrais, fotos de rua, clima e legislação vigente
-            </h3>
+            <div>
+              <h3 className="text-base font-semibold text-[#18241B]">
+                Fontes externas e oficiais
+              </h3>
+              <p className="mt-0.5 text-sm text-[#4A5D4E]">
+                Cadastro de árvores, fotos de rua, clima e legislação.
+              </p>
+            </div>
             <ul className="space-y-2.5 text-sm leading-relaxed text-[#3D4F41]">
               <li>
                 <strong className="font-semibold text-[#18241B]">
                   GeoSampa e SISGAU (Prefeitura de São Paulo):
                 </strong>{" "}
-                cadastro público de localização das árvores (GeoSampa) e histórico oficial de vistorias (SISGAU). Nos 4 trechos selecionados, o cadastro
-                soma mais de 8 mil árvores; na amostra avaliada,{" "}
+                cadastro público de localização das árvores (GeoSampa) e histórico oficial de
+                vistorias (SISGAU).{" "}
+                {areaCount === 1
+                  ? "No trecho selecionado"
+                  : `Nos ${areaCount} trechos selecionados`}
+                , o cadastro soma{" "}
+                {thousandsFloor >= 1
+                  ? `mais de ${thousandsFloor.toLocaleString("pt-BR")} mil`
+                  : totalGeosampaTrees.toLocaleString("pt-BR")}{" "}
+                árvores; na amostra avaliada,{" "}
                 <strong>
                   {neverInspectedPct} ({stats.sisgau_never_inspected_count} de {stats.total_trees})
                 </strong>{" "}
-                não trazem data de vistoria registrada e as datas presentes vão de 2012 a 2017.
+                não trazem data de vistoria registrada
+                {inspectionYearRange
+                  ? inspectionYearRange.min === inspectionYearRange.max
+                    ? ` e as datas presentes são de ${inspectionYearRange.min}.`
+                    : ` e as datas presentes vão de ${inspectionYearRange.min} a ${inspectionYearRange.max}.`
+                  : "."}
               </li>
               <li>
                 <strong className="font-semibold text-[#18241B]">Google Street View:</strong>{" "}
@@ -1246,25 +1560,29 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                 para observar a copa da árvore em relação aos cabos.
               </li>
               <li>
-                <strong className="font-semibold text-[#18241B]">Open-Meteo:</strong> serviço de dados
-                meteorológicos com previsão e leitura de rajadas de vento (km/h) e volume de chuva (mm) por região.
+                <strong className="font-semibold text-[#18241B]">Open-Meteo:</strong> serviço de
+                dados meteorológicos com previsão e leitura de rajadas de vento (km/h) e volume de
+                chuva (mm) por região.
               </li>
               <li>
                 <strong className="font-semibold text-[#18241B]">Normas e canais oficiais:</strong>{" "}
-                Lei Municipal SP nº 17.794/2022, Decreto nº 61.859/2022, Manual Técnico de Poda SVMA,
-                ABNT NBR 16246-1/2/3 e atendimentos SP156, Enel (0800 72 72 196), Defesa Civil (199)
-                e Bombeiros (193).
+                Lei Municipal SP nº 17.794/2022, Decreto nº 61.859/2022, Manual Técnico de Poda
+                SVMA, ABNT NBR 16246-1/2/3 e atendimentos SP156, Enel (0800 72 72 196), Defesa Civil
+                (199) e Bombeiros (193).
               </li>
             </ul>
           </div>
 
           <div className="space-y-3 border-t border-[#E6ECE3] pt-5 md:border-l md:border-t-0 md:pl-8 md:pt-0">
-            <span className="inline-block rounded border border-[#C6DBC0] bg-[#EEF4EC] px-2.5 py-0.5 text-xs font-semibold text-[#1B4332]">
-              Análise do projeto (amostra de {stats.total_trees} árvores)
-            </span>
-            <h3 className="text-base font-semibold text-[#18241B]">
-              Diagnóstico visual multi-ângulo e índice de prioridade
-            </h3>
+            <div>
+              <h3 className="text-base font-semibold text-[#18241B]">
+                O que a análise encontrou
+              </h3>
+              <p className="mt-0.5 text-sm text-[#4A5D4E]">
+                Resultado do modelo nas {stats.total_trees.toLocaleString("pt-BR")} árvores da
+                amostra.
+              </p>
+            </div>
             <ul className="space-y-2.5 text-sm leading-relaxed text-[#3D4F41]">
               <li>
                 <strong className="font-semibold text-[#18241B]">
@@ -1288,60 +1606,20 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                 e apenas o olhar lateral mostrou o contato real, evitando subestimar riscos na
                 triagem.
               </li>
-              <li>
-                <strong className="font-semibold text-[#18241B]">
-                  Controle negativo na Av. Paulista:
-                </strong>{" "}
-                {paulistaRow
-                  ? `Na Av. Paulista a fiação é subterrânea, então o esperado é quase nenhum alerta. Das ${paulistaRow.total_trees} árvores, o modelo atual marca ${paulistaRow.critico_confirmado} como críticas nos dois ângulos, todas em cruzamentos com ruas que ainda têm fiação aérea, e outras ${Math.max(0, paulistaRow.critico_total - paulistaRow.critico_confirmado)} em um ângulo só. A versão anterior marcava 14. Nas 65 árvores que o modelo nunca viu no treino, os falsos alertas de fiação caíram 41,8%.`
-                  : "Na Av. Paulista a fiação é subterrânea, então o esperado é quase nenhum alerta. Das 74 árvores, o modelo atual marca 3 como críticas nos dois ângulos, todas em cruzamentos com ruas que ainda têm fiação aérea, e outras 6 em um ângulo só. A versão anterior marcava 14. Nas 65 árvores que o modelo nunca viu no treino, os falsos alertas de fiação caíram 41,8%."}
-              </li>
+              {paulistaRow && (
+                <li>
+                  <strong className="font-semibold text-[#18241B]">
+                    Av. Paulista, onde a fiação é subterrânea:
+                  </strong>{" "}
+                  O esperado é quase nenhum alerta. Das {paulistaRow.total_trees} árvores, o modelo
+                  atual marca {paulistaRow.critico_confirmado} como críticas nos dois ângulos, todas
+                  em cruzamentos com ruas que ainda têm fiação aérea, e outras{" "}
+                  {Math.max(0, paulistaRow.critico_total - paulistaRow.critico_confirmado)} em um
+                  ângulo só. A versão anterior marcava 14. Nas 65 árvores que o modelo nunca viu no
+                  treino, os falsos alertas de fiação caíram 41,8%.
+                </li>
+              )}
             </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. Impacto Urbano e ODS ONU (Seção plana com divisor) */}
-      <section className="space-y-4 border-t border-[#D5E0D1] pt-8">
-        <h2 className="text-base font-bold text-[#18241B]">
-          Contribuição urbana e Objetivos de Desenvolvimento Sustentável (ONU)
-        </h2>
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="space-y-1.5">
-            <p className="text-[13px] font-semibold text-[#2D6A4F]">
-              ODS 9: Infraestrutura resiliente
-            </p>
-            <p className="text-sm font-semibold text-[#18241B]">
-              Menos interrupções na rede elétrica aérea
-            </p>
-            <p className="text-[13px] leading-relaxed text-[#4A5D4E]">
-              Identificar o encontro entre galhos e cabos antes do rompimento ajuda a direcionar
-              manutenção e soluções como cabos protegidos nos trechos mais críticos.
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <p className="text-[13px] font-semibold text-[#2D6A4F]">
-              ODS 11: Cidades sustentáveis
-            </p>
-            <p className="text-sm font-semibold text-[#18241B]">
-              Preservação das árvores e atendimento correto ao cidadão
-            </p>
-            <p className="text-[13px] leading-relaxed text-[#4A5D4E]">
-              Evita podas drásticas desnecessárias ao mesmo tempo em que informa à população quando
-              registrar um pedido preventivo no SP156 e quando ligar para Enel ou Bombeiros.
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <p className="text-[13px] font-semibold text-[#2D6A4F]">
-              ODS 13: Ação climática
-            </p>
-            <p className="text-sm font-semibold text-[#18241B]">
-              Planejamento preventivo antes de temporais
-            </p>
-            <p className="text-[13px] leading-relaxed text-[#4A5D4E]">
-              Ao cruzar árvores próximas aos fios com previsões de vento forte e chuva intensa, o
-              sistema apoia ações antes da ocorrência de emergências.
-            </p>
           </div>
         </div>
       </section>

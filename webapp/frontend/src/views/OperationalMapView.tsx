@@ -366,8 +366,10 @@ export function OperationalMapView({
       marker.bindTooltip(
         `<strong>Árvore #${tree.geosampa_id}</strong>, ${formatDistrictName(tree.distrito)}<br/>${labelStatus}${
           gold
-            ? `<br/>Prioridade climática: ${formatPriorityTier(gold.priority_tier)} (${formatNumberPtBr(gold.composite_risk_score, 1)}/100)`
-            : ""
+            ? `<br/>Prioridade: ${formatPriorityTier(gold.priority_tier)}`
+            : data.gold_records.length > 0
+              ? "<br/>Fora da fila: aguarda revisão"
+              : ""
         }`,
         { direction: "top" },
       );
@@ -539,10 +541,8 @@ export function OperationalMapView({
                             }`}
                           >
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                              <span className={`font-semibold tabular-nums ${tierStyle.title}`}>
-                                Prioridade climática (
-                                {formatNumberPtBr(selectedGold.composite_risk_score, 1)}/100,{" "}
-                                {formatPriorityTier(selectedGold.priority_tier)})
+                              <span className={`font-semibold ${tierStyle.title}`}>
+                                Prioridade: {formatPriorityTier(selectedGold.priority_tier)}
                               </span>
                               <span className="inline-flex items-center gap-2 tabular-nums text-[#3D4F41]">
                                 <span className="inline-flex items-center gap-1">
@@ -828,7 +828,7 @@ export function OperationalMapView({
                                 : "border-[#C6DBC0] bg-white text-[#1B4332]"
                             }`}
                           >
-                            {reg.is_negative_control ? "Subterrânea (controle)" : "Rede aérea"}
+                            {reg.is_negative_control ? "Subterrânea" : "Rede aérea"}
                           </span>
                         </div>
 
