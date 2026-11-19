@@ -151,8 +151,14 @@ _EMERGENCY_TERMS = (
     "desab",
     "caiu",
 )
+# Negacoes ("sem faisca", "nao tem faisca", "nao ha faiscas nem curto-circuito", "nao tem ninguem ferido")
+# nao contam como sinal de emergencia. Ate 2 palavras entre a negacao e o termo; um termo sem negacao
+# na mesma frase ("nao tem faisca, mas saiu fogo") continua valendo.
 _NEGATED_EMERGENCY_RE = re.compile(
-    r"\b(?:sem|nao\s+ha|nenhum[a]?)\s+(?:faisc\w*|fogo|incendi\w*|estalo\w*|curto|cabo\s+rompid\w*|fio\s+partid\w*)"
+    r"\b(?:sem|nem|nenhum[a]?|nao\s+(?:ha|tem|teve|houve|existe|existem|vi|vejo|esta|estao))\s+"
+    r"(?:\w+\s+){0,2}?"
+    r"(?:faisc\w*|fogo|incendi\w*|chama\w*|estalo\w*|curto\w*|cabo\w*\s+(?:caid\w*|rompid\w*)"
+    r"|fio\w*\s+(?:caid\w*|partid\w*|rompid\w*)|ferid\w*|pres[oa]s?)"
 )
 
 _TRIAGE_HUMAN_LABELS: dict[str, str] = {

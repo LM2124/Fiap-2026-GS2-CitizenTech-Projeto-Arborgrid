@@ -655,3 +655,64 @@ def test_public_map_bootstrap_omits_audit_actor_hash(tmp_path: Path) -> None:
         r_priv = client.get("/api/v1/gold/risk-scores", headers=headers)
         assert r_priv.status_code == 200
         assert r_priv.json()["items"][0]["audit_actor_hash"] == "sha256-operador-privado"
+
+
+def test_negated_emergency_terms_do_not_force_emergency(tmp_path: Path, monkeypatch) -> None:
+    """'nao tem faisca' e 'nem curto-circuito' sao negacoes: a resposta preventiva do LLM deve ser mantida."""
+    from app.services.assistant_service import _EMERGENCY_TERMS, _NEGATED_EMERGENCY_RE, _normalize_text
+
+    def sinal(pergunta: str) -> list[str]:
+        limpa = _NEGATED_EMERGENCY_RE.sub(" ", _normalize_text(pergunta))
+        return [t for t in _EMERGENCY_TERMS if t in limpa]
+
+    preventivas = [
+        "A árvore em frente de casa está encostando nos fios, mas não tem faísca. Como peço a poda?",
+        "A árvore cresceu perto dos fios, mas não há faíscas nem curto-circuito. Como pedir poda preventiva?",
+        "Galho encostado na fiação, sem faísca e sem nenhum fio partido.",
+        "Não tem ninguém ferido, só um galho grande perto do fio.",
+    ]
+    emergencias = [
+        "Tem uma árvore soltando faíscas nos fios agora!",
+        "Não tem faísca, mas começou a sair fogo do poste.",
+        "Não sei se é faísca, mas tem um barulho estranho no fio.",
+        "A árvore caiu em cima do fio na tempestade.",
+    ]
+    for pergunta in preventivas:
+        assert sinal(pergunta) == [], pergunta
+    for pergunta in emergencias:
+        assert sinal(pergunta), pergunta
+
+    class _FakeResponse:
+        def __init__(self, payload: dict) -> None:
+            self._data = json.dumps(payload).encode("utf-8")
+
+        def read(self) -> bytes:
+            return self._data
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> bool:
+            return False
+
+    with _make_client(tmp_path) as client:
+        service = client.app.state.assistant_service
+        chunks = [dict(c) for c in service.chunks[:2]]
+        preventiva = {
+            "status": "respondido",
+            "nivel_risco": "preventivo_rotina",
+            "orgao_responsavel": "Prefeitura de Sao Paulo",
+            "telefone_ou_canal": "Portal SP156 (156)",
+            "pode_podar_por_conta": False,
+            "acao_imediata": "Solicite a poda preventiva pelo Portal SP156 (156).",
+            "fontes": [chunks[0]["chunk_id"]],
+        }
+        monkeypatch.setattr(
+            urllib.request,
+            "urlopen",
+            lambda req, timeout=25.0: _FakeResponse({"choices": [{"message": {"content": json.dumps(preventiva)}}]}),
+        )
+        res = service._call_local_qwen(preventivas[0], chunks, None)
+        assert res is not None
+        assert res["nivel_risco"] == "preventivo_rotina"
+        assert "156" in res["acao_imediata"]
