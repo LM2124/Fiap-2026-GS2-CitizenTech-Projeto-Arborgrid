@@ -114,7 +114,7 @@ Manter a stack 10 dias para a apresentação e a correção custa **~\$34,40**; 
 
 [`.github/workflows/devsecops.yml`](../.github/workflows/devsecops.yml), a cada push e pull request na `main`:
 
-1. **Testes e segredos:** Gitleaks no histórico, build do frontend com checagem de tipos (`tsc -b && vite build`), `pytest` e Semgrep (`p/python`, `p/dockerfile`, `p/terraform`, `p/secrets`). Qualquer achado barra o pipeline.
+1. **Testes e segredos:** Gitleaks nos commits de cada push ou PR, build do frontend com checagem de tipos (`tsc -b && vite build`), `pytest` e Semgrep (`p/python`, `p/dockerfile`, `p/terraform`, `p/secrets`). Qualquer achado barra o pipeline.
 2. **Imagem única:** build multi-stage (Node compila o SPA, Python instala dependências, a imagem final é slim e sem root), Trivy no IaC/Dockerfile e na imagem (`CRITICAL,HIGH` barram). Na `main`, a **mesma** imagem escaneada é publicada no Artifact Registry e o job repassa o **digest imutável** (`@sha256:…`) ao deploy.
 3. **Autenticação sem segredo:** o runner troca o token OIDC do GitHub por credenciais de curta duração via **Workload Identity Federation**; o provedor só aceita este repositório na branch `main` ([`terraform/cicd.tf`](terraform/cicd.tf)).
 4. **Acesso SSH efêmero:** o job gera um par de chaves, registra a pública no **OS Login** da service account por 30 minutos, busca a *host key* nos *guest attributes* da VM pela API autenticada (sem TOFU; um serviço `systemd` instalado pelo bootstrap as publica a cada boot) e entra pelo túnel do **IAP**. No fim, a chave é revogada.
