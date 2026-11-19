@@ -128,6 +128,39 @@ else
 fi
 # O container roda como UID 10001 e monta as midias somente leitura
 sudo chmod -R a+rX /opt/arborgrid/media /opt/arborgrid/llm_models /opt/arborgrid/vision_models
+
+# Chaves de host nos guest attributes a cada boot: o CI as le pela API autenticada e fixa a
+# chave do servidor sem TOFU. (O agente do Google so as publica no 1o boot de uma VM criada
+# com enable-guest-attributes; este servico cobre VMs que ganharam a opcao depois.)
+sudo tee /usr/local/sbin/arborgrid-publish-hostkeys > /dev/null <<'SH'
+#!/bin/sh
+set -eu
+for f in /etc/ssh/ssh_host_*_key.pub; do
+  [ -f "$f" ] || continue
+  type=$(cut -d' ' -f1 "$f")
+  key=$(cut -d' ' -f2 "$f")
+  curl -fsS -X PUT --data "$key" -H 'Metadata-Flavor: Google' \\
+    "http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/hostkeys/$type"
+done
+SH
+sudo chmod 755 /usr/local/sbin/arborgrid-publish-hostkeys
+sudo tee /etc/systemd/system/arborgrid-publish-hostkeys.service > /dev/null <<'UNIT'
+[Unit]
+Description=Publica as chaves de host do SSH nos guest attributes (CI fixa a chave sem TOFU)
+After=network-online.target google-guest-agent.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/arborgrid-publish-hostkeys
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+sudo systemctl daemon-reload
+sudo systemctl enable --now arborgrid-publish-hostkeys.service
+echo "[hostkeys] Publicadas:"
+for f in /etc/ssh/ssh_host_*_key.pub; do ssh-keygen -lf "$f"; done
 """
     print(f"[bootstrap] Preparando {vm.name} pelo tunel do IAP...")
     vm.run_script(script)

@@ -212,7 +212,7 @@ jobs:
             --query-path=hostkeys/ --format='value(key,value)' \
             | awk '{print "arborgrid-vm", $1, $2}' > ~/.ssh/known_hosts
           if ! ssh-keygen -l -f ~/.ssh/known_hosts; then
-            echo "::error::Sem chaves de host nos guest attributes da VM (metadata enable-guest-attributes=TRUE?)."
+            echo "::error::Sem chaves de host nos guest attributes da VM. Rode uma vez: python scripts/deploy_vm.py bootstrap (instala o servico que as publica a cada boot)."
             exit 1
           fi
           cat > ~/.ssh/config <<EOF
