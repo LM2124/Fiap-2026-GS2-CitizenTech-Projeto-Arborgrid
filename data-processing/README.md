@@ -13,7 +13,9 @@ data-processing/
     ├── airflow/                 # docker-compose do Airflow (LocalExecutor)
     ├── chegada/                 # Um arquivo por coleta e por fonte, com a data no nome (JSON Lines)
     ├── databricks/              # 00 setup · 01 Bronze (Auto Loader) · 02 Prata (qualidade + MERGE) · 03 Ouro (estrela + LGPD) · 04 consultas · 05 contrato MVP
-    └── amostras/                # Amostras das três fontes e o lote Gold exportado no contrato do MVP
+    ├── amostras/                # Amostras das três fontes e o lote Gold exportado no contrato do MVP
+    ├── scripts/                 # enviar_ouro_mvp.py: publica o lote Gold em POST /api/v1/gold/risk-scores
+    └── README.md                # Documentação completa do pipeline (Requisitos 01-09)
 ```
 
 ---
