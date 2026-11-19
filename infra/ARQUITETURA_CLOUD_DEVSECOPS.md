@@ -131,6 +131,9 @@ Manter a stack 10 dias para a apresentação e a correção custa **~\$34,40**; 
 #    da Resource Manager e da Service Usage para comecar; as demais o Terraform tambem declara, mas
 #    ativa-las aqui evita a janela de propagacao (o Terraform ainda espera 90 s via time_sleep).
 gcloud services enable cloudresourcemanager.googleapis.com serviceusage.googleapis.com compute.googleapis.com   artifactregistry.googleapis.com iap.googleapis.com iam.googleapis.com iamcredentials.googleapis.com   oslogin.googleapis.com sts.googleapis.com
+#    A rede default vem com quatro regras do Google, entre elas SSH (22) e RDP (3389) abertos para 0.0.0.0/0;
+#    elas valem para todas as VMs da rede, então são apagadas (o Terraform cria só as duas regras do projeto).
+gcloud compute firewall-rules delete default-allow-ssh default-allow-rdp default-allow-icmp default-allow-internal --quiet
 #    SA do Terraform com papéis mínimos: Compute Admin, Service Account Admin, Service Account User,
 #    Project IAM Admin, Workload Identity Pool Admin, IAP Policy Admin, Service Usage Admin,
 #    Artifact Registry Admin; e Storage Object Admin no bucket de estado.
