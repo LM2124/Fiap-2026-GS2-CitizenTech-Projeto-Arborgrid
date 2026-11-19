@@ -48,8 +48,28 @@ export interface VisionInferenceResult {
   };
 }
 
+const MODEL_CACHE_NAME = "arborgrid-vision-onnx-v1";
+
+export type OnnxProgressListener = (loadedMb: number, totalMb: number, statusText: string) => void;
+
 let cachedSession: ort.InferenceSession | null = null;
 let sessionPromise: Promise<ort.InferenceSession> | null = null;
+let lastProgress: { loadedMb: number; totalMb: number; statusText: string } | null = null;
+const progressListeners = new Set<OnnxProgressListener>();
+
+export function isOnnxSessionReady(): boolean {
+  return cachedSession !== null;
+}
+
+export function subscribeOnnxProgress(listener: OnnxProgressListener): () => void {
+  progressListeners.add(listener);
+  if (lastProgress) {
+    listener(lastProgress.loadedMb, lastProgress.totalMb, lastProgress.statusText);
+  }
+  return () => {
+    progressListeners.delete(listener);
+  };
+}
 
 function getRuntimeThreads(): { threads: number; isolated: boolean } {
   const isolated = typeof self !== "undefined" && Boolean(self.crossOriginIsolated);
@@ -71,65 +91,128 @@ function configureOrtEnv(): { threads: number; isolated: boolean } {
 
 export async function ensureOnnxSession(
   modelUrl: string,
-  onProgress?: (loadedMb: number, totalMb: number, statusText: string) => void,
+  onProgress?: OnnxProgressListener,
+  cacheVersion?: string,
 ): Promise<ort.InferenceSession> {
   if (cachedSession) return cachedSession;
-  if (sessionPromise) return sessionPromise;
 
-  sessionPromise = (async () => {
-    configureOrtEnv();
-    onProgress?.(0, 51.8, "Preparando ferramenta de análise visual...");
+  let unsub: (() => void) | null = null;
+  if (onProgress) {
+    unsub = subscribeOnnxProgress(onProgress);
+  }
 
-    const response = await fetch(modelUrl);
-    if (!response.ok) {
-      throw new Error(`Falha ao preparar análise visual (HTTP ${response.status}).`);
+  const emitProgress = (loadedMb: number, totalMb: number, statusText: string) => {
+    lastProgress = { loadedMb, totalMb, statusText };
+    for (const listener of progressListeners) {
+      listener(loadedMb, totalMb, statusText);
     }
+  };
 
-    const totalBytes = Number(response.headers.get("content-length") || 54289646);
-    const totalMb = totalBytes / (1024 * 1024);
+  if (!sessionPromise) {
+    sessionPromise = (async () => {
+      configureOrtEnv();
+      emitProgress(0, 51.8, "Preparando ferramenta de análise visual...");
 
-    let buffer: Uint8Array;
-    if (response.body) {
-      const reader = response.body.getReader();
-      const chunks: Uint8Array[] = [];
-      let received = 0;
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-          chunks.push(value);
-          received += value.length;
-          onProgress?.(
-            received / (1024 * 1024),
-            totalMb,
-            "Preparando ferramenta de análise visual...",
-          );
+      const cacheKey = cacheVersion
+        ? `${modelUrl}${modelUrl.includes("?") ? "&" : "?"}v=${encodeURIComponent(cacheVersion)}`
+        : modelUrl;
+
+      let buffer: Uint8Array | null = null;
+
+      if (typeof caches !== "undefined") {
+        try {
+          const cache = await caches.open(MODEL_CACHE_NAME);
+          const cachedResp = await cache.match(cacheKey);
+          if (cachedResp && cachedResp.ok) {
+            const ab = await cachedResp.arrayBuffer();
+            if (ab.byteLength > 0) {
+              buffer = new Uint8Array(ab);
+              const mb = buffer.byteLength / (1024 * 1024);
+              emitProgress(mb, mb, "Inicializando análise visual...");
+            }
+          }
+        } catch {
+          buffer = null;
         }
       }
-      buffer = new Uint8Array(received);
-      let offset = 0;
-      for (const chunk of chunks) {
-        buffer.set(chunk, offset);
-        offset += chunk.length;
-      }
-    } else {
-      buffer = new Uint8Array(await response.arrayBuffer());
-    }
 
-    onProgress?.(totalMb, totalMb, "Inicializando análise visual...");
-    const session = await ort.InferenceSession.create(buffer, {
-      executionProviders: ["wasm"],
-      graphOptimizationLevel: "all",
-    });
-    cachedSession = session;
-    return session;
-  })();
+      if (!buffer) {
+        const response = await fetch(modelUrl);
+        if (!response.ok) {
+          throw new Error(`Falha ao preparar análise visual (HTTP ${response.status}).`);
+        }
+
+        const totalBytes = Number(response.headers.get("content-length") || 54289646);
+        const totalMb = totalBytes / (1024 * 1024);
+
+        if (response.body) {
+          const reader = response.body.getReader();
+          const chunks: Uint8Array[] = [];
+          let received = 0;
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value) {
+              chunks.push(value);
+              received += value.length;
+              emitProgress(
+                received / (1024 * 1024),
+                totalMb,
+                "Preparando ferramenta de análise visual...",
+              );
+            }
+          }
+          buffer = new Uint8Array(received);
+          let offset = 0;
+          for (const chunk of chunks) {
+            buffer.set(chunk, offset);
+            offset += chunk.length;
+          }
+        } else {
+          buffer = new Uint8Array(await response.arrayBuffer());
+        }
+
+        if (typeof caches !== "undefined") {
+          try {
+            const cache = await caches.open(MODEL_CACHE_NAME);
+            const copy = new ArrayBuffer(buffer.byteLength);
+            new Uint8Array(copy).set(buffer);
+            await cache.put(
+              cacheKey,
+              new Response(copy, {
+                status: 200,
+                headers: {
+                  "Content-Type": "application/octet-stream",
+                  "Content-Length": String(buffer.byteLength),
+                },
+              }),
+            );
+          } catch {
+            // Ignora erro de Cache Storage (cota ou modo privado)
+          }
+        }
+
+        emitProgress(totalMb, totalMb, "Inicializando análise visual...");
+      }
+
+      const session = await ort.InferenceSession.create(buffer, {
+        executionProviders: ["wasm"],
+        graphOptimizationLevel: "all",
+      });
+      cachedSession = session;
+      lastProgress = null;
+      return session;
+    })();
+  }
 
   try {
     return await sessionPromise;
   } catch (err) {
     sessionPromise = null;
+    lastProgress = null;
     throw err;
+  } finally {
+    unsub?.();
   }
 }
 

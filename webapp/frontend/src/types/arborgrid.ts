@@ -94,6 +94,7 @@ export interface GoldRiskRecord {
   recommended_action: string;
   batch_id?: string;
   ingested_at_utc?: string;
+  is_demo?: boolean;
 }
 
 export interface GoldSummary {
@@ -125,6 +126,9 @@ export interface MapBootstrapPayload {
   gold_layer: GoldSummary;
   gold_scores_by_tree: Record<string, GoldRiskRecord>;
   gold_records: GoldRiskRecord[];
+  features?: {
+    demo_seed_enabled: boolean;
+  };
 }
 
 export interface VisionSampleItem {
@@ -148,6 +152,8 @@ export interface VisionSamplesPayload {
   model_available: boolean;
   model_size_mb: number;
   model_url: string;
+  model_etag?: string;
+  model_version?: string;
   samples: VisionSampleItem[];
 }
 

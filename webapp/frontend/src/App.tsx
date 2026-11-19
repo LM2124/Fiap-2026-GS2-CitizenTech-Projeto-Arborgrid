@@ -1,12 +1,25 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Navbar, type AppTab } from "./components/Navbar";
-import { fetchBootstrap, seedGoldDemo } from "./services/api";
+import {
+  fetchBootstrap,
+  fetchVisionSamples,
+  formatFriendlyError,
+  seedGoldDemo,
+} from "./services/api";
 import type { MapBootstrapPayload } from "./types/arborgrid";
+import { ensureOnnxSession } from "./utils/visionOrt";
 import { CopilotView } from "./views/CopilotView";
 import { HomeBIView } from "./views/HomeBIView";
 import { OperationalMapView } from "./views/OperationalMapView";
 import { VisionLabView } from "./views/VisionLabView";
+
+const TAB_TITLES: Record<AppTab, string> = {
+  bi: "Visão Geral — ArborGrid SP",
+  mapa: "Mapa de Vistorias — ArborGrid SP",
+  visao: "Análise de Imagem — ArborGrid SP",
+  assistente: "Assistente — ArborGrid SP",
+};
 
 function readInitialTab(): AppTab {
   const path = window.location.pathname.toLowerCase();
@@ -43,6 +56,8 @@ export function App() {
   const [focusRegionKey, setFocusRegionKey] = useState<string | null>(initialQuery.regionKey);
   const [assistantPrompt, setAssistantPrompt] = useState<string | null>(initialQuery.prompt);
 
+  const prewarmStartedRef = useRef(false);
+
   const loadBootstrap = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -50,7 +65,7 @@ export function App() {
       const payload = await fetchBootstrap();
       setData(payload);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatFriendlyError(err));
     } finally {
       setLoading(false);
     }
@@ -60,20 +75,66 @@ export function App() {
     void loadBootstrap();
   }, [loadBootstrap]);
 
+  // Pré-aquece a sessão ONNX em segundo plano após carregar o bootstrap
+  useEffect(() => {
+    if (!data || prewarmStartedRef.current) return;
+    prewarmStartedRef.current = true;
+
+    const startPrewarm = () => {
+      void fetchVisionSamples()
+        .then((res) => {
+          if (res.model_available) {
+            const versionTag = res.model_etag || res.model_version || res.model_variant;
+            void ensureOnnxSession(res.model_url, undefined, versionTag).catch(() => {});
+          }
+        })
+        .catch(() => {});
+    };
+
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    if (typeof win.requestIdleCallback === "function") {
+      const idleId = win.requestIdleCallback(startPrewarm, { timeout: 2500 });
+      return () => win.cancelIdleCallback?.(idleId);
+    }
+    const timerId = window.setTimeout(startPrewarm, 800);
+    return () => window.clearTimeout(timerId);
+  }, [data]);
+
+  useEffect(() => {
+    document.title = TAB_TITLES[activeTab];
+  }, [activeTab]);
+
   useEffect(() => {
     const onPopState = () => {
-      setActiveTab(readInitialTab());
+      const nextTab = readInitialTab();
+      setActiveTab((prev) => {
+        if (prev === "assistente" && nextTab !== "assistente") {
+          setFocusTreeId(null);
+          setAssistantPrompt(null);
+        }
+        return nextTab;
+      });
+      window.scrollTo(0, 0);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
   const handleSelectTab = (tab: AppTab) => {
+    if (activeTab === "assistente" && tab !== "assistente") {
+      setFocusTreeId(null);
+      setAssistantPrompt(null);
+    }
     setActiveTab(tab);
     const url = tab === "bi" ? "/" : `/${tab}`;
     if (window.location.pathname !== url) {
       window.history.pushState({}, "", url);
     }
+    window.scrollTo(0, 0);
   };
 
   const handleNavigate = (
@@ -128,26 +189,28 @@ export function App() {
         totalViews={data?.stats.total_views ?? 0}
       />
 
-      <div className="flex-1">
+      <main id="conteudo-principal" tabIndex={-1} className="flex-1 pb-10 focus:outline-none">
         {loading && !data ? (
-          <div className="flex min-h-[65vh] flex-col items-center justify-center gap-3 text-sm text-[#4A5D4E]">
+          <div className="flex min-h-[75vh] flex-col items-center justify-center gap-3 text-sm text-[#4A5D4E]">
             <RefreshCw className="h-5 w-5 animate-spin text-[#2D6A4F]" />
             <span>Carregando dados do levantamento...</span>
           </div>
         ) : error && !data ? (
-          <div className="mx-auto mt-12 max-w-lg rounded-md border border-[#FECACA] bg-[#FEF2F2] p-6 text-center">
-            <AlertCircle className="mx-auto h-7 w-7 text-[#991B1B]" />
-            <p className="mt-2 text-sm font-medium text-[#7F1D1D]">{error}</p>
-            <button
-              type="button"
-              onClick={() => void loadBootstrap()}
-              className="mt-4 rounded bg-[#1B4332] px-4 py-2 text-xs font-semibold text-white hover:bg-[#143325]"
-            >
-              Tentar novamente
-            </button>
+          <div className="flex min-h-[60vh] items-start justify-center px-4 pt-12">
+            <div className="w-full max-w-lg rounded-md border border-[#FECACA] bg-[#FEF2F2] p-6 text-center">
+              <AlertCircle className="mx-auto h-7 w-7 text-[#991B1B]" />
+              <p className="mt-2 text-sm font-medium text-[#7F1D1D]">{error}</p>
+              <button
+                type="button"
+                onClick={() => void loadBootstrap()}
+                className="mt-4 rounded bg-[#1B4332] px-4 py-2 text-xs font-semibold text-white hover:bg-[#143325]"
+              >
+                Tentar novamente
+              </button>
+            </div>
           </div>
         ) : data ? (
-          <main id="conteudo-principal" tabIndex={-1} className="pb-12 focus:outline-none">
+          <>
             {activeTab === "bi" && (
               <HomeBIView
                 data={data}
@@ -175,11 +238,12 @@ export function App() {
                 initialTreeId={focusTreeId}
                 initialPrompt={assistantPrompt}
                 onConsumeInitialPrompt={() => setAssistantPrompt(null)}
+                onClearTreeContext={() => setFocusTreeId(null)}
               />
             )}
-          </main>
+          </>
         ) : null}
-      </div>
+      </main>
 
       <footer className="border-t border-[#D5E0D1] bg-white py-5 text-xs text-[#4A5D4E]">
         <div className="mx-auto flex max-w-[1680px] flex-wrap items-center justify-between gap-3 px-4 sm:px-8">
