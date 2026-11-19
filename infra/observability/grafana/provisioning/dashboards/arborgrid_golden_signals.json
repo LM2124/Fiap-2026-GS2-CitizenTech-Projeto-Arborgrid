@@ -7,7 +7,7 @@
   "panels": [
     {
       "id": 1,
-      "title": "1. Traffic — Requisicoes por Segundo (RPS)",
+      "title": "1. Tráfego: requisições por segundo",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
@@ -24,7 +24,7 @@
     },
     {
       "id": 2,
-      "title": "2. Latency — P50 e P95 (segundos)",
+      "title": "2. Latência: P50 e P95 (segundos)",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
@@ -45,7 +45,7 @@
     },
     {
       "id": 3,
-      "title": "3. Errors — Taxa de Erros 4xx/5xx (req/s)",
+      "title": "3. Erros: respostas 4xx e 5xx por segundo",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
@@ -62,7 +62,7 @@
     },
     {
       "id": 4,
-      "title": "4. Saturation — Requisicoes Simultaneas & Memoria Residente (MB)",
+      "title": "4. Saturação: requisições simultâneas e memória residente (MB)",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
@@ -83,7 +83,7 @@
     },
     {
       "id": 5,
-      "title": "Arvores GeoSampa Carregadas",
+      "title": "Árvores do GeoSampa carregadas",
       "type": "stat",
       "gridPos": {
         "h": 4,
@@ -100,7 +100,7 @@
     },
     {
       "id": 6,
-      "title": "Registros Sincronizados da Camada Gold (Big Data)",
+      "title": "Registros sincronizados da camada Gold (Big Data)",
       "type": "stat",
       "gridPos": {
         "h": 4,
@@ -117,7 +117,7 @@
     },
     {
       "id": 7,
-      "title": "Assistente — Respostas por Modo (LLM x Fallback)",
+      "title": "Assistente: respostas por modo (LLM ou regras)",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
@@ -134,7 +134,7 @@
     },
     {
       "id": 8,
-      "title": "Assistente — Motivos de Fallback do LLM",
+      "title": "Assistente: motivos do fallback do LLM",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
@@ -152,7 +152,7 @@
   ],
   "refresh": "10s",
   "schemaVersion": 39,
-  "title": "ArborGrid — 4 Golden Signals & Telemetria MVP",
+  "title": "ArborGrid SP: 4 Golden Signals e telemetria do MVP",
   "uid": "arborgrid-golden-signals",
   "version": 2
 }
