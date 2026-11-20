@@ -81,7 +81,7 @@ Na primeira vez, o script cria o `infra/.env` com tokens aleatórios, constrói 
 cd webapp && pip install -r requirements-dev.txt && pytest -v           # API (num ambiente virtual)
 cd webapp/frontend && npm ci && npm run build                          # frontend: tipos e build
 cd llm-assistant && uv sync --group dev && uv run pytest -v            # assistente
-cd normas-bot && pip install -r requirements.txt && pytest -v          # robô de RPA (num ambiente virtual)
+cd normas-bot && uv run pytest -v                                       # robô de RPA
 ```
 
 O mesmo pipeline roda a cada push no GitHub Actions ([`devsecops.yml`](.github/workflows/devsecops.yml)), junto com Gitleaks, Semgrep e Trivy.

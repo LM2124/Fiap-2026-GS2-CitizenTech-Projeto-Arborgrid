@@ -15,7 +15,7 @@ _REPO_ROOT = _RPA_ROOT.parent
 def construir_parser() -> argparse.ArgumentParser:
     """Cria o parser de argumentos da linha de comando."""
     parser = argparse.ArgumentParser(
-        prog="rpa_normativo",
+        prog="normas-bot",
         description="Robo RPA de verificacao e sincronizacao da base normativa do ArborGrid SP.",
     )
     parser.add_argument(

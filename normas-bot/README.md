@@ -25,7 +25,8 @@ O pacote Python fica em `src/rpa_normativo/` e executa um ciclo em lote sobre `f
 ```text
 normas-bot/
   README.md
-  requirements.txt
+  pyproject.toml           # dependências com versões fixas e o comando normas-bot
+  uv.lock
   fontes.yaml
   src/rpa_normativo/
   tests/
@@ -37,54 +38,27 @@ normas-bot/
   estado/
 ```
 
-## Instalação
-
-No diretório `normas-bot/` com Python 3.12:
-
-```bash
-python -m venv .venv
-```
-
-Ative o ambiente virtual:
-
-```powershell
-# Windows (PowerShell)
-.\.venv\Scripts\Activate.ps1
-```
-
-```bash
-# Linux / macOS
-source .venv/bin/activate
-```
-
-Instale as dependências com versões fixas:
-
-```bash
-pip install -r requirements.txt
-```
-
 ## Como executar
 
-Entre na pasta `normas-bot/src/` e execute um dos comandos abaixo:
+Com o [uv](https://docs.astral.sh/uv/) instalado, na pasta `normas-bot/`. Na primeira vez, o `uv run` cria o ambiente com Python 3.12 e as versões fixas do `pyproject.toml`:
 
 ```bash
-cd normas-bot/src
+cd normas-bot
 
-# Execucao online nas fontes oficiais
-python -m rpa_normativo
+# Execução online nas fontes oficiais
+uv run normas-bot
 
-# Execucao 100% offline usando amostras/fontes/
-python -m rpa_normativo --offline
+# Execução 100% offline, com as amostras de amostras/fontes/
+uv run normas-bot --offline
 
-# Simulacao da regra R4 (alteracao de telefone na amostra da Enel)
-python -m rpa_normativo --offline --simular-mudanca enel-emergencia
+# Regra R4: a amostra da Enel com o telefone trocado
+uv run normas-bot --offline --simular-mudanca enel-emergencia
+
+# Regra R5: timeout nas três tentativas, sem parar o lote
+uv run normas-bot --offline --simular-falha sp156-portal
 ```
 
-Para demonstrar a regra R5 (timeout e retry com falha tratada sem parar o lote) no modo offline:
-
-```bash
-python -m rpa_normativo --offline --simular-falha sp156-portal
-```
+Sem o uv, `pip install -e .` num ambiente virtual instala o mesmo comando `normas-bot`.
 
 ## Regras de negócio
 
@@ -128,6 +102,6 @@ O endpoint `GET /api/v1/assistant/knowledge-status` no web app também lê `norm
 Todos os testes rodam 100% offline com `httpx.MockTransport` e diretórios temporários (`tmp_path`). Na pasta `normas-bot/`:
 
 ```bash
-pytest -v
+uv run pytest -v
 ```
 

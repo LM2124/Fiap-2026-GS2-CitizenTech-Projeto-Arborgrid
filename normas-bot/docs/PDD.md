@@ -105,10 +105,10 @@ Como o código de saída é `0` quando não há pendências e `2` quando existe 
 - **Linux (`cron`)**, todos os dias às 06:00:
 
 ```text
-0 6 * * * cd /opt/arborgrid/normas-bot/src && /opt/arborgrid/normas-bot/.venv/bin/python -m rpa_normativo
+0 6 * * * cd /opt/arborgrid/normas-bot && uv run normas-bot
 ```
 
-- **Windows (Agendador de Tarefas / `schtasks`)**: tarefa diária executando `normas-bot\.venv\Scripts\python.exe` com argumentos `-m rpa_normativo` e diretório inicial `normas-bot\src`, disparando notificação quando o código de retorno for diferente de `0`.
+- **Windows (Agendador de Tarefas / `schtasks`)**: tarefa diária executando `uv run normas-bot` com diretório inicial `normas-bot`, disparando notificação quando o código de retorno for diferente de `0`.
 
 ## 7. Segurança e conformidade com a LGPD
 
