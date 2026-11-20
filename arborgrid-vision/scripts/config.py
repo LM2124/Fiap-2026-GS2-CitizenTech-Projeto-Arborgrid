@@ -96,3 +96,11 @@ THRESHOLDS: dict[str, int] = {
     "attention_contact_px": 8,      # Contato leve que já exige atenção
     "attention_proximity_px": 90,   # Volume de fios na zona externa para marcar Proximidade
 }
+
+
+def geosampa_disponivel() -> bool:
+    """Confere se o WFS do GeoSampa responde antes de uma coleta longa."""
+    import requests
+
+    resp = requests.get("http://wfs.geosampa.prefeitura.sp.gov.br/geoserver/ows?service=WFS&request=GetCapabilities", timeout=10)
+    return resp.ok
