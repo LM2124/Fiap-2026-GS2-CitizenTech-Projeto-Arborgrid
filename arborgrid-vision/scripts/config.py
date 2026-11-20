@@ -102,5 +102,5 @@ def geosampa_disponivel() -> bool:
     """Confere se o WFS do GeoSampa responde antes de uma coleta longa."""
     import requests
 
-    resp = requests.get("http://wfs.geosampa.prefeitura.sp.gov.br/geoserver/ows?service=WFS&request=GetCapabilities", timeout=10)
+    resp = requests.get("https://wfs.geosampa.prefeitura.sp.gov.br/geoserver/ows?service=WFS&request=GetCapabilities", timeout=10)
     return resp.ok
