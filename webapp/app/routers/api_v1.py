@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse
 
@@ -275,6 +277,38 @@ def seed_gold_demo(request: Request) -> dict:
 )
 def assistant_status(request: Request) -> dict:
     return _assistant_service(request).status()
+
+
+@router.get(
+    "/assistant/knowledge-status",
+    summary="Estado da sincronizacao RPA da base de normas do Assistente",
+)
+def assistant_knowledge_status() -> dict:
+    env_path = os.getenv("ARBORGRID_KNOWLEDGE_REPORT_PATH", "").strip()
+    report_path = (
+        Path(env_path)
+        if env_path
+        else Path(__file__).resolve().parents[3] / "normas-bot" / "saida" / "relatorio_execucao.json"
+    )
+    if not _safe_is_file(report_path):
+        return {"sincronizado": False}
+    try:
+        dados = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"sincronizado": False}
+    if not isinstance(dados, dict):
+        return {"sincronizado": False}
+    return {
+        "sincronizado": True,
+        "ultima_sincronizacao": dados.get("fim") or dados.get("inicio"),
+        "execucao_id": dados.get("execucao_id"),
+        "modo": dados.get("modo"),
+        "codigo_saida": dados.get("codigo_saida"),
+        "total_fontes": dados.get("total_fontes"),
+        "total_trechos": dados.get("total_trechos"),
+        "contagem_status_fontes": dados.get("contagem_status_fontes", {}),
+        "contagem_status_trechos": dados.get("contagem_status_trechos", {}),
+    }
 
 
 @router.post(

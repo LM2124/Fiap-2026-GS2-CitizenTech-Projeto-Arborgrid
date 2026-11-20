@@ -716,3 +716,72 @@ def test_negated_emergency_terms_do_not_force_emergency(tmp_path: Path, monkeypa
         assert res is not None
         assert res["nivel_risco"] == "preventivo_rotina"
         assert "156" in res["acao_imediata"]
+
+
+def test_assistant_knowledge_status_and_synced_kb_compatibility(tmp_path: Path, monkeypatch) -> None:
+    """Endpoint de status da base RPA responde sem falhar quando ausente e le relatorio quando presente."""
+    missing_report = tmp_path / "relatorio_inexistente.json"
+    monkeypatch.setenv("ARBORGRID_KNOWLEDGE_REPORT_PATH", str(missing_report))
+
+    with _make_client(tmp_path) as client:
+        r_missing = client.get("/api/v1/assistant/knowledge-status")
+        assert r_missing.status_code == 200
+        assert r_missing.json() == {"sincronizado": False}
+
+        present_report = tmp_path / "relatorio_execucao.json"
+        present_report.write_text(
+            json.dumps(
+                {
+                    "execucao_id": "abc12345",
+                    "inicio": "2026-11-19T21:30:00-03:00",
+                    "fim": "2026-11-19T21:30:02-03:00",
+                    "modo": "offline",
+                    "codigo_saida": 0,
+                    "total_fontes": 11,
+                    "total_trechos": 16,
+                    "contagem_status_fontes": {"CONFIRMADA": 9, "FONTE_FECHADA": 1, "FONTE_INTERNA": 1},
+                    "contagem_status_trechos": {"CONFIRMADA": 10, "FONTE_FECHADA": 3, "FONTE_INTERNA": 3},
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("ARBORGRID_KNOWLEDGE_REPORT_PATH", str(present_report))
+
+        r_ok = client.get("/api/v1/assistant/knowledge-status")
+        assert r_ok.status_code == 200
+        body = r_ok.json()
+        assert body["sincronizado"] is True
+        assert body["ultima_sincronizacao"] == "2026-11-19T21:30:02-03:00"
+        assert body["contagem_status_fontes"]["CONFIRMADA"] == 9
+        assert body["contagem_status_trechos"]["CONFIRMADA"] == 10
+
+        # Valida que o AssistantService le normalmente uma base JSONL com o campo extra verificacao
+        kb_orig = WEBAPP_ROOT / "data" / "knowledge_base.jsonl"
+        synced_kb = tmp_path / "knowledge_base_synced.jsonl"
+        linhas_sync = []
+        for linha in kb_orig.read_text(encoding="utf-8").splitlines():
+            if linha.strip():
+                obj = json.loads(linha)
+                obj["verificacao"] = {
+                    "status": "CONFIRMADA",
+                    "fonte_id": "teste",
+                    "url": "https://sp156.prefeitura.sp.gov.br/portal/servicos",
+                    "sha256": "abc123",
+                    "verificado_em": "2026-11-19T21:30:02-03:00",
+                    "fatos_ausentes": [],
+                }
+                linhas_sync.append(json.dumps(obj, ensure_ascii=False))
+        synced_kb.write_text("\n".join(linhas_sync) + "\n", encoding="utf-8")
+
+        from app.services.assistant_service import AssistantService
+
+        synced_service = AssistantService(
+            kb_path=synced_kb,
+            manifest_store=client.app.state.manifest_store,
+            gold_store=client.app.state.gold_store,
+            llm_api_url="http://127.0.0.1:9/v1/chat/completions",
+        )
+        assert len(synced_service.chunks) == 16
+        resp_ask = synced_service.ask("Posso podar arvore na calcada?")
+        assert resp_ask["structured"]["status"] == "respondido"
+        assert resp_ask["citations"]

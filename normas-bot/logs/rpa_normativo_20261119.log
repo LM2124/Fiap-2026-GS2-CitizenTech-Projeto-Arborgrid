@@ -1,0 +1,134 @@
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=lote etapa=inicio status=INICIADO modo=offline base=knowledge_base.jsonl
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=pmsp-lei-17794 etapa=download status=OK tentativa=1 bytes=1295 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=pmsp-lei-17794 etapa=extracao status=OK sha256=1ed86f28eca4
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=pmsp-lei-17794 etapa=decisao status=CONFIRMADA trechos=2 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=pmsp-decreto-61859 etapa=download status=OK tentativa=1 bytes=579 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=pmsp-decreto-61859 etapa=extracao status=OK sha256=51386a47df98
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=pmsp-decreto-61859 etapa=decisao status=CONFIRMADA trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=sp156-portal etapa=download status=OK tentativa=1 bytes=716 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=sp156-portal etapa=extracao status=OK sha256=ff15a36411ab
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=sp156-portal etapa=decisao status=CONFIRMADA trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=enel-emergencia etapa=download status=OK tentativa=1 bytes=640 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=enel-emergencia etapa=extracao status=OK sha256=b01e233ddce6
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=enel-emergencia etapa=decisao status=CONFIRMADA trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=enel-relacionamento etapa=download status=OK tentativa=1 bytes=640 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=enel-relacionamento etapa=extracao status=OK sha256=21c2f74ad607
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=enel-relacionamento etapa=decisao status=CONFIRMADA trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=bombeiros-sp etapa=download status=OK tentativa=1 bytes=590 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=bombeiros-sp etapa=extracao status=OK sha256=2f33fccb5241
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=bombeiros-sp etapa=decisao status=CONFIRMADA trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=defesa-civil-sp etapa=download status=OK tentativa=1 bytes=658 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=defesa-civil-sp etapa=extracao status=OK sha256=dcb62dafb106
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=defesa-civil-sp etapa=decisao status=CONFIRMADA trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=seguranca-rede-eletrica etapa=download status=OK tentativa=1 bytes=660 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=seguranca-rede-eletrica etapa=extracao status=OK sha256=1da5ffd7b253
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=seguranca-rede-eletrica etapa=decisao status=CONFIRMADA trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=svma-manual-poda etapa=download status=OK tentativa=1 bytes=940 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=svma-manual-poda etapa=extracao status=OK sha256=a102568939aa
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=svma-manual-poda etapa=decisao status=CONFIRMADA trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=abnt-nbr-16246 etapa=download status=IGNORADO tipo=fechada
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=abnt-nbr-16246 etapa=decisao status=FONTE_FECHADA trechos=3 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=arborgrid-interno etapa=download status=IGNORADO tipo=interna
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=arborgrid-interno etapa=decisao status=FONTE_INTERNA trechos=3 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=lote etapa=gravacao status=OK base_sync=knowledge_base_synced.jsonl relatorio=relatorio_execucao.json trechos=16
+2026-11-19T22:01:33-03:00 INFO exec=df89d333 fonte=lote etapa=fim status=OK codigo_saida=0 confirmadas=9 sem_alteracao=0 revisao=0 erros=0 fechadas=2 ms=12
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=lote etapa=inicio status=INICIADO modo=offline base=knowledge_base.jsonl
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=pmsp-lei-17794 etapa=download status=OK tentativa=1 bytes=1295 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=pmsp-lei-17794 etapa=extracao status=OK sha256=1ed86f28eca4
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=pmsp-lei-17794 etapa=decisao status=SEM_ALTERACAO trechos=2 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=pmsp-decreto-61859 etapa=download status=OK tentativa=1 bytes=579 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=pmsp-decreto-61859 etapa=extracao status=OK sha256=51386a47df98
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=pmsp-decreto-61859 etapa=decisao status=SEM_ALTERACAO trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=sp156-portal etapa=download status=OK tentativa=1 bytes=716 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=sp156-portal etapa=extracao status=OK sha256=ff15a36411ab
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=sp156-portal etapa=decisao status=SEM_ALTERACAO trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=enel-emergencia etapa=download status=OK tentativa=1 bytes=640 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=enel-emergencia etapa=extracao status=OK sha256=b01e233ddce6
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=enel-emergencia etapa=decisao status=SEM_ALTERACAO trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=enel-relacionamento etapa=download status=OK tentativa=1 bytes=640 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=enel-relacionamento etapa=extracao status=OK sha256=21c2f74ad607
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=enel-relacionamento etapa=decisao status=SEM_ALTERACAO trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=bombeiros-sp etapa=download status=OK tentativa=1 bytes=590 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=bombeiros-sp etapa=extracao status=OK sha256=2f33fccb5241
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=bombeiros-sp etapa=decisao status=SEM_ALTERACAO trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=defesa-civil-sp etapa=download status=OK tentativa=1 bytes=658 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=defesa-civil-sp etapa=extracao status=OK sha256=dcb62dafb106
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=defesa-civil-sp etapa=decisao status=SEM_ALTERACAO trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=seguranca-rede-eletrica etapa=download status=OK tentativa=1 bytes=660 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=seguranca-rede-eletrica etapa=extracao status=OK sha256=1da5ffd7b253
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=seguranca-rede-eletrica etapa=decisao status=SEM_ALTERACAO trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=svma-manual-poda etapa=download status=OK tentativa=1 bytes=940 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=svma-manual-poda etapa=extracao status=OK sha256=a102568939aa
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=svma-manual-poda etapa=decisao status=SEM_ALTERACAO trechos=1 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=abnt-nbr-16246 etapa=download status=IGNORADO tipo=fechada
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=abnt-nbr-16246 etapa=decisao status=FONTE_FECHADA trechos=3 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=arborgrid-interno etapa=download status=IGNORADO tipo=interna
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=arborgrid-interno etapa=decisao status=FONTE_INTERNA trechos=3 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=lote etapa=gravacao status=OK base_sync=knowledge_base_synced.jsonl relatorio=relatorio_execucao.json trechos=16
+2026-11-19T22:01:33-03:00 INFO exec=176c2017 fonte=lote etapa=fim status=OK codigo_saida=0 confirmadas=0 sem_alteracao=9 revisao=0 erros=0 fechadas=2 ms=17
+2026-11-19T22:01:33-03:00 INFO exec=f802e079 fonte=lote etapa=inicio status=INICIADO modo=offline base=knowledge_base.jsonl
+2026-11-19T22:01:33-03:00 INFO exec=f802e079 fonte=pmsp-lei-17794 etapa=download status=OK tentativa=1 bytes=1295 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=f802e079 fonte=pmsp-lei-17794 etapa=extracao status=OK sha256=1ed86f28eca4
+2026-11-19T22:01:33-03:00 INFO exec=f802e079 fonte=pmsp-lei-17794 etapa=decisao status=SEM_ALTERACAO trechos=2 excecao=nenhuma
+2026-11-19T22:01:33-03:00 INFO exec=f802e079 fonte=pmsp-decreto-61859 etapa=download status=OK tentativa=1 bytes=579 ms=1 http=200
+2026-11-19T22:01:33-03:00 INFO exec=f802e079 fonte=pmsp-decreto-61859 etapa=extracao status=OK sha256=51386a47df98
+2026-11-19T22:01:33-03:00 INFO exec=f802e079 fonte=pmsp-decreto-61859 etapa=decisao status=SEM_ALTERACAO trechos=1 excecao=nenhuma
+2026-11-19T22:01:36-03:00 ERROR exec=f802e079 fonte=sp156-portal etapa=download status=ERRO_REDE tentativa=3 bytes=0 ms=3000
+2026-11-19T22:01:36-03:00 ERROR exec=f802e079 fonte=sp156-portal etapa=decisao status=ERRO_REDE trechos=1 excecao=sistema
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=enel-emergencia etapa=download status=OK tentativa=1 bytes=657 ms=1 http=200
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=enel-emergencia etapa=extracao status=OK sha256=a550671e9ea3
+2026-11-19T22:01:36-03:00 WARNING exec=f802e079 fonte=enel-emergencia etapa=decisao status=REVISAO_HUMANA trechos=1 excecao=negocio
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=enel-relacionamento etapa=download status=OK tentativa=1 bytes=640 ms=1 http=200
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=enel-relacionamento etapa=extracao status=OK sha256=21c2f74ad607
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=enel-relacionamento etapa=decisao status=SEM_ALTERACAO trechos=1 excecao=nenhuma
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=bombeiros-sp etapa=download status=OK tentativa=1 bytes=590 ms=1 http=200
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=bombeiros-sp etapa=extracao status=OK sha256=2f33fccb5241
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=bombeiros-sp etapa=decisao status=SEM_ALTERACAO trechos=1 excecao=nenhuma
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=defesa-civil-sp etapa=download status=OK tentativa=1 bytes=658 ms=1 http=200
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=defesa-civil-sp etapa=extracao status=OK sha256=dcb62dafb106
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=defesa-civil-sp etapa=decisao status=SEM_ALTERACAO trechos=1 excecao=nenhuma
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=seguranca-rede-eletrica etapa=download status=OK tentativa=1 bytes=660 ms=1 http=200
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=seguranca-rede-eletrica etapa=extracao status=OK sha256=1da5ffd7b253
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=seguranca-rede-eletrica etapa=decisao status=SEM_ALTERACAO trechos=1 excecao=nenhuma
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=svma-manual-poda etapa=download status=OK tentativa=1 bytes=940 ms=1 http=200
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=svma-manual-poda etapa=extracao status=OK sha256=a102568939aa
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=svma-manual-poda etapa=decisao status=SEM_ALTERACAO trechos=1 excecao=nenhuma
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=abnt-nbr-16246 etapa=download status=IGNORADO tipo=fechada
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=abnt-nbr-16246 etapa=decisao status=FONTE_FECHADA trechos=3 excecao=nenhuma
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=arborgrid-interno etapa=download status=IGNORADO tipo=interna
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=arborgrid-interno etapa=decisao status=FONTE_INTERNA trechos=3 excecao=nenhuma
+2026-11-19T22:01:36-03:00 INFO exec=f802e079 fonte=lote etapa=gravacao status=OK base_sync=knowledge_base_synced.jsonl relatorio=relatorio_execucao.json trechos=16
+2026-11-19T22:01:36-03:00 WARNING exec=f802e079 fonte=lote etapa=fim status=ATENCAO codigo_saida=2 confirmadas=0 sem_alteracao=7 revisao=1 erros=1 fechadas=2 ms=3017
+2026-11-19T22:01:37-03:00 INFO exec=0b0b51a2 fonte=lote etapa=inicio status=INICIADO modo=online base=knowledge_base.jsonl
+2026-11-19T22:01:37-03:00 INFO exec=0b0b51a2 fonte=pmsp-lei-17794 etapa=download status=OK tentativa=1 bytes=9240 ms=111 http=200
+2026-11-19T22:01:37-03:00 ERROR exec=0b0b51a2 fonte=pmsp-lei-17794 etapa=extracao status=ERRO_CONTEUDO detalhe="Nenhum dos 8 fatos monitorados aparece no texto baixado: o endereco pode ter mudado, o portal pode ter bloqueado o acesso ou a pagina depende de JavaScript."
+2026-11-19T22:01:37-03:00 ERROR exec=0b0b51a2 fonte=pmsp-lei-17794 etapa=decisao status=ERRO_CONTEUDO trechos=2 excecao=sistema
+2026-11-19T22:01:37-03:00 INFO exec=0b0b51a2 fonte=pmsp-decreto-61859 etapa=download status=OK tentativa=1 bytes=9240 ms=84 http=200
+2026-11-19T22:01:37-03:00 ERROR exec=0b0b51a2 fonte=pmsp-decreto-61859 etapa=extracao status=ERRO_CONTEUDO detalhe="Nenhum dos 4 fatos monitorados aparece no texto baixado: o endereco pode ter mudado, o portal pode ter bloqueado o acesso ou a pagina depende de JavaScript."
+2026-11-19T22:01:37-03:00 ERROR exec=0b0b51a2 fonte=pmsp-decreto-61859 etapa=decisao status=ERRO_CONTEUDO trechos=1 excecao=sistema
+2026-11-19T22:01:38-03:00 INFO exec=0b0b51a2 fonte=sp156-portal etapa=download status=OK tentativa=1 bytes=467649 ms=1305 http=200
+2026-11-19T22:01:38-03:00 INFO exec=0b0b51a2 fonte=sp156-portal etapa=extracao status=OK sha256=c1b6a220c721
+2026-11-19T22:01:38-03:00 INFO exec=0b0b51a2 fonte=sp156-portal etapa=decisao status=CONFIRMADA trechos=1 excecao=nenhuma
+2026-11-19T22:01:39-03:00 INFO exec=0b0b51a2 fonte=enel-emergencia etapa=download status=OK tentativa=1 bytes=120120 ms=605 http=200
+2026-11-19T22:01:39-03:00 INFO exec=0b0b51a2 fonte=enel-emergencia etapa=extracao status=OK sha256=731470fd24cc
+2026-11-19T22:01:39-03:00 INFO exec=0b0b51a2 fonte=enel-emergencia etapa=decisao status=CONFIRMADA trechos=1 excecao=nenhuma
+2026-11-19T22:01:40-03:00 INFO exec=0b0b51a2 fonte=enel-relacionamento etapa=download status=OK tentativa=1 bytes=120121 ms=1123 http=200
+2026-11-19T22:01:40-03:00 INFO exec=0b0b51a2 fonte=enel-relacionamento etapa=extracao status=OK sha256=731470fd24cc
+2026-11-19T22:01:40-03:00 INFO exec=0b0b51a2 fonte=enel-relacionamento etapa=decisao status=CONFIRMADA trechos=1 excecao=nenhuma
+2026-11-19T22:01:43-03:00 ERROR exec=0b0b51a2 fonte=bombeiros-sp etapa=download status=ERRO_REDE tentativa=3 bytes=0 ms=3061
+2026-11-19T22:01:43-03:00 ERROR exec=0b0b51a2 fonte=bombeiros-sp etapa=decisao status=ERRO_REDE trechos=1 excecao=sistema
+2026-11-19T22:01:43-03:00 INFO exec=0b0b51a2 fonte=defesa-civil-sp etapa=download status=OK tentativa=1 bytes=158783 ms=127 http=200
+2026-11-19T22:01:43-03:00 INFO exec=0b0b51a2 fonte=defesa-civil-sp etapa=extracao status=OK sha256=9aa16b94ca92
+2026-11-19T22:01:43-03:00 WARNING exec=0b0b51a2 fonte=defesa-civil-sp etapa=decisao status=REVISAO_HUMANA trechos=1 excecao=negocio
+2026-11-19T22:01:44-03:00 INFO exec=0b0b51a2 fonte=seguranca-rede-eletrica etapa=download status=OK tentativa=1 bytes=81730 ms=681 http=200
+2026-11-19T22:01:44-03:00 INFO exec=0b0b51a2 fonte=seguranca-rede-eletrica etapa=extracao status=OK sha256=7bb589235c5f
+2026-11-19T22:01:44-03:00 WARNING exec=0b0b51a2 fonte=seguranca-rede-eletrica etapa=decisao status=REVISAO_HUMANA trechos=1 excecao=negocio
+2026-11-19T22:01:44-03:00 INFO exec=0b0b51a2 fonte=svma-manual-poda etapa=download status=OK tentativa=1 bytes=1675322 ms=96 http=200
+2026-11-19T22:01:45-03:00 INFO exec=0b0b51a2 fonte=svma-manual-poda etapa=extracao status=OK sha256=4b739c526bc5
+2026-11-19T22:01:45-03:00 INFO exec=0b0b51a2 fonte=svma-manual-poda etapa=decisao status=CONFIRMADA trechos=1 excecao=nenhuma
+2026-11-19T22:01:45-03:00 INFO exec=0b0b51a2 fonte=abnt-nbr-16246 etapa=download status=IGNORADO tipo=fechada
+2026-11-19T22:01:45-03:00 INFO exec=0b0b51a2 fonte=abnt-nbr-16246 etapa=decisao status=FONTE_FECHADA trechos=3 excecao=nenhuma
+2026-11-19T22:01:45-03:00 INFO exec=0b0b51a2 fonte=arborgrid-interno etapa=download status=IGNORADO tipo=interna
+2026-11-19T22:01:45-03:00 INFO exec=0b0b51a2 fonte=arborgrid-interno etapa=decisao status=FONTE_INTERNA trechos=3 excecao=nenhuma
+2026-11-19T22:01:45-03:00 INFO exec=0b0b51a2 fonte=lote etapa=gravacao status=OK base_sync=knowledge_base_synced.jsonl relatorio=relatorio_execucao.json trechos=16
+2026-11-19T22:01:45-03:00 WARNING exec=0b0b51a2 fonte=lote etapa=fim status=ATENCAO codigo_saida=2 confirmadas=4 sem_alteracao=0 revisao=2 erros=3 fechadas=2 ms=8593

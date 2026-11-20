@@ -1,0 +1,161 @@
+# Fontes normativas e operacionais monitoradas pelo RPA do ArborGrid SP.
+# Cada fonte agrupa os trechos (chunk_id) da base de conhecimento que dependem dela
+# e os fatos objetivos que precisam permanecer presentes no texto oficial.
+
+fontes:
+  - id: pmsp-lei-17794
+    nome: Lei Municipal SP n. 17.794/2022 (Arborizacao Urbana)
+    url: https://legislacao.prefeitura.sp.gov.br/lei-17794
+    tipo: html
+    url_verificada: false
+    trechos:
+      - chunk_id: LEI-17794-ART05
+        fatos:
+          - "17.794/2022"
+          - "Prefeitura Municipal"
+          - "Subprefeituras"
+          - "logradouro público"
+      - chunk_id: LEI-17794-ART18
+        fatos:
+          - "10 dias úteis"
+          - "laudo técnico"
+          - "ART/TRT"
+          - "Manual Técnico"
+
+  - id: pmsp-decreto-61859
+    nome: Decreto Municipal SP n. 61.859/2022
+    url: https://legislacao.prefeitura.sp.gov.br/decreto-61859
+    tipo: html
+    url_verificada: false
+    trechos:
+      - chunk_id: DEC-61859-PRZ
+        fatos:
+          - "61.859/2022"
+          - "17.794/2022"
+          - "Subprefeituras"
+          - "SVMA"
+
+  - id: sp156-portal
+    nome: Portal SP156 (Prefeitura de Sao Paulo)
+    url: https://sp156.prefeitura.sp.gov.br/portal/servicos
+    tipo: html
+    url_verificada: true
+    trechos:
+      - chunk_id: SP156-ROTINA
+        fatos:
+          - "SP156"
+          - "156"
+          - "Descomplica"
+
+  - id: enel-emergencia
+    nome: Enel Distribuicao Sao Paulo (Canal de Emergencia 24h)
+    url: https://www.enel.com.br/pt-saopaulo.html
+    tipo: html
+    url_verificada: true
+    trechos:
+      - chunk_id: ENEL-EMERG-01
+        fatos:
+          - "0800 72 72 196"
+          - "Enel"
+          - "Emergência"
+
+  - id: enel-relacionamento
+    nome: Enel Distribuicao Sao Paulo (Central de Relacionamento)
+    url: https://www.enel.com.br/pt-saopaulo.html
+    tipo: html
+    url_verificada: true
+    trechos:
+      - chunk_id: ENEL-RELAC-02
+        fatos:
+          - "0800 72 72 120"
+          - "0800 72 72 196"
+          - "Relacionamento"
+
+  - id: bombeiros-sp
+    nome: Corpo de Bombeiros da Policia Militar do Estado de Sao Paulo
+    url: https://www.corpodebombeiros.sp.gov.br/
+    tipo: html
+    url_verificada: false
+    trechos:
+      - chunk_id: BOMBEIROS-193
+        fatos:
+          - "193"
+          - "Corpo de Bombeiros"
+          - "incêndio"
+
+  - id: defesa-civil-sp
+    nome: Defesa Civil Municipal de Sao Paulo
+    url: https://prefeitura.sp.gov.br/web/defesa_civil
+    tipo: html
+    url_verificada: false
+    trechos:
+      - chunk_id: DEFESA-CIVIL-199
+        fatos:
+          - "199"
+          - "Defesa Civil"
+          - "Enel"
+
+  - id: seguranca-rede-eletrica
+    nome: Orientacoes de Seguranca com Rede Eletrica (Enel SP / Defesa Civil)
+    url: https://www.enel.com.br/pt-saopaulo/atendimento.html
+    tipo: html
+    url_verificada: false
+    trechos:
+      - chunk_id: SEGURANCA-FIACAO
+        fatos:
+          - "0800 72 72 196"
+          - "193"
+          - "fio elétrico"
+          - "isolamento"
+
+  - id: svma-manual-poda
+    nome: Manual Tecnico de Poda de Arvores (PMSP / SVMA)
+    url: https://drive.prefeitura.sp.gov.br/cidade/secretarias/upload/MPODA.pdf
+    tipo: pdf
+    url_verificada: true
+    trechos:
+      - chunk_id: SVMA-MANUAL-PODA
+        fatos:
+          - "SVMA"
+          - "condução"
+          - "adequação"
+          - "limpeza"
+          - "colar"
+          - "crista"
+
+  - id: abnt-nbr-16246
+    nome: ABNT NBR 16246 (Partes 1, 2 e 3) e Norma Regulamentadora NR-10
+    tipo: fechada
+    url_verificada: false
+    motivo_sem_verificacao: Norma tecnica de acesso fechado (ABNT/MTE), sem distribuicao publica automatizada.
+    trechos:
+      - chunk_id: NBR-16246-1
+        fatos:
+          - "NBR 16246-1"
+      - chunk_id: NBR-16246-2
+        fatos:
+          - "NBR 16246-2"
+          - "NR-10"
+      - chunk_id: NBR-16246-3
+        fatos:
+          - "NBR 16246-3"
+
+  - id: arborgrid-interno
+    nome: Especificacoes Tecnicas e Diretrizes Internas ArborGrid SP
+    tipo: interna
+    url_verificada: false
+    motivo_sem_verificacao: Documento normativo interno do repositorio ArborGrid SP, sem fonte externa publica.
+    trechos:
+      - chunk_id: ARBORGRID-TRIAGEM
+        fatos:
+          - "ArborGrid-Vision"
+          - "SP156"
+      - chunk_id: ARBORGRID-LGPD
+        fatos:
+          - "LGPD"
+          - "13.709/2018"
+      - chunk_id: CHANGELOG-2026-ARBOR
+        fatos:
+          - "SP156"
+          - "0800 72 72 196"
+          - "193"

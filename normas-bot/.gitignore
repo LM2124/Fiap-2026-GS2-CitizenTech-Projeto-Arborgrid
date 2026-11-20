@@ -1,0 +1,11 @@
+# Ambientes e caches locais
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Saidas e estado de execucao (preservar .gitkeep). Os logs ficam versionados: o enunciado pede logs/ sem dados sensiveis
+saida/*
+!saida/.gitkeep
+estado/*
+!estado/.gitkeep

@@ -27,7 +27,7 @@
 | **Cidadão e território** | Moradores, pedestres e equipes de zeladoria e de energia de São Paulo (SP). Piloto em quatro áreas: Pinheiros, Alto da Mooca e Vila Mariana, com fiação aérea, e a Av. Paulista, com fiação subterrânea, usada para comparação. |
 | **Problema, em uma frase** | Galhos encostados na fiação aérea causam apagões, risco de choque e quedas de árvores, e a maioria dessas árvores nunca teve vistoria registrada pela Prefeitura. |
 | **Proposta de valor** | Priorizar a poda preventiva antes da tempestade, com transparência sobre o que as fotos mostraram e menos alarmes falsos, juntando dados abertos, fotos de rua em dois ângulos e a previsão de vento. |
-| **Arquitetura: componentes** | [`webapp/`](webapp/): FastAPI + React/Leaflet e API REST<br>[`arborgrid-vision/`](arborgrid-vision/): SegFormer-B2 + OpenCV<br>[`llm-assistant/`](llm-assistant/): busca híbrida (RAG) + Qwen3 com LoRA + agente GeoSampa<br>[`data-processing/`](data-processing/): Airflow 3 + Databricks (Bronze, Prata e Ouro)<br>[`infra/`](infra/): Terraform no Google Cloud, Docker Compose, Prometheus e Grafana |
+| **Arquitetura: componentes** | [`webapp/`](webapp/): FastAPI + React/Leaflet e API REST<br>[`arborgrid-vision/`](arborgrid-vision/): SegFormer-B2 + OpenCV<br>[`llm-assistant/`](llm-assistant/): busca híbrida (RAG) + Qwen3 com LoRA + agente GeoSampa<br>[`normas-bot/`](normas-bot/): robô de RPA que confere a base de normas do assistente nas fontes oficiais<br>[`data-processing/`](data-processing/): Airflow 3 + Databricks (Bronze, Prata e Ouro)<br>[`infra/`](infra/): Terraform no Google Cloud, Docker Compose, Prometheus e Grafana |
 | **Fontes de dados** | GeoSampa da Prefeitura de SP (cadastro de árvores e histórico de vistorias do SISGAU)<br>Google Street View (fotos de rua)<br>Open-Meteo (previsão de vento e chuva)<br>Normas municipais e técnicas, como a Lei 17.794/2022 e a NBR 16246, na base do assistente |
 | **Modelos de IA utilizados** | **SegFormer-B2 (1024 px)** ajustado em três ciclos, quantizado em ONNX INT8 para rodar no navegador<br>**Qwen3-1.7B + LoRA (`r=16`)**, servido em GGUF Q4_K_M pelo llama.cpp |
 | **URL do MVP e repositório** | https://arborgrid.duckdns.org<br>https://github.com/LM2124/Fiap-2026-GS2-CitizenTech-Projeto-Arborgrid |
@@ -48,6 +48,7 @@
 | Big Data Architecture & Data Integration | [`data-processing/`](data-processing/) | DAG do Airflow 3, camadas Bronze, Prata e Ouro no Databricks, modelo estrela, LGPD e o contrato que entrega a camada Ouro à fila de prioridade do MVP. |
 | Applied Computer Vision | [`arborgrid-vision/`](arborgrid-vision/) | Coleta no GeoSampa e no Street View, segmentação de copa, fiação e poste em três ciclos de treino, auditoria em dois ângulos e quantização para o navegador. No MVP, a aba Análise de Imagem. |
 | Secure DevOps Tools & Cloud Computing | [`infra/`](infra/) e [`.github/workflows/`](.github/workflows/) | Terraform no Google Cloud, pipeline com Gitleaks, Semgrep e Trivy, deploy sem segredos de longa duração e observabilidade. Arquitetura, custos e LGPD em [`infra/ARQUITETURA_CLOUD_DEVSECOPS.md`](infra/ARQUITETURA_CLOUD_DEVSECOPS.md). |
+| Robotic Process Automation | [`normas-bot/`](normas-bot/) | Robô que confere, a cada execução, se os telefones, prazos e artigos citados pelo assistente continuam nas fontes oficiais: regras de decisão, novas tentativas, logs, testes offline e o mapeamento do processo. O assistente do MVP lê a base que ele verifica. |
 | Business Intelligence & Startup Development | pitch em vídeo, entregue pelo Teams | O produto em uso está no MVP; problema, proposta de valor, indicadores e ODS estão na Ficha Técnica acima. |
 
 ## Como rodar
@@ -80,6 +81,7 @@ Na primeira vez, o script cria o `infra/.env` com tokens aleatórios, constrói 
 cd webapp && pip install -r requirements-dev.txt && pytest -v           # API (num ambiente virtual)
 cd webapp/frontend && npm ci && npm run build                          # frontend: tipos e build
 cd llm-assistant && uv sync --group dev && uv run pytest -v            # assistente
+cd normas-bot && pip install -r requirements.txt && pytest -v          # robô de RPA (num ambiente virtual)
 ```
 
 O mesmo pipeline roda a cada push no GitHub Actions ([`devsecops.yml`](.github/workflows/devsecops.yml)), junto com Gitleaks, Semgrep e Trivy.
@@ -91,6 +93,7 @@ O mesmo pipeline roda a cada push no GitHub Actions ([`devsecops.yml`](.github/w
 | [`webapp/`](webapp/) | API FastAPI, frontend React/Vite/Leaflet e testes |
 | [`arborgrid-vision/`](arborgrid-vision/) | Visão computacional: notebooks, scripts, dataset e modelos |
 | [`llm-assistant/`](llm-assistant/) | Assistente: base de normas, notebooks, avaliação e scripts de treino |
+| [`normas-bot/`](normas-bot/) | Robô de RPA: fontes oficiais, regras, amostras offline, testes, logs e PDD |
 | [`data-processing/`](data-processing/) | Pipeline de Big Data e contrato da API ([`CONTRATO_API.md`](data-processing/CONTRATO_API.md)) |
 | [`infra/`](infra/) | Docker Compose, Caddy, Nginx, Prometheus, Grafana e Terraform |
 | [`scripts/`](scripts/) | `start_stack.py` (sobe tudo localmente) e `deploy_vm.py` (bootstrap e acesso à VM) |
