@@ -75,6 +75,97 @@
         "cwd": "${workspaceFolder}/webapp/frontend"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "Cloud: Túnel do Grafana e do Prometheus (deixe aberto)",
+      "type": "shell",
+      "command": "python3 scripts/deploy_vm.py tunnel",
+      "windows": {
+        "command": "python scripts/deploy_vm.py tunnel"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Cloud: Abrir Grafana (precisa do túnel)",
+      "type": "shell",
+      "command": "xdg-open http://127.0.0.1:13000",
+      "osx": {
+        "command": "open http://127.0.0.1:13000"
+      },
+      "windows": {
+        "command": "Start-Process http://127.0.0.1:13000"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Cloud: Abrir Prometheus (precisa do túnel)",
+      "type": "shell",
+      "command": "xdg-open http://127.0.0.1:19090",
+      "osx": {
+        "command": "open http://127.0.0.1:19090"
+      },
+      "windows": {
+        "command": "Start-Process http://127.0.0.1:19090"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Cloud: Terminal na VM (IAP + OS Login)",
+      "type": "shell",
+      "command": "python3 scripts/deploy_vm.py shell",
+      "windows": {
+        "command": "python scripts/deploy_vm.py shell"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Cloud: Terraform plan",
+      "type": "shell",
+      "command": "terraform -chdir=infra/terraform plan",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Cloud: Últimos runs do pipeline",
+      "type": "shell",
+      "command": "gh run list --workflow devsecops.yml --limit 5",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
     }
   ]
 }
