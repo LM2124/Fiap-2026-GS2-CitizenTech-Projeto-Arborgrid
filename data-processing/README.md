@@ -8,11 +8,11 @@ Aqui está o pipeline completo: coleta orquestrada no **Airflow**, arquitetura *
 
 ## 1. Integrantes
 
-| Nome | RM | Parte |
-|---|---|---|
-| Kayky Oliveira Schunck | 99756 | **Big Data** (esta pasta) |
-| Lorenzo Gomes Andreata | 551117 | |
-| Lucas Moreno Matheus | 97158 | |
+| Nome | RM |
+|---|---|
+| Kayky Oliveira Schunck | 99756 |
+| Lorenzo Gomes Andreata | 551117 |
+| Lucas Moreno Matheus | 97158 |
 
 ---
 
