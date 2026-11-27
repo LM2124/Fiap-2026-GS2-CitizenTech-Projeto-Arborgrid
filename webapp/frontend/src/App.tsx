@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, ExternalLink, RefreshCw } from "lucide-react";
+import { AlertCircle, ExternalLink, Github, RefreshCw } from "lucide-react";
 import { Navbar, type AppTab } from "./components/Navbar";
 import {
   fetchBootstrap,
@@ -7,7 +7,7 @@ import {
   seedGoldDemo,
 } from "./services/api";
 import type { MapBootstrapPayload } from "./types/arborgrid";
-import { APP_LABELS } from "./utils/labels";
+import { APP_LABELS, REPO_URL } from "./utils/labels";
 import { CopilotView } from "./views/CopilotView";
 import { HomeBIView } from "./views/HomeBIView";
 import { OperationalMapView } from "./views/OperationalMapView";
@@ -227,6 +227,15 @@ export function App() {
             >
               <span>{APP_LABELS.apiDocs}</span>
               <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 font-medium text-[#1B4332] hover:underline"
+            >
+              <Github className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{APP_LABELS.repoLink}</span>
             </a>
           </div>
         </div>

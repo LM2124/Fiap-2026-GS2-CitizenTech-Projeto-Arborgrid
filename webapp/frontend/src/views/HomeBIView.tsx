@@ -689,7 +689,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                               aria-current={isCurrent ? "true" : undefined}
                               aria-label={`Mostrar árvore #${tree.geosampa_id} (${idx + 1} de ${heroTrees.length})`}
                               onClick={() => setActiveHeroIndex(idx)}
-                              className="inline-flex h-6 min-w-[20px] items-center justify-center rounded-full px-0.5 hover:bg-[#E7EFE4]"
+                              className="inline-flex h-10 min-w-[28px] items-center justify-center rounded-full px-0.5 hover:bg-[#E7EFE4] sm:h-6 sm:min-w-[20px]"
                             >
                               <span
                                 aria-hidden="true"
@@ -840,7 +840,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                 </p>
               )}
             <details className="text-[13px] text-[#4A5D4E]">
-              <summary className="cursor-pointer select-none font-medium text-[#1B4332] hover:underline">
+              <summary className="cursor-pointer select-none py-2 font-medium text-[#1B4332] hover:underline sm:py-0">
                 Como a prioridade é calculada
               </summary>
               <div className="mt-2 space-y-1.5 rounded border border-[#E6ECE3] bg-[#FAFBF9] p-3 leading-relaxed text-[#3D4F41]">
@@ -939,7 +939,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                           type="button"
                           onClick={() => onNavigate("mapa", { geosampaId: rec.geosampa_id })}
                           aria-label={`Ver árvore #${rec.geosampa_id} no mapa`}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#1B4332] hover:underline"
+                          className="-my-2 inline-flex min-h-[40px] items-center gap-1 text-xs font-semibold text-[#1B4332] hover:underline sm:my-0 sm:min-h-0"
                         >
                           <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                           <span>Ver no mapa</span>
@@ -999,6 +999,8 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                       aria-hidden="true"
                     />
                     <input
+                      id="priority-search"
+                      name="busca"
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -1009,6 +1011,8 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                   </div>
 
                   <select
+                    id="priority-district"
+                    name="distrito"
                     value={districtFilter}
                     onChange={(e) => setDistrictFilter(e.target.value)}
                     aria-label="Filtrar por distrito"
@@ -1034,7 +1038,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                     <button
                       type="button"
                       onClick={handleClearTableFilters}
-                      className="inline-flex items-center gap-1 rounded border border-[#2D6A4F] bg-[#EEF4EC] px-2.5 py-1 text-xs font-semibold text-[#1B4332] hover:bg-[#DCEAD8]"
+                      className="inline-flex min-h-[36px] items-center gap-1 rounded border border-[#2D6A4F] bg-[#EEF4EC] px-2.5 py-1 text-xs font-semibold text-[#1B4332] hover:bg-[#DCEAD8] sm:min-h-0"
                     >
                       <RotateCcw className="h-3 w-3 shrink-0" aria-hidden="true" />
                       <span>Limpar filtros</span>
@@ -1045,7 +1049,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                     type="button"
                     disabled={sortedGoldRecords.length === 0}
                     onClick={handleExportCsv}
-                    className="inline-flex items-center gap-1.5 rounded border border-[#D5E0D1] bg-white px-3 py-1 text-xs font-semibold text-[#1B4332] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:opacity-50"
+                    className="inline-flex min-h-[36px] items-center gap-1.5 rounded border border-[#D5E0D1] bg-white px-3 py-1 text-xs font-semibold text-[#1B4332] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:opacity-50 sm:min-h-0"
                   >
                     <Download className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     <span>Baixar lista (CSV)</span>
@@ -1068,7 +1072,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                       type="button"
                       aria-pressed={active}
                       onClick={() => handleToggleTier(tier)}
-                      className={`inline-flex items-center gap-1 rounded border px-2.5 py-1 text-xs font-semibold transition-colors ${
+                      className={`inline-flex min-h-[36px] items-center gap-1 rounded border px-2.5 py-1 text-xs font-semibold transition-colors sm:min-h-0 ${
                         active
                           ? style.badge
                           : "border-[#D5E0D1] bg-white text-[#3D4F41] hover:border-[#2D6A4F] hover:bg-[#EEF4EC]"
@@ -1099,7 +1103,128 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                 </button>
               </div>
             ) : (
-              <div className="min-h-[686px] overflow-x-auto rounded border border-[#E6ECE3]">
+              <>
+              {/* Celular: cartões no lugar da tabela de 8 colunas, com as ações sempre à vista */}
+              <div className="space-y-2 md:hidden">
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="priority-sort-mobile"
+                    className="shrink-0 text-xs font-medium text-[#4A5D4E]"
+                  >
+                    Ordenar por
+                  </label>
+                  <select
+                    id="priority-sort-mobile"
+                    value={sortKey}
+                    onChange={(e) => {
+                      const key = e.target.value as GoldSortKey;
+                      setSortKey(key);
+                      setSortDir(key === "inspection" ? "asc" : "desc");
+                    }}
+                    className="min-h-[44px] min-w-0 flex-1 rounded border border-[#D5E0D1] bg-white px-2.5 text-[13px] text-[#18241B] focus:border-[#2D6A4F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]"
+                  >
+                    <option value="score">Maior prioridade</option>
+                    <option value="wind">Mais vento e chuva previstos</option>
+                    <option value="inspection">Vistoria mais antiga</option>
+                  </select>
+                </div>
+                <ul className="space-y-2">
+                  {pageGoldRecords.map((rec) => {
+                    const tree = treeById.get(rec.geosampa_id);
+                    const photoMacro = tree?.v3_triage.consolidated ?? "SEGURO";
+                    return (
+                      <li
+                        key={rec.geosampa_id}
+                        className="rounded border border-[#E6ECE3] bg-white p-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-mono text-[13px] font-semibold text-[#18241B]">
+                              #{rec.geosampa_id}
+                            </p>
+                            <p className="text-[13px] text-[#3D4F41]">
+                              {formatDistrictName(rec.distrito)}
+                            </p>
+                          </div>
+                          <span
+                            className={`shrink-0 rounded border px-2 py-0.5 text-xs font-semibold ${
+                              getPriorityTierStyle(rec.priority_tier).badge
+                            }`}
+                          >
+                            {formatPriorityTier(rec.priority_tier)}
+                          </span>
+                        </div>
+                        <div className="mt-1.5">
+                          <ScoreBar score={rec.composite_risk_score} tier={rec.priority_tier} />
+                        </div>
+                        <dl className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                          <div>
+                            <dt className="text-[#4A5D4E]">Vento e chuva</dt>
+                            <dd className="font-medium tabular-nums text-[#18241B]">
+                              {rec.wind_gust_kmh !== null && rec.wind_gust_kmh !== undefined
+                                ? `${formatNumberPtBr(rec.wind_gust_kmh, 1)} km/h`
+                                : "—"}
+                              <br />
+                              {rec.precipitation_mm !== null && rec.precipitation_mm !== undefined
+                                ? `${formatNumberPtBr(rec.precipitation_mm, 1)} mm`
+                                : "—"}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-[#4A5D4E]">Última vistoria</dt>
+                            <dd className="font-medium tabular-nums text-[#18241B]">
+                              {formatDatePtBr(tree?.sisgau_last_inspection)}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-[#4A5D4E]">Análise da foto</dt>
+                            <dd className="mt-0.5">
+                              {tree ? (
+                                <span
+                                  className={`inline-block rounded border px-1.5 py-0.5 font-semibold ${
+                                    PHOTO_TRIAGE_BADGE[photoMacro] ?? PHOTO_TRIAGE_BADGE.SEGURO
+                                  }`}
+                                >
+                                  {formatMacroTriageShort(tree.v3_triage.consolidated)}
+                                </span>
+                              ) : (
+                                "—"
+                              )}
+                            </dd>
+                          </div>
+                        </dl>
+                        <p className="mt-2 line-clamp-3 text-[13px] leading-snug text-[#3D4F41]">
+                          {rec.recommended_action}
+                        </p>
+                        <div className="mt-2.5 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            aria-label={`Ver árvore #${rec.geosampa_id} no mapa`}
+                            onClick={() => onNavigate("mapa", { geosampaId: rec.geosampa_id })}
+                            className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded border border-[#D5E0D1] bg-white px-2 text-xs font-semibold text-[#1B4332] active:bg-[#EEF4EC]"
+                          >
+                            <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                            <span>Ver no mapa</span>
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Perguntar ao assistente sobre a árvore #${rec.geosampa_id}`}
+                            onClick={() =>
+                              onNavigate("assistente", { geosampaId: rec.geosampa_id })
+                            }
+                            className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded border border-[#2D6A4F] bg-white px-2 text-xs font-semibold text-[#1B4332] active:bg-[#EEF4EC]"
+                          >
+                            <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                            <span>Perguntar ao assistente</span>
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+
+              <div className="hidden min-h-[686px] overflow-x-auto rounded border border-[#E6ECE3] md:block">
                 <table className="w-full min-w-[900px] border-collapse text-left text-sm">
                   <caption className="sr-only">
                     Fila de trabalho para podas e vistorias priorizadas por risco visual e previsão climática
@@ -1290,6 +1415,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
 
             {/* Paginação */}
@@ -1319,7 +1445,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                   type="button"
                   disabled={safePage <= 1 || sortedGoldRecords.length === 0}
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="inline-flex min-h-[34px] items-center gap-1 rounded border border-[#D5E0D1] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:opacity-40"
+                  className="inline-flex min-h-[40px] items-center gap-1 rounded border border-[#D5E0D1] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] sm:min-h-[34px] hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:opacity-40"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Anterior</span>
@@ -1331,7 +1457,7 @@ export function HomeBIView({ data, onNavigate, onSeedGold }: HomeBIViewProps) {
                   type="button"
                   disabled={safePage >= totalPages || sortedGoldRecords.length === 0}
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="inline-flex min-h-[34px] items-center gap-1 rounded border border-[#D5E0D1] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:opacity-40"
+                  className="inline-flex min-h-[40px] items-center gap-1 rounded border border-[#D5E0D1] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] sm:min-h-[34px] hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:opacity-40"
                 >
                   <span>Próxima</span>
                   <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />

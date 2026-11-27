@@ -418,7 +418,7 @@ export function OperationalMapView({
         <div className="relative min-w-0 overflow-hidden rounded-md border border-[#D5E0D1] bg-white lg:col-span-7">
           <div
             ref={mapContainerRef}
-            className="h-[calc(100vh-180px)] min-h-[480px] w-full"
+            className="h-[62svh] min-h-[360px] w-full lg:h-[calc(100vh-180px)] lg:min-h-[480px]"
           />
 
           {/* Estado vazio quando os filtros não retornam nenhuma árvore */}
@@ -443,8 +443,8 @@ export function OperationalMapView({
             </div>
           )}
 
-          {/* Legenda */}
-          <div className="pointer-events-none absolute bottom-3 left-3 z-[400] max-w-[calc(100%-24px)] rounded border border-[#D5E0D1] bg-white/95 px-3.5 py-2 text-[13px] text-[#18241B]">
+          {/* Legenda: abaixo do mapa no celular, sobre o canto do mapa a partir de sm */}
+          <div className="border-t border-[#E6ECE3] bg-white px-3.5 py-2 text-[13px] text-[#18241B] sm:pointer-events-none sm:absolute sm:bottom-3 sm:left-3 sm:z-[400] sm:max-w-[calc(100%-24px)] sm:rounded sm:border sm:border-[#D5E0D1] sm:bg-white/95">
             <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[#3D4F41]">
               <span className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-[#dc2626]" /> Risco crítico

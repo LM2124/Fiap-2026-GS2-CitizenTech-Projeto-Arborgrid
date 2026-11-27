@@ -4,7 +4,10 @@ export const APP_LABELS = {
   assistantSubmit: "Perguntar",
   parallaxLabel: "Visível só no 2º ângulo",
   apiDocs: "Documentação da API",
+  repoLink: "Código-fonte no GitHub",
 } as const;
+
+export const REPO_URL = "https://github.com/LM2124/Fiap-2026-GS2-CitizenTech-Projeto-Arborgrid";
 
 export const TRIAGE_LABELS: Record<string, string> = {
   CRITICO_CONFIRMADO: "Crítico confirmado nos dois ângulos",

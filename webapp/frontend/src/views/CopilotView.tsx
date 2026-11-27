@@ -89,6 +89,7 @@ export function CopilotView({
   const autoFiredRef = useRef<string | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const latestTurnRef = useRef<HTMLDivElement>(null);
+  const questionTurnRef = useRef<HTMLDivElement>(null);
   const loadingIndicatorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -113,14 +114,16 @@ export function CopilotView({
     return () => window.clearInterval(id);
   }, [loading]);
 
-  // Rola para o início da nova resposta (ou indicador de espera) sem esconder o topo
+  // Rola até a pergunta que originou a nova resposta (ou até o indicador de espera), para que
+  // a pergunta e o início da resposta apareçam juntos
   useEffect(() => {
     if (loading) {
       loadingIndicatorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       return;
     }
     if (turns.length > 0) {
-      latestTurnRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const target = questionTurnRef.current ?? latestTurnRef.current;
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [turns.length, loading]);
 
@@ -260,7 +263,7 @@ export function CopilotView({
                   : "Modo rápido por normas"}
               </span>
               <span className="rounded border border-[#D5E0D1] bg-[#F6F8F5] px-2.5 py-1 tabular-nums text-[#4A5D4E]">
-                {statusInfo?.chunks_count ?? 16} normas e guias oficiais
+                {statusInfo?.chunks_count ?? 25} normas e guias oficiais
               </span>
             </div>
           </div>
@@ -282,13 +285,14 @@ export function CopilotView({
 
       <div className="grid gap-5 lg:grid-cols-12">
         {/* Coluna Esquerda: Pergunta + Resposta */}
+        {/* No celular, a conversa rola com a página (sem caixa de altura fixa) e a pergunta fica presa no rodapé da tela */}
         <div
           className={`flex min-w-0 flex-col rounded-md border border-[#D5E0D1] bg-white lg:col-span-7 ${
-            embedded ? "h-[520px]" : "h-[calc(100vh-260px)] min-h-[440px]"
+            embedded ? "h-[520px]" : "lg:h-[calc(100vh-260px)] lg:min-h-[440px]"
           }`}
         >
           <div className="space-y-2.5 border-b border-[#E6ECE3] p-3.5">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
               <label
                 htmlFor="assistant-tree-select"
                 className="text-[13px] font-medium text-[#4A5D4E]"
@@ -303,7 +307,7 @@ export function CopilotView({
                   setSelectedTreeId(next);
                   if (!next) onClearTreeContext?.();
                 }}
-                className="min-w-0 max-w-full flex-1 rounded border border-[#D5E0D1] bg-[#F6F8F5] px-3 py-1.5 text-[13px] text-[#18241B] focus:border-[#2D6A4F] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]"
+                className="min-h-[40px] w-full min-w-0 max-w-full rounded border border-[#D5E0D1] bg-[#F6F8F5] px-3 py-1.5 text-[13px] sm:min-h-0 sm:w-auto sm:flex-1 text-[#18241B] focus:border-[#2D6A4F] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]"
               >
                 <option value="">Sem árvore específica (dúvida geral)</option>
                 {selectedTreeId && !criticalSampleTrees.some((t) => t.geosampa_id === selectedTreeId) && (
@@ -333,14 +337,15 @@ export function CopilotView({
               </div>
             )}
 
-            <div className="flex flex-wrap gap-1.5">
+            {/* No celular, as sugestões viram uma fileira que desliza para o lado */}
+            <div className="-mx-3.5 flex snap-x gap-1.5 overflow-x-auto scroll-px-3.5 px-3.5 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
               {(statusInfo?.suggested_prompts ?? []).map((prompt, idx) => (
                 <button
                   key={idx}
                   type="button"
                   disabled={loading}
                   onClick={() => handleSuggestedPromptClick(prompt)}
-                  className="rounded border border-[#D5E0D1] bg-[#FAFBF9] px-2.5 py-1 text-left text-[13px] text-[#2D4234] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:opacity-60"
+                  className="w-[78%] shrink-0 snap-start rounded border border-[#D5E0D1] bg-[#FAFBF9] px-2.5 py-1.5 text-left text-[13px] text-[#2D4234] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:opacity-60 sm:w-auto sm:shrink sm:py-1"
                 >
                   {prompt}
                 </button>
@@ -351,10 +356,12 @@ export function CopilotView({
           <div
             ref={chatContainerRef}
             aria-live="polite"
-            className="flex-1 space-y-4 overflow-y-auto bg-[#FAFBF9] p-4"
+            className={`space-y-4 bg-[#FAFBF9] p-4 ${
+              embedded ? "flex-1 overflow-y-auto" : "min-h-[200px] lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
+            }`}
           >
             {turns.length === 0 && !loading && !failedState && (
-              <div className="flex h-full flex-col items-center justify-center text-center text-[#4A5D4E]">
+              <div className="flex h-full min-h-[168px] flex-col items-center justify-center text-center text-[#4A5D4E]">
                 <p className="text-sm font-semibold text-[#18241B]">
                   Descreva a situação observada na rua ou clique em uma pergunta sugerida acima
                 </p>
@@ -367,11 +374,15 @@ export function CopilotView({
 
             {turns.map((turn, idx) => {
               const isLatest = idx === turns.length - 1;
+              const isQuestionOfLatestAnswer =
+                idx === turns.length - 2 && turns[turns.length - 1].role === "assistant";
               if (turn.role === "user") {
                 return (
                   <div
                     key={turn.id}
-                    ref={isLatest ? latestTurnRef : undefined}
+                    ref={
+                      isLatest ? latestTurnRef : isQuestionOfLatestAnswer ? questionTurnRef : undefined
+                    }
                     className="flex justify-end"
                   >
                     <div className="max-w-[85%] rounded-md bg-[#1B4332] px-4 py-2.5 text-sm text-white">
@@ -503,7 +514,7 @@ export function CopilotView({
             {loading && (
               <div
                 ref={loadingIndicatorRef}
-                className="rounded-md border border-[#C6DBC0] bg-white p-3.5 text-[13px] text-[#1B4332]"
+                className="scroll-mb-24 rounded-md border border-[#C6DBC0] bg-white p-3.5 text-[13px] text-[#1B4332] lg:scroll-mb-0"
               >
                 <div className="flex items-center gap-2.5 font-semibold">
                   <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
@@ -543,27 +554,36 @@ export function CopilotView({
               e.preventDefault();
               void submitQuestion(input);
             }}
-            className="flex items-center gap-2 border-t border-[#E6ECE3] bg-white p-3.5"
+            className={`flex items-center gap-2 rounded-b-md border-t border-[#E6ECE3] bg-white p-3.5 ${
+              embedded
+                ? ""
+                : "sticky bottom-0 z-10 pb-[max(0.875rem,env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(24,36,27,0.06)] lg:static lg:pb-3.5 lg:shadow-none"
+            }`}
           >
             <input
+              id="assistant-question"
+              name="pergunta"
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               aria-label="Pergunta para o assistente"
-              placeholder="Pergunte sobre poda, fiação caída, SP156, Enel ou informe o número da árvore..."
-              className="min-w-0 flex-1 rounded border border-[#D5E0D1] bg-[#F6F8F5] px-3.5 py-2 text-sm text-[#18241B] placeholder-[#4A5D4E] focus:border-[#2D6A4F] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]"
+              placeholder="Pergunte sobre poda, fiação ou uma árvore"
+              className="min-h-[44px] min-w-0 flex-1 rounded border border-[#D5E0D1] bg-[#F6F8F5] px-3.5 py-2 text-base text-[#18241B] placeholder-[#4A5D4E] focus:border-[#2D6A4F] focus:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F] sm:min-h-0 sm:text-sm"
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="inline-flex shrink-0 items-center gap-2 rounded bg-[#1B4332] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#143325] disabled:opacity-50"
+              aria-label={loading ? "Analisando" : APP_LABELS.assistantSubmit}
+              className="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center gap-2 rounded bg-[#1B4332] px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#143325] disabled:opacity-50 sm:min-h-0 sm:px-4"
             >
               {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className="h-4 w-4" aria-hidden="true" />
               )}
-              <span>{loading ? "Analisando..." : APP_LABELS.assistantSubmit}</span>
+              <span className="hidden sm:inline">
+                {loading ? "Analisando..." : APP_LABELS.assistantSubmit}
+              </span>
             </button>
           </form>
         </div>
@@ -571,7 +591,7 @@ export function CopilotView({
         {/* Coluna Direita: Fontes Citadas */}
         <div
           className={`flex min-w-0 flex-col rounded-md border border-[#D5E0D1] bg-white p-4 lg:col-span-5 ${
-            embedded ? "h-[520px]" : "h-[calc(100vh-260px)] min-h-[440px]"
+            embedded ? "h-[520px]" : "lg:h-[calc(100vh-260px)] lg:min-h-[440px]"
           }`}
         >
           <div className="border-b border-[#E6ECE3] pb-2.5">
@@ -584,7 +604,7 @@ export function CopilotView({
           </div>
 
           {!activeEvidence ? (
-            <div className="flex flex-1 flex-col items-center justify-center text-center text-[13px] text-[#4A5D4E]">
+            <div className="flex flex-1 flex-col items-center justify-center py-6 text-center text-[13px] text-[#4A5D4E] lg:py-0">
               Envie uma pergunta para visualizar os trechos oficiais da legislação e os dados
               cadastrais usados na resposta.
             </div>
@@ -594,7 +614,11 @@ export function CopilotView({
               <p className="mt-1.5 max-w-sm leading-relaxed">{SCOPE_HELP_TEXT}</p>
             </div>
           ) : (
-            <div className="mt-3 flex-1 space-y-4 overflow-y-auto pr-1">
+            <div
+              className={`mt-3 space-y-4 ${
+                embedded ? "flex-1 overflow-y-auto pr-1" : "lg:flex-1 lg:overflow-y-auto lg:pr-1"
+              }`}
+            >
               {activeEvidence.tree_context && (
                 <div className="rounded border border-[#C6DBC0] bg-[#EEF4EC] p-3.5 text-[13px]">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -610,7 +634,7 @@ export function CopilotView({
                     {formatDistrictName(activeEvidence.tree_context.subprefeitura)}. Última vistoria (SISGAU):{" "}
                     {formatDatePtBr(activeEvidence.tree_context.sisgau_last_inspection)}
                   </p>
-                  <div className="mt-2 grid grid-cols-3 gap-2 text-[13px] tabular-nums text-[#18241B]">
+                  <div className="mt-2 grid grid-cols-1 gap-1 text-[13px] tabular-nums text-[#18241B] min-[420px]:grid-cols-3 min-[420px]:gap-2">
                     <div>
                       Contato direto:{" "}
                       <strong>

@@ -1,5 +1,6 @@
-import { Sparkles } from "lucide-react";
-import { APP_LABELS } from "../utils/labels";
+import { useEffect, useRef } from "react";
+import { Github, Sparkles } from "lucide-react";
+import { APP_LABELS, REPO_URL } from "../utils/labels";
 import { BrandMark } from "./BrandMark";
 
 export type AppTab = "bi" | "mapa" | "visao" | "assistente";
@@ -24,9 +25,36 @@ export function Navbar({
   totalTrees = 0,
   totalViews = 0,
 }: NavbarProps) {
+  const headerRef = useRef<HTMLElement | null>(null);
+
+  // Expõe a altura do cabeçalho fixo para o scroll-padding da página (index.css). No celular
+  // o cabeçalho rola junto com a página, e a margem é zero.
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const update = () => {
+      const sticky = window.getComputedStyle(el).position === "sticky";
+      document.documentElement.style.setProperty(
+        "--nav-offset",
+        sticky ? `${el.offsetHeight}px` : "0px",
+      );
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    window.addEventListener("resize", update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-[#D5E0D1] bg-white">
-      <div className="mx-auto flex max-w-[1680px] flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-8">
+    <header
+      ref={headerRef}
+      className="relative z-40 border-b border-[#D5E0D1] bg-white sm:sticky sm:top-0"
+    >
+      <div className="mx-auto flex max-w-[1680px] flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2.5 sm:px-8">
         <button
           type="button"
           onClick={() => onSelectTab("bi")}
@@ -37,7 +65,7 @@ export function Navbar({
             <span className="block text-lg font-bold tracking-tight text-[#1B4332]">
               ArborGrid SP
             </span>
-            <p className="text-xs text-[#4A5D4E]">
+            <p className="hidden text-xs text-[#4A5D4E] sm:block">
               Monitoramento urbano e prevenção de quedas na rede
             </p>
           </div>
@@ -45,7 +73,7 @@ export function Navbar({
 
         <nav
           aria-label="Navegação principal"
-          className="flex flex-wrap items-center gap-1 rounded-md border border-[#DCE5D8] bg-[#F6F8F5] p-1"
+          className="order-3 flex w-full flex-wrap items-center gap-1 rounded-md border border-[#DCE5D8] bg-[#F6F8F5] p-1 sm:w-auto lg:order-2"
         >
           {NAV_ITEMS.map((item) => {
             const active = activeTab === item.id;
@@ -55,7 +83,7 @@ export function Navbar({
                 type="button"
                 aria-current={active ? "page" : undefined}
                 onClick={() => onSelectTab(item.id)}
-                className={`inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded px-3 py-2 text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F] sm:min-h-[38px] sm:py-1.5 sm:text-sm ${
+                className={`inline-flex min-h-[44px] flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded px-2.5 py-2 text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F] sm:min-h-[38px] sm:flex-none sm:px-3 sm:py-1.5 sm:text-sm ${
                   active
                     ? "bg-[#1B4332] text-white"
                     : "text-[#2D4234] hover:bg-[#E7EFE4] hover:text-[#18241B]"
@@ -71,14 +99,25 @@ export function Navbar({
           })}
         </nav>
 
-        <div className="hidden items-center gap-3 lg:flex">
-          <span className="text-xs tabular-nums text-[#4A5D4E]">
+        <div className="order-2 ml-auto flex items-center gap-3 lg:order-3 lg:ml-0">
+          <span className="hidden text-xs tabular-nums text-[#4A5D4E] lg:inline">
             Amostra:{" "}
             <strong className="font-semibold text-[#18241B]">
               {totalTrees.toLocaleString("pt-BR")}
             </strong>{" "}
             árvores ({totalViews.toLocaleString("pt-BR")} fotos)
           </span>
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={APP_LABELS.repoLink}
+            title={APP_LABELS.repoLink}
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded border border-[#D5E0D1] px-2.5 text-[13px] font-medium text-[#1B4332] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F] sm:min-h-[38px] sm:min-w-[38px]"
+          >
+            <Github className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className="hidden xl:inline">GitHub</span>
+          </a>
         </div>
       </div>
     </header>

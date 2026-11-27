@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Rolagens automáticas param abaixo do cabeçalho fixo (altura medida no Navbar) */
+html {
+  scroll-padding-top: calc(var(--nav-offset, 0px) + 0.75rem);
+}
+
 /* Foco visível global para navegação por teclado */
 :focus-visible {
   outline: 2px solid #2d6a4f;

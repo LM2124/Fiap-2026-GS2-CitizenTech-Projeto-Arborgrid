@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
-import { AlertTriangle, Download, Loader2, Play, Share2, Sparkles, Upload } from "lucide-react";
+import {
+  AlertTriangle,
+  Camera,
+  Download,
+  ImageIcon,
+  Loader2,
+  Play,
+  Share2,
+  Sparkles,
+  Upload,
+} from "lucide-react";
 import { fetchVisionSamples, formatFriendlyError } from "../services/api";
 import type { VisionSampleItem, VisionSamplesPayload } from "../types/arborgrid";
 import {
@@ -20,6 +30,9 @@ import {
   formatNumberPtBr,
   formatRelativePct,
 } from "../utils/labels";
+import { revealOnNarrowScreen, TOUCH_DEVICE_QUERY, useMediaQuery } from "../utils/viewport";
+
+const CAMERA_PHOTO_TITLE = "Foto da câmera";
 
 interface VisionLabViewProps {
   onSendToAssistant?: (geosampaId: string, prompt: string) => void;
@@ -86,9 +99,16 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
     borderThickness: 2,
   });
 
+  const [fromCamera, setFromCamera] = useState(false);
+  const isTouchDevice = useMediaQuery(TOUCH_DEVICE_QUERY);
+  const deviceWord = isTouchDevice ? "aparelho" : "computador";
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const loadedImageRef = useRef<HTMLImageElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
+  // No celular as colunas viram uma pilha: a foto e o resultado ficam abaixo dos controles
+  const photoCardRef = useRef<HTMLDivElement | null>(null);
+  const resultCardRef = useRef<HTMLDivElement | null>(null);
 
   const startModelPreparation = (payload: VisionSamplesPayload) => {
     const versionTag = payload.model_etag || payload.model_version || payload.model_variant;
@@ -189,12 +209,14 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
     if (running) return;
     setSelectedSample(sample);
     setCustomTitle(null);
+    setFromCamera(false);
     setResult(null);
     setErrorMsg(null);
     setActiveImageSrc(sample.image_url);
+    revealOnNarrowScreen(photoCardRef.current);
   };
 
-  const handleUploadFile = (file: File) => {
+  const handleUploadFile = (file: File, source: "arquivo" | "camera" = "arquivo") => {
     if (running) return;
     const validExt = /\.(jpe?g|png|webp)$/i.test(file.name);
     if (!file.type.startsWith("image/") && !validExt) {
@@ -207,10 +229,12 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
     const url = URL.createObjectURL(file);
     objectUrlRef.current = url;
     setSelectedSample(null);
-    setCustomTitle(file.name);
+    setCustomTitle(source === "camera" ? CAMERA_PHOTO_TITLE : file.name);
+    setFromCamera(source === "camera");
     setResult(null);
     setErrorMsg(null);
     setActiveImageSrc(url);
+    revealOnNarrowScreen(photoCardRef.current);
   };
 
   const handleDragOver = (e: DragEvent<HTMLElement>) => {
@@ -264,6 +288,8 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
     setErrorMsg(null);
     setModelLoadError(null);
     setRunning(true);
+    revealOnNarrowScreen(photoCardRef.current);
+    let finished = false;
     try {
       const versionTag = meta.model_etag || meta.model_version || meta.model_variant;
       const session = await ensureOnnxSession(
@@ -283,6 +309,7 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
       if (canvasRef.current && loadedImageRef.current) {
         renderResultToCanvas(canvasRef.current, loadedImageRef.current, res, layers);
       }
+      finished = true;
     } catch (err) {
       setErrorMsg(
         err instanceof Error && err.message
@@ -292,6 +319,10 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
     } finally {
       setRunning(false);
       setLoadingText(null);
+    }
+    if (finished) {
+      // Depois de renderizar o resultado, garante que o cartão com o veredito apareça na tela
+      window.setTimeout(() => revealOnNarrowScreen(resultCardRef.current, "nearest"), 80);
     }
   };
 
@@ -303,11 +334,14 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
     const windPct = formatRelativePct(result.windBufferPx, result.copaPx);
     const prompt = selectedSample
       ? `Analise a árvore #${selectedSample.geosampa_id} (${formatDistrictName(selectedSample.distrito)}): a avaliação visual indicou ${statusHuman}, com ${contactPct} da copa em contato direto com a fiação e ${windPct} na zona de vento. Qual o encaminhamento oficial indicado?`
-      : `Enviei a foto "${customTitle || "da rua"}" e a análise visual indicou situação de ${statusHuman}, com ${contactPct} da copa em contato direto com a fiação e ${windPct} na zona de vento (sem faíscas relatadas). Quais procedimentos e canais oficiais devo seguir segundo as normas de São Paulo?`;
+      : `${fromCamera ? "Tirei uma foto da rua" : `Enviei a foto "${customTitle || "da rua"}"`} e a análise visual indicou situação de ${statusHuman}, com ${contactPct} da copa em contato direto com a fiação e ${windPct} na zona de vento (sem faíscas relatadas). Quais procedimentos e canais oficiais devo seguir segundo as normas de São Paulo?`;
     onSendToAssistant(gid, prompt);
   };
 
   const summaryInfo = result ? TRIAGE_EXPLANATION[result.triage] : null;
+  const modelSizeLabel = meta?.model_size_mb
+    ? `${formatNumberPtBr(Math.round(meta.model_size_mb), 0)} MB`
+    : "55 MB";
 
   const canShare = useMemo(
     () => typeof navigator !== "undefined" && typeof navigator.share === "function",
@@ -321,6 +355,8 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
     if (customTitle) {
       const base = customTitle
         .replace(/\.[^.]+$/, "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase()
         .replace(/[^a-z0-9_-]+/g, "-")
         .replace(/^-+|-+$/g, "");
@@ -448,20 +484,20 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
           <div className="mt-2.5 flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#C6DBC0] bg-[#FAFBF9] px-4 py-2.5">
             <div className="min-w-0 flex-1 space-y-0.5">
               <h2 className="text-sm font-bold text-[#18241B]">
-                A análise roda no seu computador
+                A análise roda no seu {deviceWord}
               </h2>
               <p className="text-[13px] text-[#4A5D4E]">
-                A foto não é enviada para nenhum servidor: o modelo de visão computacional é baixado uma vez (cerca de 55 MB) e roda no seu navegador.
+                A foto não é enviada para nenhum servidor: o modelo de visão computacional é baixado uma vez (cerca de {modelSizeLabel}) e roda no seu navegador.
               </p>
             </div>
             <button
               type="button"
               disabled={!meta}
               onClick={() => meta && void startModelPreparation(meta)}
-              className="inline-flex shrink-0 items-center gap-2 rounded bg-[#1B4332] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#143325] disabled:opacity-50"
+              className="inline-flex min-h-[44px] w-full shrink-0 items-center justify-center gap-2 rounded bg-[#1B4332] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#143325] disabled:opacity-50 sm:w-auto"
             >
               <Download className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span>Preparar análise no meu computador</span>
+              <span>Preparar análise no meu {deviceWord}</span>
             </button>
           </div>
         )}
@@ -532,6 +568,56 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
             </div>
 
             <div className="mt-2 border-t border-[#E6ECE3] pt-2">
+              {isTouchDevice ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    {
+                      id: "vision-camera-input",
+                      label: "Tirar foto",
+                      icon: Camera,
+                      accept: "image/*",
+                      capture: "environment" as const,
+                      source: "camera" as const,
+                    },
+                    {
+                      id: "vision-gallery-input",
+                      label: "Escolher da galeria",
+                      icon: ImageIcon,
+                      accept: "image/jpeg,image/png,image/webp",
+                      capture: undefined,
+                      source: "arquivo" as const,
+                    },
+                  ].map(({ id, label, icon: Icon, accept, capture, source }) => (
+                    <label
+                      key={id}
+                      htmlFor={id}
+                      aria-disabled={running}
+                      className={`flex min-h-[48px] items-center justify-center gap-2 rounded border px-3 py-2 text-sm font-semibold transition-colors ${
+                        running
+                          ? "cursor-not-allowed border-[#D5E0D1] bg-[#F6F8F5] text-[#4A5D4E] opacity-50"
+                          : "cursor-pointer border-[#2D6A4F] bg-white text-[#1B4332] active:bg-[#E7EFE4]"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span>{label}</span>
+                      <input
+                        id={id}
+                        type="file"
+                        accept={accept}
+                        capture={capture}
+                        disabled={running}
+                        className="sr-only"
+                        onChange={(e) => {
+                          if (running) return;
+                          const file = e.target.files?.[0];
+                          if (file) handleUploadFile(file, source);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  ))}
+                </div>
+              ) : (
               <label
                 htmlFor="vision-file-upload"
                 aria-disabled={running}
@@ -570,11 +656,16 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
                   }}
                 />
               </label>
+              )}
             </div>
           </div>
 
-          {/* Card 2 (mobile: 2º | desktop: esquerda meio): Faixa "2. Analisar foto" com altura fixa */}
-          <div aria-live="polite" className="order-2 flex min-h-[108px] flex-col justify-between rounded-md border border-[#D5E0D1] bg-white px-3.5 py-2.5 lg:order-none lg:h-[108px]">
+          {/* Card 2 (mobile: 3º, logo abaixo da foto | desktop: esquerda meio): Faixa "2. Analisar foto" com altura fixa */}
+          <div
+            ref={resultCardRef}
+            aria-live="polite"
+            className="order-3 flex min-h-[108px] flex-col justify-between gap-2 rounded-md border border-[#D5E0D1] bg-white px-3.5 py-2.5 lg:order-none lg:h-[108px] lg:gap-0"
+          >
             {result && summaryInfo && !running ? (
               <>
                 <div className="min-w-0 space-y-1">
@@ -588,7 +679,7 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
                     </span>
                   </div>
                   <h2
-                    className="truncate text-[13px] font-bold text-[#18241B]"
+                    className="text-[13px] font-bold text-[#18241B] lg:truncate"
                     title={summaryInfo.title}
                   >
                     {summaryInfo.title}
@@ -600,7 +691,7 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
                     <button
                       type="button"
                       onClick={handleAskAssistant}
-                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded bg-[#1B4332] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#143325]"
+                      className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded bg-[#1B4332] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#143325] lg:min-h-0"
                     >
                       <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                       <span>Consultar assistente</span>
@@ -610,7 +701,7 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
                     type="button"
                     disabled={running}
                     onClick={() => setResult(null)}
-                    className={`rounded border border-[#D5E0D1] bg-white px-3 py-1.5 text-xs font-semibold text-[#1B4332] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:cursor-not-allowed disabled:opacity-50 ${
+                    className={`min-h-[40px] rounded border border-[#D5E0D1] bg-white px-3 py-1.5 text-xs font-semibold lg:min-h-0 text-[#1B4332] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:cursor-not-allowed disabled:opacity-50 ${
                       onSendToAssistant ? "shrink-0" : "w-full"
                     }`}
                   >
@@ -624,7 +715,7 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
                   <span className="block text-sm font-semibold text-[#18241B]">
                     2. Analisar foto
                   </span>
-                  <p className="truncate text-[13px] text-[#4A5D4E]">
+                  <p className="text-[13px] text-[#4A5D4E] lg:truncate">
                     Identificando galhos e fiação na foto...
                   </p>
                 </div>
@@ -632,7 +723,7 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
                 <button
                   type="button"
                   disabled
-                  className="inline-flex w-full items-center justify-center gap-2 rounded bg-[#1B4332] px-4 py-1.5 text-sm font-semibold text-white opacity-70"
+                  className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded bg-[#1B4332] px-4 py-1.5 text-sm font-semibold text-white lg:min-h-0 opacity-70"
                 >
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   <span className="tabular-nums">Analisando… {inferenceElapsedSec} s</span>
@@ -645,13 +736,27 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
                     <h2 className="text-sm font-semibold text-[#18241B]">
                       2. Analisar foto
                     </h2>
-                    {!sessionReady && (
-                      <span className="text-[11px] font-medium text-[#92400E]">
-                        Prepare a análise primeiro
-                      </span>
-                    )}
+                    {!sessionReady &&
+                      (preparingModel ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium tabular-nums text-[#1B4332]">
+                          <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                          <span>Preparando… {progressPct}%</span>
+                        </span>
+                      ) : needsModelDownload && meta && !modelLoadError ? (
+                        <button
+                          type="button"
+                          onClick={() => void startModelPreparation(meta)}
+                          className="min-h-[32px] rounded px-1 text-[12px] font-semibold text-[#1B4332] underline underline-offset-2 hover:text-[#143325]"
+                        >
+                          Preparar análise ({modelSizeLabel})
+                        </button>
+                      ) : (
+                        <span className="text-[11px] font-medium text-[#92400E]">
+                          Prepare a análise primeiro
+                        </span>
+                      ))}
                   </div>
-                  <p className="truncate text-[13px] text-[#4A5D4E]">
+                  <p className="text-[13px] text-[#4A5D4E] lg:truncate">
                     {selectedSample ? (
                       <>
                         Levantamento:{" "}
@@ -671,7 +776,7 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
                   disabled={!activeImageSrc || !sessionReady}
                   title={!sessionReady ? "Prepare a análise primeiro" : undefined}
                   onClick={handleRunInference}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded bg-[#1B4332] px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[#143325] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded bg-[#1B4332] px-4 py-1.5 text-sm font-semibold text-white lg:min-h-0 transition-colors hover:bg-[#143325] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Play className="h-4 w-4" aria-hidden="true" />
                   <span>2. Analisar foto</span>
@@ -806,13 +911,14 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
 
         {/* Coluna Direita (desktop: 8 colunas | celular: ordem 3, 4) */}
         <div className="contents lg:col-span-8 lg:flex lg:flex-col lg:gap-4">
-          {/* Card 3 (mobile: 3º | desktop: direita topo): Imagem/canvas */}
+          {/* Card 3 (mobile: 2º, logo abaixo da escolha | desktop: direita topo): Imagem/canvas */}
           <div
+            ref={photoCardRef}
             onDragEnter={handleDragOver}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`order-3 relative min-w-0 rounded-md border bg-white p-3.5 transition-colors lg:order-none ${
+            className={`order-2 relative min-w-0 rounded-md border bg-white p-3.5 transition-colors lg:order-none ${
               isDragging && !running ? "border-[#1B4332] bg-[#EEF4EC]" : "border-[#D5E0D1]"
             }`}
           >
@@ -830,16 +936,18 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
                     Foto enviada:{" "}
                     <strong className="font-semibold text-[#18241B]">{customTitle}</strong>
                   </>
+                ) : isTouchDevice ? (
+                  "Escolha um exemplo ou tire uma foto"
                 ) : (
                   "Selecione uma imagem ou arraste para cá"
                 )}
               </div>
             </div>
 
-            <div className="keep-colors relative flex min-h-[320px] max-h-[calc(100vh-290px)] items-center justify-center overflow-hidden rounded border border-[#E6ECE3] bg-[#F6F8F5]">
+            <div className="keep-colors relative flex min-h-[220px] max-h-[60svh] items-center justify-center overflow-hidden rounded border border-[#E6ECE3] bg-[#F6F8F5] lg:min-h-[320px] lg:max-h-[calc(100vh-290px)]">
               <canvas
                 ref={canvasRef}
-                className="keep-colors max-h-[calc(100vh-290px)] w-auto max-w-full object-contain"
+                className="keep-colors max-h-[60svh] w-auto max-w-full object-contain lg:max-h-[calc(100vh-290px)]"
               />
               {running && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-[1px]">
@@ -863,27 +971,29 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
               )}
             </div>
 
-            <p className="mt-2 text-right text-xs text-[#4A5D4E]">
-              Arraste outra foto para esta área ou escolha um exemplo ao lado
-            </p>
+            {!isTouchDevice && (
+              <p className="mt-2 hidden text-right text-xs text-[#4A5D4E] lg:block">
+                Arraste outra foto para esta área ou escolha um exemplo ao lado
+              </p>
+            )}
           </div>
 
           {/* Card 4 (mobile: 4º | desktop: direita abaixo): Detalhes, ações e métricas com altura reservada */}
           <div className="order-4 flex min-h-[144px] flex-col justify-center rounded-md border border-[#D5E0D1] bg-white p-3.5 lg:order-none lg:h-[144px]">
             {result && summaryInfo ? (
               <div className="flex h-full flex-col justify-between gap-2">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <p className="min-w-0 flex-1 text-[13px] leading-snug text-[#4A5D4E]">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <p className="min-w-0 text-[13px] leading-snug text-[#4A5D4E] sm:flex-1">
                     {summaryInfo.subtitle}
                   </p>
 
-                  <div className="flex shrink-0 flex-col items-end gap-1">
+                  <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         disabled={!result || running}
                         onClick={handleDownloadImage}
-                        className="inline-flex min-h-[30px] items-center gap-1.5 rounded border border-[#D5E0D1] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:cursor-not-allowed disabled:opacity-45"
+                        className="inline-flex min-h-[40px] items-center gap-1.5 rounded border lg:min-h-[30px] border-[#D5E0D1] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:cursor-not-allowed disabled:opacity-45"
                       >
                         <Download className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                         <span>Baixar imagem</span>
@@ -893,7 +1003,7 @@ export function VisionLabView({ onSendToAssistant }: VisionLabViewProps) {
                           type="button"
                           disabled={!result || running}
                           onClick={() => void handleShareImage()}
-                          className="inline-flex min-h-[30px] items-center gap-1.5 rounded border border-[#D5E0D1] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:cursor-not-allowed disabled:opacity-45"
+                          className="inline-flex min-h-[40px] items-center gap-1.5 rounded border lg:min-h-[30px] border-[#D5E0D1] bg-white px-2.5 py-1 text-xs font-semibold text-[#1B4332] transition-colors hover:border-[#2D6A4F] hover:bg-[#EEF4EC] disabled:cursor-not-allowed disabled:opacity-45"
                         >
                           <Share2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                           <span>Compartilhar</span>
