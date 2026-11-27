@@ -37,6 +37,10 @@ from src.retrieval import KnowledgeRetriever
 from src.tools import ArborGridInspector
 from src.validator import apply_post_generation_filters, evaluate_prediction
 
+# Casos do teste que são paráfrases de exemplos do treino (auditoria de contaminação, Notebook 03).
+# Os outros 22 formam o subconjunto limpo.
+PARAPHRASED = {"T08", "T09", "T12", "T14", "T23", "T25", "T27", "T29"}
+
 
 def _generate_one(
     model: Any,
@@ -204,6 +208,11 @@ def main() -> None:
     parser.add_argument("--adapter-name", default="lora_arborgrid_r16")
     parser.add_argument("--out-prefix", default="")
     parser.add_argument("--replot", action="store_true")
+    parser.add_argument(
+        "--ablacao",
+        action="store_true",
+        help="Separa o efeito do LoRA, do agente e do validador (grava ablacao_*; não mexe no placar principal)",
+    )
     args_cli, _ = parser.parse_known_args()
 
     if args_cli.replot:
@@ -235,19 +244,28 @@ def main() -> None:
     )
     model.eval()
 
-    configs = [
-        ("1_base_sem_contexto", False, False, False),
-        ("2_rag_simples", True, False, False),
-    ]
-    if has_lora:
-        configs.append(("3_rag_lora_agente", True, True, True))
+    if args_cli.ablacao:
+        if not has_lora:
+            raise SystemExit(f"A ablação precisa do adaptador em {adapter_dir}")
+        # Duas gerações por caso; as variantes C e D reaproveitam a saída de B e só mudam o pós-processamento
+        configs = [
+            ("A_rag_lora", True, False, True),
+            ("B_rag_lora_agente", True, True, True),
+        ]
+    else:
+        configs = [
+            ("1_base_sem_contexto", False, False, False),
+            ("2_rag_simples", True, False, False),
+        ]
+        if has_lora:
+            configs.append(("3_rag_lora_agente", True, True, True))
 
     all_details: dict[str, list[dict[str, Any]]] = {}
     summary_rows: list[dict[str, Any]] = []
 
     for cfg_name, use_rag, use_agent, use_lora in configs:
         print(f"\n=== Executando {cfg_name} ({len(test_cases)} casos) ===")
-        cfg_results: list[dict[str, Any]] = []
+        cfg_results: dict[str, list[dict[str, Any]]] = {}
         for case in test_cases:
             chunks = (
                 retriever.retrieve(
@@ -286,31 +304,57 @@ def main() -> None:
                     model.set_adapter("arborgrid")
                 raw_out, lat_ms, n_tokens = _generate_one(model, tokenizer, prompt)
 
-            if use_lora and use_rag and use_agent:
-                raw_out = apply_post_generation_filters(raw_out, case["pergunta"], chunks)
+            pergunta = case["pergunta"]
+            if args_cli.ablacao and use_agent:
+                variants = [
+                    ("B_rag_lora_agente", raw_out),
+                    ("C_mais_filtro_de_citacoes", apply_post_generation_filters(raw_out, pergunta, chunks, risk_floor=False)),
+                    ("D_mais_piso_de_risco", apply_post_generation_filters(raw_out, pergunta, chunks)),
+                ]
+            elif use_lora and use_rag and use_agent:
+                variants = [(cfg_name, apply_post_generation_filters(raw_out, pergunta, chunks))]
+            else:
+                variants = [(cfg_name, raw_out)]
 
-            metrics = evaluate_prediction(
-                case=case,
-                raw_output=raw_out,
-                retrieved_chunks=chunks,
-                tree_context=tree_ctx,
-            )
-            metrics["latency_ms"] = round(lat_ms, 1)
-            metrics["generated_tokens"] = n_tokens
-            metrics["tps"] = round(n_tokens / max(lat_ms / 1000.0, 1e-6), 2)
-            metrics["retrieved_ids"] = [c["chunk_id"] for c in (chunks or [])]
-            metrics["used_tree_tool"] = tree_ctx is not None
-            cfg_results.append(metrics)
+            for variant_name, out in variants:
+                metrics = evaluate_prediction(
+                    case=case,
+                    raw_output=out,
+                    retrieved_chunks=chunks,
+                    tree_context=tree_ctx,
+                )
+                metrics["latency_ms"] = round(lat_ms, 1)
+                metrics["generated_tokens"] = n_tokens
+                metrics["tps"] = round(n_tokens / max(lat_ms / 1000.0, 1e-6), 2)
+                metrics["retrieved_ids"] = [c["chunk_id"] for c in (chunks or [])]
+                metrics["used_tree_tool"] = tree_ctx is not None
+                if args_cli.ablacao:
+                    metrics["model_output"] = raw_out  # saída do modelo antes de qualquer filtro
+                cfg_results.setdefault(variant_name, []).append(metrics)
 
-        all_details[cfg_name] = cfg_results
-        summary = _summarize(cfg_results, cfg_name)
-        summary_rows.append(summary)
-        print(summary)
+        for variant_name, rows in cfg_results.items():
+            all_details[variant_name] = rows
+            summary = _summarize(rows, variant_name)
+            if args_cli.ablacao:
+                limpos = [r for r in rows if r["id"] not in PARAPHRASED]
+                summary["acuracia_estrita_subconjunto_limpo"] = round(
+                    sum(1 for r in limpos if r["overall_exact"]) / max(len(limpos), 1), 4
+                )
+            summary_rows.append(summary)
+            print(summary)
 
     DIR_EVAL.mkdir(parents=True, exist_ok=True)
     DIR_ASSETS.mkdir(parents=True, exist_ok=True)
 
     df_summary = pd.DataFrame(summary_rows)
+    if args_cli.ablacao:
+        df_summary.to_csv(DIR_EVAL / "ablacao_placar.csv", index=False)
+        with (DIR_EVAL / "ablacao_detalhes.json").open("w", encoding="utf-8") as fp:
+            json.dump(all_details, fp, indent=2, ensure_ascii=False)
+        print("\n=== ABLAÇÃO ===")
+        print(df_summary[["configuracao", "acuracia_risco", "acuracia_canal", "recusa_nao_consta",
+                          "acuracia_geral_estrita", "acuracia_estrita_subconjunto_limpo"]].to_string(index=False))
+        return
     df_summary.to_csv(DIR_EVAL / f"{args_cli.out_prefix}placar_comparativo.csv", index=False)
     with (DIR_EVAL / f"{args_cli.out_prefix}benchmark_detalhes.json").open("w", encoding="utf-8") as fp:
         json.dump(all_details, fp, indent=2, ensure_ascii=False)

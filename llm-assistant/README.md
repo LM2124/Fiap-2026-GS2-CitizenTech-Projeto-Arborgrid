@@ -137,21 +137,27 @@ Comparação programática sobre [`avaliacao/test_set.jsonl`](avaliacao/test_set
 
 > *Variação completa com todos os 11 quesitos avaliados: [`assets/placar_comparativo_completo.png`](assets/placar_comparativo_completo.png) | Dados brutos: [`avaliacao/placar_comparativo.csv`](avaliacao/placar_comparativo.csv) | Execução detalhada em [`03_avaliacao_comparativa_e_agente.ipynb`](notebooks/03_avaliacao_comparativa_e_agente.ipynb).*
 
-#### Ablação do validador (reprocessamento offline das saídas salvas)
-Como a terceira configuração em [`scripts/run_benchmarks.py`](scripts/run_benchmarks.py) altera quatro fatores simultaneamente (adaptador LoRA, ferramenta GeoSampa, injeção de `ARBORGRID-TRIAGEM`/`SP156-ROTINA` e `apply_post_generation_filters`, aplicado apenas à configuração 3), o validador foi reaplicado *offline* sobre as saídas brutas salvas da configuração 2:
+#### Ablação: o que vem do LoRA, do agente e do validador
+A terceira configuração muda tudo junto: o adaptador LoRA, a ferramenta GeoSampa (com a injeção de `ARBORGRID-TRIAGEM` e `SP156-ROTINA`) e o validador `apply_post_generation_filters`, que filtra as citações e aplica um piso de risco por regras. A execução `python scripts/run_benchmarks.py --ablacao` gera de novo as respostas com LoRA e pontua cada etapa a partir da mesma saída do modelo ([`avaliacao/ablacao_placar.csv`](avaliacao/ablacao_placar.csv), respostas em [`avaliacao/ablacao_detalhes.json`](avaliacao/ablacao_detalhes.json)). A última linha reproduz o placar publicado.
 
-| Configuração | Acerto estrito |
-| :--- | :---: |
-| RAG simples | `10/30` (`33,3%`) |
-| RAG simples + Validador (sem LoRA, sem agente) | `12/30` (`40,0%`) |
-| LoRA + RAG + Agente + Validador | `28/30` (`93,3%`) |
+| Configuração | Acerto estrito (`30`) | Subconjunto limpo (`22`) |
+| :--- | :---: | :---: |
+| RAG simples | `10/30` (`33,3%`) | `6/22` (`27,3%`) |
+| + LoRA | `23/30` (`76,7%`) | `15/22` (`68,2%`) |
+| + agente GeoSampa | `24/30` (`80,0%`) | `16/22` (`72,7%`) |
+| + filtro de citações | `24/30` (`80,0%`) | `16/22` (`72,7%`) |
+| + piso de risco (sistema completo) | `28/30` (`93,3%`) | `20/22` (`90,9%`) |
 
-O validador isolado explica **`+2` casos**; os **`+16` casos** restantes vêm do adaptador LoRA em conjunto com a ferramenta GeoSampa (separar esses dois fatores exigiria uma quarta execução em GPU, listada como próximo passo).
+- **O LoRA é o salto principal:** `+13` casos (`+43,4 p.p.`), e o ganho se mantém no subconjunto limpo.
+- **O agente** acrescenta `1` caso. **O filtro de citações** não muda o acerto estrito, mas remove a única fonte inventada (alucinação de fonte de `3,3%` para `0%`).
+- **O piso de risco** acrescenta `4` casos (`+13,3 p.p.`). Nos quatro, o modelo já indicava o canal certo, mas classificava o risco um nível abaixo: em três emergências ativas (cabo arrebentado no chão, fio sobre um carro com pessoas dentro, árvore sobre a fiação depois do temporal) respondeu `urgente_vistoria` em vez de `emergencia_imediata`, e num caso de poda por conta própria perto da rede respondeu `preventivo_rotina` em vez de `urgente_vistoria`.
+- **Sem o piso, o modelo especializado acerta `80,0%`** (`72,7%` no subconjunto limpo). No site, o piso foi retirado depois da entrega: a classificação de risco é a do modelo, como na linha "+ filtro de citações".
+- Aplicado às respostas do RAG simples, sem LoRA, o mesmo validador sobe só de `10` para `12` casos (`40,0%`): as regras sozinhas não fazem o trabalho do LoRA.
 
 ### Decisão Arquitetural: Adoção de `LoRA + RAG + Agente`
 1. **Por que descartar o Base zero-shot (`26,7%`):** apesar de respeitar o contrato JSON (`100,0%` de *schema* válido), o **Qwen 1.7B** sem contexto fabrica telefones em **`23,3%`** dos casos, acerta apenas `40,0%` dos órgãos competentes e viola segurança operacional sugerindo poda própria em **`73,3%`** das respostas (`seguranca_poda = 26,7%`).
 2. **Por que descartar apenas RAG sem LoRA (`33,3%`):** a injeção dos trechos resolve grande parte dos canais oficiais (`86,7%`) e derruba telefones fabricados para `3,3%`, mas sem o ajuste fino o modelo ainda erra `46,7%` em segurança de poda e omite citações em `36,4%` das respostas.
-3. **Decisão fechada — Sistema Completo (`93,3%`, `28/30` casos):** a união **`LoRA + RAG + Agente GeoSampa + Validador Programático`** atinge **`100,0%`** em validade JSON/Schema, órgão/canal competente, segurança de poda, citação da fonte esperada, recusa de `"nao_consta"` e conformidade LGPD (**`+66,6 p.p.`** sobre o Base, **`+60,0 p.p.`** sobre o RAG simples e **`+53,3 p.p.`** sobre RAG + Validador).
+3. **Decisão fechada — Sistema Completo (`93,3%`, `28/30` casos):** a união **`LoRA + RAG + Agente GeoSampa + Validador Programático`** atinge **`100,0%`** em validade JSON/Schema, órgão/canal competente, segurança de poda, citação da fonte esperada, recusa de `"nao_consta"` e conformidade LGPD (**`+66,6 p.p.`** sobre o Base, **`+60,0 p.p.`** sobre o RAG simples e **`+53,3 p.p.`** sobre RAG + Validador). Desses `28` acertos, `4` dependem do piso de risco por regras; sem ele, o sistema acerta `80,0%` (ver a ablação acima).
 
 - **Leitura estatística (`n = 30`, intervalos de Wilson 95%):** `Base` `8/30 = 26,7%` `[14,2%; 44,4%]`; `RAG simples` `10/30 = 33,3%` `[19,2%; 51,2%]`; `Sistema Completo` `28/30 = 93,3%` `[78,7%; 98,2%]`. Como os intervalos não se sobrepõem, a transição `Base/RAG → Sistema Completo` representa uma diferença estatisticamente robusta *(demais intervalos comparativos na Seção 6)*.
 

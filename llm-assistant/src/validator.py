@@ -44,8 +44,12 @@ def apply_post_generation_filters(
     raw_output: str,
     question: str,
     retrieved_chunks: list[dict[str, Any]] | None = None,
+    risk_floor: bool = True,
 ) -> str:
-    """Aplica filtros determinísticos pós-modelo (citações válidas e piso de risco)."""
+    """Aplica filtros determinísticos pós-modelo (citações válidas e piso de risco).
+
+    risk_floor=False desliga só o piso de risco por regras, para a ablação medir o modelo sem ele.
+    """
     parsed, _ = extract_json_object(raw_output)
     if not isinstance(parsed, dict):
         return raw_output
@@ -60,7 +64,7 @@ def apply_post_generation_filters(
             str(s) for s in sources if isinstance(s, str) and s in allowed_ids
         ]
 
-    if status == "respondido":
+    if risk_floor and status == "respondido":
         channel_text = (
             f"{parsed.get('orgao_responsavel') or ''} "
             f"{parsed.get('telefone_ou_canal') or ''}"
