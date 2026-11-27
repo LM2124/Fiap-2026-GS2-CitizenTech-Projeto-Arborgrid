@@ -10,7 +10,7 @@ services:
   llama-server:
     logging: *default-logging
     # Fixada pelo digest (build de 17/11/2026): a tag "server" e movel e quebraria a reprodutibilidade
-    image: ghcr.io/ggml-org/llama.cpp:server@sha256:5b43086e3ba7ea5794d72904654f6cd41224a9b1c6ac0398f4940ee380d30f23
+    image: ghcr.io/ggml-org/llama.cpp:server@sha256:b24873ae66a4732e0b4b66dd7dc658066ccad6e8c63524278e92eebc767aacbe
     container_name: arborgrid-llama
     profiles:
       - llm
@@ -85,7 +85,7 @@ services:
 
   nginx:
     logging: *default-logging
-    image: nginx:1.27-alpine
+    image: nginx:1.29-alpine
     container_name: arborgrid-nginx
     restart: unless-stopped
     depends_on:
@@ -102,7 +102,7 @@ services:
 
   caddy:
     logging: *default-logging
-    image: caddy:2.8.4-alpine
+    image: caddy:2.11.9-alpine
     container_name: arborgrid-caddy
     restart: unless-stopped
     depends_on:
@@ -140,7 +140,7 @@ services:
 
   grafana:
     logging: *default-logging
-    image: grafana/grafana:11.3.0
+    image: grafana/grafana:11.6.16
     container_name: arborgrid-grafana
     restart: unless-stopped
     environment:
