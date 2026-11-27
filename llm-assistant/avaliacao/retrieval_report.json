@@ -980,5 +980,111 @@
       ],
       "max_score": 0.5507
     }
-  ]
+  ],
+  "limiar_escolhido_na_validacao": 0.3,
+  "limiar_em_uso": 0.3,
+  "validacao": {
+    "casos": 21,
+    "sweep": [
+      {
+        "threshold": 0.2,
+        "recall_at_1": 0.4,
+        "recall_at_3": 0.6667,
+        "mrr_at_3": 0.5333,
+        "false_refusal_rate": 0.0,
+        "oos_refusal_accuracy": 0.0,
+        "balanced_score": 0.3333
+      },
+      {
+        "threshold": 0.25,
+        "recall_at_1": 0.4,
+        "recall_at_3": 0.6667,
+        "mrr_at_3": 0.5333,
+        "false_refusal_rate": 0.0,
+        "oos_refusal_accuracy": 0.0,
+        "balanced_score": 0.3333
+      },
+      {
+        "threshold": 0.3,
+        "recall_at_1": 0.4,
+        "recall_at_3": 0.6667,
+        "mrr_at_3": 0.5333,
+        "false_refusal_rate": 0.0,
+        "oos_refusal_accuracy": 0.1667,
+        "balanced_score": 0.4167
+      },
+      {
+        "threshold": 0.35,
+        "recall_at_1": 0.4,
+        "recall_at_3": 0.6667,
+        "mrr_at_3": 0.5333,
+        "false_refusal_rate": 0.0667,
+        "oos_refusal_accuracy": 0.5,
+        "balanced_score": 0.5833
+      },
+      {
+        "threshold": 0.4,
+        "recall_at_1": 0.4,
+        "recall_at_3": 0.4667,
+        "mrr_at_3": 0.4333,
+        "false_refusal_rate": 0.1333,
+        "oos_refusal_accuracy": 0.6667,
+        "balanced_score": 0.5667
+      },
+      {
+        "threshold": 0.45,
+        "recall_at_1": 0.3333,
+        "recall_at_3": 0.3333,
+        "mrr_at_3": 0.3333,
+        "false_refusal_rate": 0.2667,
+        "oos_refusal_accuracy": 0.8333,
+        "balanced_score": 0.5833
+      },
+      {
+        "threshold": 0.5,
+        "recall_at_1": 0.2667,
+        "recall_at_3": 0.2667,
+        "mrr_at_3": 0.2667,
+        "false_refusal_rate": 0.5333,
+        "oos_refusal_accuracy": 0.8333,
+        "balanced_score": 0.55
+      },
+      {
+        "threshold": 0.55,
+        "recall_at_1": 0.2,
+        "recall_at_3": 0.2,
+        "mrr_at_3": 0.2,
+        "false_refusal_rate": 0.7333,
+        "oos_refusal_accuracy": 0.8333,
+        "balanced_score": 0.5167
+      },
+      {
+        "threshold": 0.6,
+        "recall_at_1": 0.1333,
+        "recall_at_3": 0.1333,
+        "mrr_at_3": 0.1333,
+        "false_refusal_rate": 0.8667,
+        "oos_refusal_accuracy": 1.0,
+        "balanced_score": 0.5667
+      },
+      {
+        "threshold": 0.65,
+        "recall_at_1": 0.1333,
+        "recall_at_3": 0.1333,
+        "mrr_at_3": 0.1333,
+        "false_refusal_rate": 0.8667,
+        "oos_refusal_accuracy": 1.0,
+        "balanced_score": 0.5667
+      },
+      {
+        "threshold": 0.7,
+        "recall_at_1": 0.0,
+        "recall_at_3": 0.0,
+        "mrr_at_3": 0.0,
+        "false_refusal_rate": 1.0,
+        "oos_refusal_accuracy": 1.0,
+        "balanced_score": 0.5
+      }
+    ]
+  }
 }

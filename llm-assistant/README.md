@@ -85,9 +85,13 @@ A recuperação combina similaridade densa (`sentence-transformers/paraphrase-mu
 
 ![Varredura de Limiar de Similaridade Cosseno](assets/retrieval_threshold_sweep.png)
 
-### Decisão: Limiar de Similaridade em `0,30`
-- Em triagem de risco elétrico e proteção civil, falsos negativos (descartar perguntas legítimas do cidadão) têm custo crítico. Pela curva acima, **`0,30`** é o ponto ótimo que zera a recusa indevida (**`false_refusal_rate = 0,0000`**) mantendo **`Recall@1 = 0,6818`**, **`Recall@3 = 0,9545`** e **`MRR@3 = 0,8030`**.
-- Assim, consultas totalmente fora de domínio são filtradas na própria busca (ex.: previsão do tempo em Pinheiros, `score = 0,2393`), enquanto armadilhas com vocabulário próximo (ex.: taxa de boleto, valor de ART ou outro município) seguem para o LLM fundamentado recusá-las com segurança.
+### Decisão: limiar de similaridade em `0,30`, escolhido num conjunto separado
+- O limiar é escolhido em [`avaliacao/validacao_limiar.jsonl`](avaliacao/validacao_limiar.jsonl): `21` perguntas escritas só para isso (`15` respondíveis, cobrindo os `16` trechos, e `6` fora do escopo), sem repetir os cenários dos casos de teste. Os `30` casos de teste só medem o limiar já escolhido.
+- **Regra** (`escolher_limiar` em [`scripts/eval_retrieval.py`](scripts/eval_retrieval.py)): o maior limiar que mantém a recusa indevida em zero sem perder `Recall@3`. Em triagem de risco elétrico e proteção civil, descartar uma pergunta legítima do cidadão custa mais do que deixar o modelo recusar uma fora do escopo. Na validação, a regra escolhe **`0,30`** ([varredura](avaliacao/retrieval_threshold_sweep_validacao.csv)); em `0,35` a busca já descarta `1` das `15` perguntas legítimas.
+- No teste, esse limiar dá **`Recall@1 = 0,6818`**, **`Recall@3 = 0,9545`**, **`MRR@3 = 0,8030`** e nenhuma recusa indevida (`0/22`).
+- Consultas totalmente fora do domínio são filtradas na própria busca (ex.: previsão do tempo em Pinheiros, `score = 0,2393`), enquanto armadilhas com vocabulário próximo (ex.: taxa de boleto, valor de ART ou outro município) seguem para o LLM fundamentado recusá-las com segurança.
+
+**O que a validação mostrou:** nas perguntas novas, a busca acerta menos: `Recall@1 = 0,40` e `Recall@3 = 0,67` (`10` de `15`). Os erros são de vocabulário: "abacateiro no fundo do terreno" não encontra o trecho sobre árvore em imóvel particular (`LEI-17794-ART18`), "vocês guardam meu nome e telefone?" não encontra a diretriz de LGPD, e o trecho genérico de segurança com a fiação (`SEGURANCA-FIACAO`) atrai perguntas que eram dos Bombeiros, da Defesa Civil e da NR-10. Os casos de teste usam palavras mais próximas das dos trechos, então o `Recall@3` de `0,95` é otimista para perguntas reais; ampliar a base com mais trechos e sinônimos é o próximo passo.
 
 ### Retriever em produção (`webapp`)
 No MVP ([`webapp/app/services/assistant_service.py`](../webapp/app/services/assistant_service.py)), para manter a VM de `4 GB` livre para o LLM, a aplicação não carrega `sentence-transformers`: utiliza um *retriever* lexical leve baseado em TF-IDF com dicionário de sinônimos em português e limiar **`0,12`**. Avaliado sobre os mesmos `30` casos de teste:
