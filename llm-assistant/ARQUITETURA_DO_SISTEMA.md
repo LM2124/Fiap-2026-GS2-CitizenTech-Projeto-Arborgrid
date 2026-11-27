@@ -75,7 +75,7 @@ flowchart LR
 ## 3. Detalhamento dos Módulos de Controle
 
 ### 3.1 Busca Híbrida e Gate de Domínio ([`src/retrieval.py`](src/retrieval.py))
-- **`KnowledgeRetriever`:** combina *embeddings* densos normalizados (`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`) com TF-IDF (`TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True)`) sobre os 16 trechos curados de [`base/knowledge_base.jsonl`](base/knowledge_base.jsonl).
+- **`KnowledgeRetriever`:** combina *embeddings* densos normalizados (`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`) com TF-IDF (`TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True)`) sobre os 25 trechos curados de [`base/knowledge_base.jsonl`](base/knowledge_base.jsonl).
 - **Ranqueamento e filtragem:** `score = dense_sims + (0.35 * lexical_sims)`. Apenas trechos com `score >= 0.30` (`DEFAULT_RETRIEVAL_THRESHOLD`, `top_k = 3`) entram no prompt via `format_context_block()`. Quando nenhum trecho atinge o limiar, o prompt informa explicitamente ausência de contexto confiável.
 
 ### 3.2 Agente Determinístico GeoSampa ([`src/tools.py`](src/tools.py))

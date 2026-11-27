@@ -781,7 +781,7 @@ def test_assistant_knowledge_status_and_synced_kb_compatibility(tmp_path: Path, 
             gold_store=client.app.state.gold_store,
             llm_api_url="http://127.0.0.1:9/v1/chat/completions",
         )
-        assert len(synced_service.chunks) == 16
+        assert len(synced_service.chunks) == len(linhas_sync)
         resp_ask = synced_service.ask("Posso podar arvore na calcada?")
         assert resp_ask["structured"]["status"] == "respondido"
         assert resp_ask["citations"]
