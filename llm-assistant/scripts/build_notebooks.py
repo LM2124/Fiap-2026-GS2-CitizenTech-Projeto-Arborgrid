@@ -15,9 +15,9 @@ def _nb_base_rag() -> nbf.NotebookNode:
         nbf.v4.new_markdown_cell(
             "# 01 — Base de Conhecimento, Busca Híbrida (RAG) e Varredura de Limiar\n\n"
             "Este notebook documenta:\n"
-            "1. A tabela completa dos 16 trechos curados (`base/knowledge_base.jsonl`) com fonte e categoria.\n"
+            "1. A tabela completa dos 25 trechos curados (`base/knowledge_base.jsonl`) com fonte e categoria.\n"
             "2. A avaliação determinística da recuperação semântica + lexical (`Recall@1`, `Recall@3`, `MRR@3`).\n"
-            "3. A justificativa empírica do limiar de similaridade (`0.30`) por meio da varredura e gráfico de compensação."
+            "3. A escolha do limiar de similaridade (`0.30`) num conjunto de validação separado (`avaliacao/validacao_limiar.jsonl`) e a medição desse limiar nos 30 casos de teste."
         ),
         nbf.v4.new_code_cell(
             "import json\n"
@@ -39,18 +39,23 @@ def _nb_base_rag() -> nbf.NotebookNode:
             "if REEXECUTAR_BUSCA or not (DIR_EVAL / 'retrieval_threshold_sweep.csv').exists():\n"
             "    from scripts.eval_retrieval import main as run_eval\n"
             "    run_eval()\n\n"
+            "df_val = pd.read_csv(DIR_EVAL / 'retrieval_threshold_sweep_validacao.csv')\n"
             "df_sweep = pd.read_csv(DIR_EVAL / 'retrieval_threshold_sweep.csv')\n"
+            "print('Validação (escolha do limiar):')\n"
+            "display(df_val)\n"
+            "print('Teste (medição do limiar escolhido):')\n"
             "display(df_sweep)\n"
             "display(Image(filename=str(DIR_ASSETS / 'retrieval_threshold_sweep.png')))"
         ),
         nbf.v4.new_markdown_cell(
             "### Decisão: Limiar de Similaridade em `0.30`\n"
-            "Pela curva acima, **`0.30`** zera a recusa indevida (`false_refusal_rate = 0.0000`) mantendo `Recall@1 = 0.6818`, `Recall@3 = 0.9545` e `MRR@3 = 0.8030`."
+            "O limiar sai da varredura de validação (primeira tabela): o maior que mantém a recusa indevida em zero sem perder `Recall@3`. A varredura de teste (segunda tabela e gráfico) só mede o limiar já escolhido; as métricas estão na célula abaixo e na Seção 4 do README."
         ),
         nbf.v4.new_code_cell(
             "report = json.loads((DIR_EVAL / 'retrieval_report.json').read_text(encoding='utf-8'))\n"
-            "print('Limiar escolhido:', DEFAULT_RETRIEVAL_THRESHOLD)\n"
-            "print('Métricas no limiar escolhido:', report['chosen_metrics'])"
+            "print('Limiar escolhido na validação:', report['limiar_escolhido_na_validacao'])\n"
+            "print('Limiar em uso:', DEFAULT_RETRIEVAL_THRESHOLD)\n"
+            "print('Métricas no teste com o limiar escolhido:', report['chosen_metrics'])"
         ),
     ]
     nb = nbf.v4.new_notebook()
@@ -194,6 +199,14 @@ def _nb_eval() -> nbf.NotebookNode:
             "    'Subconjunto limpo (22)': f'{clean3}/22 ({100*clean3/22:.1f}%)',\n"
             "})\n"
             "display(pd.DataFrame(audit_rows))"
+        ),
+        nbf.v4.new_markdown_cell(
+            "### Ablação: o que vem do LoRA, do agente e do validador\n"
+            "Gerada por `python scripts/run_benchmarks.py --ablacao`: as respostas com LoRA são geradas de novo, e cada etapa (agente, filtro de citações, piso de risco) é pontuada sobre a mesma saída do modelo."
+        ),
+        nbf.v4.new_code_cell(
+            "df_ablacao = pd.read_csv(DIR_EVAL / 'ablacao_placar.csv')\n"
+            "display(df_ablacao[['configuracao', 'acuracia_risco', 'acuracia_canal', 'acuracia_geral_estrita', 'acuracia_estrita_subconjunto_limpo']])"
         ),
         nbf.v4.new_code_cell(
             "from src.tools import ArborGridInspector\n\n"
