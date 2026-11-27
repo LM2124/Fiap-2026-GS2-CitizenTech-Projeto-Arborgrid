@@ -103,7 +103,9 @@ function getRuntimeThreads(): { threads: number; isolated: boolean } {
 
 function configureOrtEnv(): { threads: number; isolated: boolean } {
   const info = getRuntimeThreads();
-  ort.env.wasm.wasmPaths = "/ort/";
+  // URL absoluta: no servidor de desenvolvimento, o Vite reescreve import("/ort/...") com
+  // "?import" e recusa servir arquivos de public/ assim; com a origem completa ele não mexe.
+  ort.env.wasm.wasmPaths = new URL("/ort/", self.location.origin).href;
   ort.env.wasm.simd = true;
   ort.env.wasm.proxy = true;
   ort.env.wasm.numThreads = info.threads;
