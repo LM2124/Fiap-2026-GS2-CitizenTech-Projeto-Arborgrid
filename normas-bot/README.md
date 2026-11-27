@@ -4,7 +4,7 @@ Automação em Python para verificar e manter rastreável a base de normas e can
 
 ## O problema
 
-O Assistente do ArborGrid SP responde dúvidas de cidadãos e equipes técnicas com base em 16 trechos de leis municipais, decretos, manuais técnicos e canais de atendimento (Prefeitura de São Paulo, SP156, Enel SP, Corpo de Bombeiros, Defesa Civil, ABNT NBR 16246, NR-10 e especificações internas).
+O Assistente do ArborGrid SP responde dúvidas de cidadãos e equipes técnicas com base em 25 trechos de leis municipais, decretos, manuais técnicos e canais de atendimento (Prefeitura de São Paulo, SP156, Enel SP, Corpo de Bombeiros, Defesa Civil, ABNT NBR 16246, NR-10 e especificações internas).
 
 Telefones, prazos e dispositivos legais mudam em portais públicos diferentes. Conferir manualmente todas as fontes e comparar cada trecho leva cerca de uma hora por ciclo. Sem verificação recorrente, uma alteração de canal ou prazo em um portal público passa despercebida até causar encaminhamento incorreto.
 
@@ -77,7 +77,7 @@ Uma mudança real em uma norma troca parte dos fatos (como um telefone ou um pra
 ## Logs e saídas
 
 - `logs/rpa_normativo_AAAAMMDD.log`: uma linha por evento com timestamp ISO-8601, `exec=`, `fonte=`, `etapa=` (`inicio`, `download`, `extracao`, `decisao`, `gravacao`, `fim`) e `status=`, sem dados pessoais.
-- `saida/knowledge_base_synced.jsonl`: os mesmos 16 trechos na mesma ordem, com os cinco campos originais inalterados e o objeto adicional `verificacao` (`status`, `fonte_id`, `url`, `sha256`, `verificado_em`, `fatos_ausentes`).
+- `saida/knowledge_base_synced.jsonl`: os mesmos 25 trechos na mesma ordem, com os cinco campos originais inalterados e o objeto adicional `verificacao` (`status`, `fonte_id`, `url`, `sha256`, `verificado_em`, `fatos_ausentes`).
 - `saida/relatorio_execucao.json`: resumo da execução com `execucao_id`, início, fim, duração, modo, contagem por status, lista de exceções separada em `excecoes_negocio` (R4) e `excecoes_sistema` (R5 a R7), fontes e trechos.
 - `estado/ultima_execucao.json`: hash `sha256` confirmado e data da última verificação por fonte.
 

@@ -2,7 +2,7 @@
 
 ## 1. Visão geral do processo
 
-Este documento descreve o processo de verificação e sincronização da base de conhecimento normativa do Assistente do ArborGrid SP, composta por 16 trechos de legislação municipal, portais de atendimento, canais de emergência, normas técnicas e diretrizes internas.
+Este documento descreve o processo de verificação e sincronização da base de conhecimento normativa do Assistente do ArborGrid SP, composta por 25 trechos de legislação municipal, portais de atendimento, canais de emergência, normas técnicas e diretrizes internas.
 
 ## 2. Mapeamento AS-IS vs TO-BE
 
@@ -11,7 +11,7 @@ Este documento descreve o processo de verificação e sincronização da base de
 No fluxo anterior à automação, a conferência dependia de ação manual esporádica:
 
 1. Abrir manualmente cada portal público (Legislação PMSP, Portal SP156, Enel SP, Corpo de Bombeiros, Defesa Civil e PDF da SVMA).
-2. Localizar o texto ou telefone correspondente a cada um dos 16 trechos da base.
+2. Localizar o texto ou telefone correspondente a cada um dos 25 trechos da base.
 3. Comparar visualmente telefones, prazos e números de lei ou decreto com o arquivo `webapp/data/knowledge_base.jsonl`.
 4. Anotar eventuais divergências em planilha ou mensagem para atualização futura.
 
@@ -22,7 +22,7 @@ No fluxo anterior à automação, a conferência dependia de ação manual espor
 No fluxo automatizado pelo pacote `rpa_normativo`:
 
 1. O agendador dispara o robô periodicamente (ou o operador executa via CLI).
-2. O robô carrega `fontes.yaml`, a base original de 16 trechos e `estado/ultima_execucao.json`.
+2. O robô carrega `fontes.yaml`, a base original de 25 trechos e `estado/ultima_execucao.json`.
 3. Em repetição sobre todas as fontes, aplica R1 para fontes fechadas/internas ou coleta o conteúdo via HTTPS (ou `amostras/fontes/` em modo offline).
 4. Extrai o texto, normaliza espaços e caixa e gera `sha256`.
 5. Se não há texto extraível ou se nenhum fato monitorado aparece no conteúdo obtido (R7), registra `ERRO_CONTEUDO` como exceção de sistema e segue o lote.

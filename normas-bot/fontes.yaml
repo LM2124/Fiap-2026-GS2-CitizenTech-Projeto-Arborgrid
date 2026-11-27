@@ -123,6 +123,104 @@ fontes:
           - "colar"
           - "crista"
 
+  - id: planalto-lei-9605
+    nome: Lei Federal 9.605/1998 (Lei de Crimes Ambientais) - Planalto
+    url: https://www.planalto.gov.br/ccivil_03/leis/l9605.htm
+    tipo: html
+    url_verificada: true
+    trechos:
+      - chunk_id: LEI-9605-ART49
+        fatos:
+          - "Art. 49"
+          - "plantas de ornamentação de logradouros públicos"
+          - "45 (quarenta e cinco) dias"
+
+  - id: sp156-avaliacao-poda
+    nome: Portal SP156 - Avaliação de árvore em calçadas e praças
+    url: https://sp156.prefeitura.sp.gov.br/portal/servicos/informacao?servico=1071
+    tipo: html
+    url_verificada: true
+    trechos:
+      - chunk_id: SP156-PODA-PRAZO
+        fatos:
+          - "120 dias"
+          - "agrônomo"
+          - "3230-5156"
+
+  - id: sp156-indenizacao
+    nome: Portal SP156 - Reparação de danos (indenização por danos materiais)
+    url: https://sp156.prefeitura.sp.gov.br/portal/servicos/informacao?servico=3959
+    tipo: html
+    url_verificada: true
+    trechos:
+      - chunk_id: SP156-INDENIZACAO
+        fatos:
+          - "57.739"
+          - "franquia"
+          - "180 dias"
+
+  - id: prefeitura-servicos-arvore
+    nome: Prefeitura de São Paulo - Serviços do Portal 156 nas Subprefeituras
+    url: https://prefeitura.sp.gov.br/web/subprefeituras/w/pracas_de_atendimento/335674
+    tipo: html
+    url_verificada: true
+    trechos:
+      - chunk_id: SP156-DENUNCIA-PODA
+        fatos:
+          - "Denunciar poda ou remoção não autorizada"
+      - chunk_id: SP156-AREA-INTERNA
+        fatos:
+          - "Comunicar poda à Prefeitura"
+          - "remoção de árvore com apresentação de laudo"
+          - "Comunicar remoção ou poda emergencial"
+
+  - id: prefeitura-plantio
+    nome: Prefeitura de São Paulo - Mudas e plantio em calçada
+    url: https://prefeitura.sp.gov.br/w/noticia/saiba-como-conseguir-mudas-de-arvores-e-solicitar-plantio-em-sua-calcada-1
+    tipo: html
+    url_verificada: true
+    trechos:
+      - chunk_id: SP156-PLANTIO
+        fatos:
+          - "SP156"
+          - "1,20 metros"
+          - "compacta"
+
+  - id: enel-podas-sp
+    nome: Enel Distribuição São Paulo - Podas de árvores
+    url: https://www.enel.com.br/pt-saopaulo/midia/news/d202411-Podas-Sao-Paulo.html
+    tipo: html
+    url_verificada: true
+    trechos:
+      - chunk_id: ENEL-PODA-REDE
+        fatos:
+          - "autorização da prefeitura"
+          - "0800 72 72 196"
+          - "156"
+
+  - id: aneel-reclamacao
+    nome: ANEEL - Reclamação sobre problema não resolvido pela distribuidora (gov.br)
+    url: https://www.gov.br/pt-br/servicos/registrar-reclamacao-sobre-demanda-junto-a-distribuidora-de-energia-eletrica-ANEEL
+    tipo: html
+    url_verificada: true
+    trechos:
+      - chunk_id: ANEEL-167
+        fatos:
+          - "167"
+          - "0800 7270167"
+          - "8h às 20h"
+
+  - id: defesa-civil-alertas
+    nome: Defesa Civil - Cadastro para avisos e alertas de desastres (gov.br)
+    url: https://www.gov.br/pt-br/servicos/solicitar-cadastro-para-recebimento-de-avisos-e-alertas-de-desastres
+    tipo: html
+    url_verificada: true
+    trechos:
+      - chunk_id: DEFESA-CIVIL-ALERTAS
+        fatos:
+          - "40199"
+          - "CEP"
+
   - id: abnt-nbr-16246
     nome: ABNT NBR 16246 (Partes 1, 2 e 3) e Norma Regulamentadora NR-10
     tipo: fechada

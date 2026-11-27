@@ -75,7 +75,7 @@ def _criar_cenario_mini(
 
 
 def test_sucesso_primeira_execucao_offline_e_integridade_base(tmp_path: Path) -> None:
-    """1. Primeira execucao offline confirma todas as fontes abertas e preserva os 16 trechos."""
+    """1. Primeira execucao offline confirma todas as fontes abertas e preserva todos os trechos da base."""
     saida_dir, estado_dir, logs_dir = _dirs(tmp_path)
     res = executar_rpa(
         caminho_fontes=FONTES_YAML,
@@ -88,14 +88,14 @@ def test_sucesso_primeira_execucao_offline_e_integridade_base(tmp_path: Path) ->
     )
 
     assert res.codigo_saida == 0
-    assert res.relatorio["total_trechos"] == 16
-    assert res.relatorio["contagem_status_fontes"]["CONFIRMADA"] == 9
+    assert res.relatorio["total_trechos"] == 25
+    assert res.relatorio["contagem_status_fontes"]["CONFIRMADA"] == 17
     assert res.relatorio["contagem_status_fontes"]["FONTE_FECHADA"] == 1
     assert res.relatorio["contagem_status_fontes"]["FONTE_INTERNA"] == 1
 
     originais = carregar_base_jsonl(BASE_JSONL)
     sincronizados = carregar_base_jsonl(Path(res.arquivo_base_sincronizada))
-    assert len(sincronizados) == len(originais) == 16
+    assert len(sincronizados) == len(originais) == 25
 
     for orig, sync in zip(originais, sincronizados):
         for campo in CAMPOS_ORIGINAIS_BASE:
@@ -133,7 +133,7 @@ def test_idempotencia_segunda_execucao_sem_alteracao(tmp_path: Path) -> None:
         offline=True,
     )
     assert res2.codigo_saida == 0
-    assert res2.relatorio["contagem_status_fontes"]["SEM_ALTERACAO"] == 9
+    assert res2.relatorio["contagem_status_fontes"]["SEM_ALTERACAO"] == 17
     assert res2.relatorio["contagem_status_fontes"].get("CONFIRMADA", 0) == 0
 
 
