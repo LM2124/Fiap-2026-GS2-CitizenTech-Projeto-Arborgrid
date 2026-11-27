@@ -56,7 +56,7 @@ flowchart LR
 
 Os **16 trechos curados** em [`base/knowledge_base.jsonl`](base/knowledge_base.jsonl) estão documentados com URL, formato e licença em [`base/fontes_licencas.md`](base/fontes_licencas.md):
 
-| `chunk_id` | Categoria | Título / Assunto | Fonte Oficial |
+| `chunk_id` | Categoria | Título / Assunto | Fonte |
 | :--- | :--- | :--- | :--- |
 | `LEI-17794-ART05` | `legislacao_sp` | Competência sobre árvores em áreas públicas de SP | Lei Municipal SP nº 17.794/2022 |
 | `LEI-17794-ART18` | `legislacao_sp` | Manejo de árvore em imóvel particular (10 dias úteis + ART) | Lei Municipal SP nº 17.794/2022, Art. 18 |
@@ -68,12 +68,14 @@ Os **16 trechos curados** em [`base/knowledge_base.jsonl`](base/knowledge_base.j
 | `DEFESA-CIVIL-199` | `emergencia_climatica` | Tempestade, árvore caída obstruindo via (`199`) | Defesa Civil Municipal de São Paulo |
 | `SEGURANCA-FIACAO` | `seguranca_operacional` | Conduta diante de fio caído ou veículo atingido | Manual de Segurança — Defesa Civil / Enel SP |
 | `SVMA-MANUAL-PODA` | `norma_tecnica` | Prioridade à rede compacta/isolada antes de poda drástica | Manual Técnico de Poda — PMSP / SVMA |
-| `NBR-16246-1` | `norma_tecnica` | Critérios técnicos de poda em arborização urbana | ABNT NBR 16246-1 |
-| `NBR-16246-2` | `seguranca_trabalho` | Segurança do trabalho e NR-10 próximo à rede elétrica | ABNT NBR 16246-2 e NR-10 |
-| `NBR-16246-3` | `norma_tecnica` | Avaliação objetiva de risco de queda arbórea | ABNT NBR 16246-3 |
+| `NBR-16246-1` | `norma_tecnica` | Critérios técnicos de poda em arborização urbana | ABNT NBR 16246-1 (resumo da equipe) |
+| `NBR-16246-2` | `seguranca_trabalho` | Segurança do trabalho e NR-10 próximo à rede elétrica | ABNT NBR 16246-2 (resumo da equipe) e NR-10 |
+| `NBR-16246-3` | `norma_tecnica` | Avaliação objetiva de risco de queda arbórea | ABNT NBR 16246-3 (resumo da equipe) |
 | `ARBORGRID-TRIAGEM` | `sistema_arborgrid` | Triagem `CRITICO`, `DIVERGENCIA_PARALAXE`, `PROXIMIDADE`, `SEGURO` | Especificação ArborGrid-Vision v3 |
 | `ARBORGRID-LGPD` | `sistema_arborgrid` | Privacidade, minimização e anonimização de solicitações | Diretriz LGPD (Lei nº 13.709/2018) |
-| `CHANGELOG-2026-ARBOR` | `regra_operacional` | Desempate operacional: rotina SP156 vs. emergência Enel/193 | Nota Operacional Integrada ArborGrid v1.2 |
+| `CHANGELOG-2026-ARBOR` | `regra_operacional` | Desempate operacional: rotina SP156 vs. emergência Enel/193 | Regra escrita pela equipe (Nota Operacional ArborGrid v1.2) |
+
+Nem todo trecho vem de uma fonte pública. A NBR 16246 é uma norma paga da ABNT: os três trechos dela são resumos escritos pela equipe, sem reproduzir o texto. Os trechos `ARBORGRID-*` descrevem o próprio sistema, e o `CHANGELOG-2026-ARBOR` é uma regra da equipe que junta os canais oficiais dos outros trechos (SP156 para rotina, Enel para risco elétrico, `193` para fogo ou feridos).
 
 ---
 
